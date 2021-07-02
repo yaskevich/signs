@@ -6,6 +6,9 @@ from datetime import date, datetime
 import json
 from telethon.sync import TelegramClient, events
 
+# pip install psycopg2-binary
+import psycopg2
+
 # from pathlib import Path
 # basepath = Path()
 # basedir = str(basepath.cwd())
@@ -126,18 +129,28 @@ async def dump_all_messages(channel, lim = 0):
             print(saved_path)
         json.dump(all_messages, outfile, ensure_ascii=False, cls=DateTimeEncoder)    
         
-async def getMessages():
-    async for msg in client.iter_messages(channel_username, limit=4, reverse=False):
+async def getMessages(cur):
+    async for msg in client.iter_messages(int(channel_username), limit=4, reverse=False):
         msg_json = json.dumps(msg.to_dict(), ensure_ascii=False, cls=DateTimeEncoder)
-        print(msg_json)
+        # if msg.photo:
+            # print('File Name :' + str(dir(msg.file)))
+            # print('File Name :' + msg.file.ext, msg.file.repr())
+        # print(msg_json)
         # saved_path = await event.download_media(optional_path)
         saved_path  = await client.download_media(msg.media,"media")
+        # cursor.execute('SELECT * FROM airport LIMIT 10')
+        cur.execute("INSERT INTO messages(data, imagepath) VALUES (%s, %s)", (msg_json, saved_path))
         print(saved_path)
         
          
 async def main():
     # await dump_all_messages(channel_username, 2)
-    await getMessages()
+    conn = psycopg2.connect(dbname=os.getenv("DB_NAME"), user=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"), host='localhost')
+    cursor = conn.cursor()
+    await getMessages(cursor)
+    conn.commit()
+    cursor.close()
+    conn.close()
     
 
 with client:
