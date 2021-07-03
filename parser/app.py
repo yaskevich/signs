@@ -45,8 +45,8 @@ with TelegramClient('session_name', api_id, api_hash) as client:
             jpg_path = os.path.join("media", jpg_name) 
             if not os.path.exists(jpg_path):
                 saved_path = message.download_media(jpg_path)
+        cursor.execute("INSERT INTO messages(tg_id, data, imagepath) VALUES (%s, %s, %s) ON CONFLICT ON CONSTRAINT messages_tg_id_key DO NOTHING", (message.id, message_json, jpg_name))
             
-        cursor.execute("INSERT INTO messages(data, imagepath) VALUES (%s, %s)", (message_json, jpg_name))
         
         print(message.id)
     print(counter)
