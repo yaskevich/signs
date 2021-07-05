@@ -6,4 +6,13 @@ CREATE TABLE IF NOT EXISTS messages (
 	tg_id integer unique
 );
 
+CREATE TABLE IF NOT EXISTS users (
+	id SERIAL PRIMARY KEY,	
+	username text,	
+	firstname text,
+	lastname text,
+	tg_id integer unique
+);
+
+
 ALTER TABLE messages OWNER TO [user];
