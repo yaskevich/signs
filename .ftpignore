@@ -1,0 +1,12 @@
+.ftpconfig
+.ftpconfig.cson
+.ftpignore
+id_rsa
+.DS_Store
+.git
+server/node_modules
+client/node_modules
+node_modules
+server/.env
+client/dist
+server/media
