@@ -9,4 +9,8 @@ export default {
       let res = await pool.query('select * from messages order by tg_id limit 100');
       return res.rows;
 	},
+    async getUsers() {
+      let res = await pool.query('select * from users');
+      return res.rows;
+	},
 };

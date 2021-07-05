@@ -143,8 +143,12 @@ let users = [
 
 	app.get("/api/messages", async(req, res) =>  {
 	  const data = await db.getMessages();
+	  const users = await db.getUsers();
+		const usersDict = users.reduce((obj, item) => ((obj[[item['tg_id']]] = item), obj), {});
+
 	  return res.json({
 			"data": data,
+			"users": usersDict,
 			// "user": req.isAuthenticated()?getUser(req):{}
 		});
 	});
