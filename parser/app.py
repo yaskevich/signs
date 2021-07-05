@@ -28,6 +28,13 @@ with TelegramClient('session_name', api_id, api_hash) as client:
             # break
     # c = client.get_entity(PeerChat(int(group_id)))
     # , min_id = 115027, limit=2
+    
+    for person in client.get_participants(int(group_id)):
+        who = person.to_dict()
+        print(who["id"], who["first_name"], who["last_name"], who["username"])
+    
+    exit()
+    
     for message in client.iter_messages(int(group_id), reverse=True):
         print(message.id)
         message_json = json.dumps(message.to_dict(), ensure_ascii=False, default=str)
