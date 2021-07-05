@@ -4,7 +4,9 @@
     <router-link to="/about">About</router-link> |
     <router-link to="/messages">Posts</router-link>
   </div>
-  <router-view/>
+  <div id="content">
+    <router-view/>
+  </div>
 </template>
 
 <style lang="scss">
@@ -27,5 +29,14 @@
       color: #42b983;
     }
   }
+}
+
+#content {
+  display: flex;
+  flex-direction: column;
+  min-height: 97vh;
+  max-width: 100vh;
+  /* max-width: 800px; */
+  margin: auto;
 }
 </style>
