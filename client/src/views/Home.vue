@@ -1,7 +1,11 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
+    <!-- <img alt="Vue logo" src="../assets/logo.png"> -->
+    <h1><span class="p-shadow-9 p-p-2">Signs project</span></h1>
+    <h3>¡signs are everywhere!</h3>
+    <p>
+      Click <b>Posts</b> link in page header
+    </p>
   </div>
 </template>
 
