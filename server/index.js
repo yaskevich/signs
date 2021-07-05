@@ -48,7 +48,7 @@ let users = [
 (async () => {
 	const app = express();
 	const port = process.env.PORT || 5000;
-	
+
 	passport.use(
 	  new LocalStrategy(
 		{
@@ -80,10 +80,10 @@ let users = [
 	  });
 	  done(null, user);
 	});
-	
+
 	app.use('/api/media', express.static(path.join(__dirname, 'media')));
 	app.use(express.static('public'));
-	
+
 	app.use(compression());
 	app.use(session({
 	  secret: process.env.SESSION_SECRET || Math.random().toString(36).substring(2),
@@ -91,12 +91,12 @@ let users = [
 	  saveUninitialized: true,
 	  cookie: { secure: true }
 	}));
-	
+
 	app.use(passport.initialize());
 	app.use(passport.session());
 	app.use(bodyParser.json());
 	app.use(bodyParser.urlencoded({ extended: true }));
-	
+
 	app.use(history({
 		  // verbose: true,
 		  rewrites: [
@@ -104,8 +104,8 @@ let users = [
 		  ]
 		}));
 	// app.use(path.join(__dirname, 'public'), express.static('media'));
-	
-	
+
+
 	app.post('/api/login', function(req, res, next) {
 	  passport.authenticate("local", (err, user, info) => {
 		  // console.log(user, info);
@@ -133,22 +133,20 @@ let users = [
 		// res.redirect('/login');
 		return res.send();
 	});
-	
+
 	// app.get("/api/data/:id", async(req, res) =>  {
 		// const id  = parseInt(req.params.id, 10);
 		// console.log(`query for ${id}`);
 		// const data  = id ? await db.getUnits1(id) : [];
 		// return res.json(data);
-	// });	
-		
-	app.get("/api/data", async(req, res) =>  {
-	  const data = await db.getData();
-	  
-	  
-	  // console.log("data", data);
+	// });
+
+	app.get("/api/messages", async(req, res) =>  {
+	  const data = await db.getMessages();
 	  return res.json({
 			"data": data,
-			"user": req.isAuthenticated()?getUser(req):{}});
+			// "user": req.isAuthenticated()?getUser(req):{}
+		});
 	});
 
 	const authMiddleware = (req, res, next) => {
@@ -167,6 +165,6 @@ let users = [
 		res.send("hi");
 	});
 
-	app.listen(port);  
+	app.listen(port);
 	console.log("Backend is at port "+ port);
 })();

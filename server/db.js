@@ -5,6 +5,8 @@ const { Pool } = pg;
 const pool = new Pool();
 
 export default {
-    async getDataFromDB() {
+    async getMessages() {
+      let res = await pool.query('select * from messages order by tg_id limit 100');
+      return res.rows;
 	},
 };
