@@ -7,6 +7,9 @@
   <div id="content">
     <router-view/>
   </div>
+  <div id="footer" class="p-mt-4 p-mb-4">
+    Signs Project, 2020-2021. Coded by Alyaxey Yaskevich. Content is published under GPL.
+  </div>
 </template>
 
 <style lang="scss">
