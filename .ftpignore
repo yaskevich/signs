@@ -10,3 +10,6 @@ node_modules
 server/.env
 client/dist
 server/media
+client/media
+client/package-lock.json
+server/package-lock.json
