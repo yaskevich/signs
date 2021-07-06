@@ -142,11 +142,14 @@ let users = [
 	// });
 
 	app.get("/api/messages", async(req, res) =>  {
-	  const data = await db.getMessages();
+		console.log(req.query);
+		const count = await db.getMessagesCount();
+	  const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
 	  const users = await db.getUsers();
 		const usersDict = users.reduce((obj, item) => ((obj[[item['tg_id']]] = item), obj), {});
 
 	  return res.json({
+			"count": count.count,
 			"data": data,
 			"users": usersDict,
 			// "user": req.isAuthenticated()?getUser(req):{}

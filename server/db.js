@@ -5,8 +5,12 @@ const { Pool } = pg;
 const pool = new Pool();
 
 export default {
-    async getMessages() {
-      let res = await pool.query('select * from messages order by tg_id limit 100');
+    async getMessagesCount() {
+      let res = await pool.query('select COUNT(*) from messages');
+      return res.rows[0];
+	},
+    async getMessages(off, batch) {
+      let res = await pool.query('select * from messages order by tg_id OFFSET '+ off + ' LIMIT ' + batch);
       return res.rows;
 	},
     async getUsers() {
