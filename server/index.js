@@ -156,6 +156,11 @@ let users = [
 		});
 	});
 
+	app.get("/api/message", async(req, res) =>  {
+		console.log(req.query);
+	  return res.json(await db.getMessage(Number(req.query.id)));
+	});
+
 	const authMiddleware = (req, res, next) => {
 	  if (!req.isAuthenticated()) {
 		res.status(401).send('You are not authenticated');
