@@ -17,6 +17,14 @@ export default {
       let res = await pool.query('select * from messages where tg_id = '+ id + ' LIMIT 1');
       return res.rows.length?res.rows[0]:{};
 	},
+    async getNext(id) {
+      let res = await pool.query('SELECT * FROM messages WHERE tg_id > '+ id + ' ORDER BY tg_id ASC LIMIT 1');
+      return res.rows.length?res.rows[0]:{};
+	},
+    async getPrev(id) {
+      let res = await pool.query('SELECT * FROM messages WHERE tg_id < '+ id + ' ORDER BY tg_id DESC LIMIT 1');
+      return res.rows.length?res.rows[0]:{};
+	},
     async getUsers() {
       let res = await pool.query('select * from users');
       return res.rows;

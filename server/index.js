@@ -161,6 +161,16 @@ let users = [
 	  return res.json(await db.getMessage(Number(req.query.id)));
 	});
 
+	app.get("/api/next", async(req, res) =>  {
+		console.log(req.query);
+	  return res.json(await db.getNext(Number(req.query.id)));
+	});
+
+	app.get("/api/prev", async(req, res) =>  {
+		console.log(req.query);
+	  return res.json(await db.getPrev(Number(req.query.id)));
+	});
+
 	const authMiddleware = (req, res, next) => {
 	  if (!req.isAuthenticated()) {
 		res.status(401).send('You are not authenticated');
