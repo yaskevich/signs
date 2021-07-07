@@ -15,7 +15,7 @@ import Dropdown from 'primevue/dropdown';
 import ScrollTop from 'primevue/scrolltop';
 import Paginator from 'primevue/paginator';
 import SelectButton from 'primevue/selectbutton';
-
+import Message from 'primevue/message';
 
 const app  = createApp(App);
 app.component('ScrollTop', ScrollTop);
@@ -25,6 +25,7 @@ app.component('Button', Button);
 app.component('SelectButton', SelectButton);
 app.component('Divider', Divider);
 app.component('Paginator', Paginator);
+app.component('Message', Message);
 
 
 app.use(router).use(PrimeVue).mount('#app')
