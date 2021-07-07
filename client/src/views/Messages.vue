@@ -52,10 +52,12 @@
       </div>
       <div class="p-ml-auto">
         <div class="p-text-right p-mb-2">
-          <Button label="Annotate" class="p-button-outlined p-button-secondary" @click="goToMessage(value.tg_id)" v-if="value.imagepath && value.data['_'] == 'Message'"/>
+          <!-- <Button label="Annotate" class="p-button-outlined p-button-secondary" @click="goToMessage(value.tg_id)" v-if="value.imagepath && value.data['_'] == 'Message'"/> -->
         </div>
         <div>
-          <img :src="'/api/media/thumbs/'+value.imagepath" v-if="value.imagepath" />
+          <router-link :to="'/message/' + value.tg_id">
+            <img :src="'/api/media/thumbs/'+value.imagepath" v-if="value.imagepath" class="image-navi" />
+          </router-link>
         </div>
       </div>
     </div>
@@ -108,3 +110,20 @@
   };
 
 </script>
+
+<style>
+.image-navi{
+  border: 5px double lightgray;
+  transition: filter .2s ease-in-out;
+ -webkit-filter: grayscale(0%); /* Ch 23+, Saf 6.0+, BB 10.0+ */
+ filter: grayscale(0%); /* FF 35+ */
+ transform: scale(.8);
+}
+
+.image-navi:hover {
+  -webkit-filter: grayscale(100%); /* Ch 23+, Saf 6.0+, BB 10.0+ */
+  filter: grayscale(100%); /* FF 35+ */
+  transform: scale(1);
+}
+
+</style>
