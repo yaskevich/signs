@@ -1,7 +1,7 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, RouteRecordRaw, RouterScrollBehavior,   } from 'vue-router'
 import Home from '../views/Home.vue'
-import Messages from '../views/Messages.vue'
-import Message from '../views/Message.vue'
+import TMessages from '../views/TMessages.vue'
+import TMessage from '../views/TMessage.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -9,15 +9,20 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Home',
     component: Home
   },
+  // {
+  //   path: '/messages',
+  //   name: 'Messages',
+  //   component: Messages
+  // },
   {
-    path: '/messages',
-    name: 'Messages',
-    component: Messages
+    path: '/messages/:batch?/:page?',
+    name: 'TMessages',
+    component: TMessages
   },
   {
 		path: '/message/:id?',
-		name: 'Message',
-		component: Message
+		name: 'TMessage',
+		component: TMessage
 	},
   {
     path: '/about',
@@ -29,9 +34,18 @@ const routes: Array<RouteRecordRaw> = [
   }
 ]
 
+const scrollBehavior: RouterScrollBehavior = (to:any, from:any, savedPosition:any) => {
+  if (savedPosition) {
+    return savedPosition
+  } else {
+    return { x: 0, y: 0 }
+  }
+};
+
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
+  routes,
+  scrollBehavior
 })
 
 export default router

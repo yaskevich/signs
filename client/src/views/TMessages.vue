@@ -3,7 +3,7 @@
   <div class="about">
     <!-- <h1>Data</h1> -->
   </div>
-  <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="pageCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
+  <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="totalCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
   <div style="text-align:left; margin:auto;">
     <div v-for="(value, key) in messagesPage" :key="key" class="p-shadow-1 p-p-3 p-d-flex card" style="">
       <div class="p-mr-6" style="">
@@ -62,29 +62,39 @@
       </div>
     </div>
   </div>
-  <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="pageCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
+  <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="totalCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
 
 </template>
 <script>
 
   import { reactive, ref, onMounted } from 'vue';
   import router from "../router";
+  import { useRoute } from 'vue-router';
   import axios from 'axios';
   export default {
     name: 'Messages',
     setup() {
       const messages = ref([]);
       const users = ref({});
-      const pageRows = ref(25);
-      const pageOffset = ref(0);
-      const pageOptions = [10, 25, 50, 100];
-      const pageCount = ref(0);
 
+      const totalCount = ref(0);
+      const pageOptions = [10, 25, 50, 100];
+
+
+      const vuerouter = useRoute();
+      const page = Number(vuerouter.params.page);
+      const batch = Number(vuerouter.params.batch);
+
+      console.log("params", page, batch);
+
+      const pageRows = ref( pageOptions.includes(batch) ? batch: 25 );
+      const pageOffset = ref( page  * pageRows.value || 0 );
       const messagesPage = ref([]);
+
       onMounted(async () => {
-        const { data } = await axios.get('/api/messages', { params: { off: 0, batch: pageRows.value } });
+        const { data } = await axios.get('/api/messages', { params: { off: pageOffset.value, batch: pageRows.value } });
         messages.value = data.data;
-        pageCount.value = Number(data.count);
+        totalCount.value = Number(data.count);
         users.value = data.users;
         // console.log(data.users);
         messagesPage.value = messages.value.slice(0, pageRows.value);
@@ -99,12 +109,13 @@
         pageRows.value = e.rows;
         const { data } = await axios.get('/api/messages', { params: { off: e.first, batch: e.rows } });
         messagesPage.value = data.data;
+        router.replace('/messages/' + e.rows + '/' + (e.page||''));
       };
 
       const goToMessage = (id) => {
         router.push('/message/' + id);
       }
-      return { messages, messagesPage, onPage, pageRows, pageOptions, pageOffset, users, pageCount, goToMessage, };
+      return { messages, messagesPage, onPage, pageRows, pageOptions, pageOffset, users, totalCount, goToMessage, };
     },
     components: {},
   };

@@ -5,8 +5,8 @@
     <img ref="imgRef" :src="imgSrc" />
   </div>
   <!-- <div class="p-mt-4">
-          <Button label="Test" class="p-button-outlined p-button-secondary" @click="saveAnnotations" />
-        </div> -->
+            <Button label="Test" class="p-button-outlined p-button-secondary" @click="saveAnnotations" />
+          </div> -->
 
   <Divider></Divider>
   <div class="p-grid">
@@ -14,12 +14,13 @@
       <Button label="Previous" class="p-button-outlined p-button-secondary" @click="getNeighbor('prev')" />
     </div>
     <div class="p-col">
-      <Button label="Save" class="" @click="" />
+      <Button label="Save" class="" @click="saveAnnotations" />
     </div>
     <div class="p-col">
       <Button label="Next" class="p-button-outlined p-button-secondary" @click="getNeighbor('next')" />
     </div>
   </div>
+  <Message severity="warn">Error Message Content</Message>
   <Divider></Divider>
   <div class=" p-text-left">
     <div class="p-grid">
@@ -27,8 +28,8 @@
         <div class="p-field">
           <label for="drop">Country</label>
           <Dropdown id="drop"
-                    v-model="selectedCity1"
-                    :options="cities"
+                    v-model="datum.country"
+                    :options="countries"
                     optionLabel="name"
                     optionValue="code"
                     placeholder="Select a country"
@@ -39,7 +40,7 @@
       <div class="p-col">
         <div class="p-field">
           <label for="opts">Orientation</label>
-          <SelectButton v-model="value2" :options="paymentOptions" optionLabel="name" id="opts" />
+          <SelectButton v-model="orientProp" :options="orientOptions" optionLabel="name" id="opts" />
         </div>
 
       </div>
@@ -47,32 +48,32 @@
     <div class="p-grid">
       <div class="p-col">
         <div class="p-field">
-          <label for="username1">Source: title</label>
-          <InputText id="username1" type="username" aria-describedby="username1-help" />
-          <small id="username1-help">Enter text title of the source</small>
+          <label for="source-title">Source: title</label>
+          <InputText id="source-title" type="username" aria-describedby="source-title-help" v-model="datum.src" />
+          <small id="source-title-help">Enter text title of the source</small>
         </div>
       </div>
 
       <div class="p-col">
         <div class="p-field">
-          <label for="username2">Source: URL</label>
-          <InputText id="username2" type="username" aria-describedby="username2-help" />
-          <small id="username2-help">Put URL (web link) of the source</small>
+          <label for="source-url">Source: URL</label>
+          <InputText id="source-url" type="username" aria-describedby="source-url-help" v-model="datum.url" />
+          <small id="source-url-help">Put URL (web link) of the source</small>
         </div>
       </div>
 
     </div>
   </div>
   <Divider></Divider>
-  <div style="border:1px dashed red;" class="p-p-2" v-if="message?.data?.message">
-    <span v-html="message?.data?.message?.split('\n').join('<br/>')"></span>
+  <div style="border:1px dashed orange;" class="p-p-2" v-if="Object.keys(message).length">
+    <span v-html="message.data.message.split('\n').join('<br/>')"></span>
   </div>
 
 </template>
 
 <script>
 
-  import { defineComponent, ref, reactive, onBeforeMount, onMounted } from 'vue';
+  import { defineComponent, ref, reactive, onBeforeMount, onMounted, toRaw } from 'vue';
   import { useRoute } from 'vue-router';
   import router from '../router';
   import axios from 'axios';
@@ -88,8 +89,7 @@
       const imgRef = ref();
       const anno = ref();
 
-      const selectedCity1 = ref();
-      const cities = [
+      const countries = [
         { name: 'Belarus', code: 'BY' },
         { name: 'Poland', code: 'PL' },
         { name: 'Great Britain', code: 'GB' },
@@ -97,12 +97,14 @@
         { name: 'France', code: 'FR' },
       ];
 
-      const paymentOptions = ref([
+      const orientOptions = ref([
         { name: 'Basic', value: 1 },
         { name: 'Pro', value: 2 },
       ]);
-      // const value2 = ref(paymentOptions.value[1]);
-      const value2 = ref();
+      const orientProp = ref();
+      // const orient = ref(orientOptions.value[1]);
+
+      const datum = reactive({ country: null, src: '', url: '' });
 
       onMounted(async () => {
         anno.value = new Annotorious(
@@ -122,15 +124,15 @@
         anno.value
           .on('updateAnnotation', function(annotation, previous) {
             console.log('updateAnnotation');
-            saveAnnotations();
+            // saveAnnotations();
           })
           .on('createAnnotation', function(annotation) {
             console.log('createAnnotation');
-            saveAnnotations();
+            // saveAnnotations();
           })
           .on('deleteAnnotation', function(annotation) {
             console.log('deleteAnnotation');
-            saveAnnotations();
+            // saveAnnotations();
           });
         // .on('createSelection', function(selection) {
         //   console.log("create", selection);
@@ -144,7 +146,7 @@
         console.log('router id', id.value);
         if (id.value) {
           const { data } = await axios.get('/api/message', { params: { id: id.value } });
-          imgSrc.value = '/api/media/' + data.imagepath;
+          imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
           message.value = data;
           console.log(data);
         }
@@ -152,20 +154,23 @@
 
       const saveAnnotations = () => {
         // const annotations =
-        console.log('save anno', anno.value.getAnnotations());
+        const params = { ...toRaw(datum) };
+        params.orient = orientProp.value?.value || null
+        console.log('save', params);
+        console.log('save anno', imgSrc.value, anno.value.getAnnotations());
       };
 
-      const getNeighbor = async(path) => {
+      const getNeighbor = async path => {
         console.log(path, id.value);
-        const { data } = await axios.get('/api/'+path, { params: { id: id.value } });
+        const { data } = await axios.get('/api/' + path, { params: { id: id.value } });
         imgSrc.value = '/api/media/' + data.imagepath;
         message.value = data;
         id.value = data.tg_id;
         console.log(data);
-        router.replace('/message/'+data.tg_id)
+        router.replace('/message/' + data.tg_id);
         // must be rewritten with router.push ans storing data in state!!!
       };
-      return { message, imgRef, imgSrc, saveAnnotations, selectedCity1, cities, paymentOptions, value2, getNeighbor, };
+      return { message, imgRef, imgSrc, saveAnnotations, countries, orientOptions, orientProp, datum, getNeighbor };
     },
     components: {},
   });
