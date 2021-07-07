@@ -4,7 +4,7 @@ import './registerServiceWorker'
 import router from './router'
 import PrimeVue from 'primevue/config';
 import 'primeflex/primeflex.css';
-import 'primevue/resources/themes/saga-orange/theme.css';
+import 'primevue/resources/themes/fluent-light/theme.css';
 import 'primevue/resources/primevue.min.css';
 import 'primeicons/primeicons.css';
 
