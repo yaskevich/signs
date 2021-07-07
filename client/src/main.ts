@@ -14,12 +14,15 @@ import Divider from 'primevue/divider';
 import Dropdown from 'primevue/dropdown';
 import ScrollTop from 'primevue/scrolltop';
 import Paginator from 'primevue/paginator';
+import SelectButton from 'primevue/selectbutton';
+
 
 const app  = createApp(App);
 app.component('ScrollTop', ScrollTop);
 app.component('Dropdown', Dropdown);
 app.component('InputText', InputText);
 app.component('Button', Button);
+app.component('SelectButton', SelectButton);
 app.component('Divider', Divider);
 app.component('Paginator', Paginator);
 
