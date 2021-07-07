@@ -5,9 +5,21 @@
     <img ref="imgRef" :src="imgSrc" />
   </div>
   <!-- <div class="p-mt-4">
-        <Button label="Test" class="p-button-outlined p-button-secondary" @click="saveAnnotations" />
-      </div> -->
+          <Button label="Test" class="p-button-outlined p-button-secondary" @click="saveAnnotations" />
+        </div> -->
 
+  <Divider></Divider>
+  <div class="p-grid">
+    <div class="p-col">
+      <Button label="Previous" class="p-button-outlined p-button-secondary" @click="getNeighbor('prev')" />
+    </div>
+    <div class="p-col">
+      <Button label="Save" class="" @click="" />
+    </div>
+    <div class="p-col">
+      <Button label="Next" class="p-button-outlined p-button-secondary" @click="getNeighbor('next')" />
+    </div>
+  </div>
   <Divider></Divider>
   <div class=" p-text-left">
     <div class="p-grid">
@@ -70,7 +82,7 @@
   export default defineComponent({
     setup() {
       const vuerouter = useRoute();
-      const id = vuerouter.params.id;
+      const id = ref(vuerouter.params.id);
       const message = ref({});
       const imgSrc = ref('');
       const imgRef = ref();
@@ -129,9 +141,9 @@
       });
 
       onBeforeMount(async () => {
-        console.log('router id', id);
-        if (id) {
-          const { data } = await axios.get('/api/message', { params: { id: id } });
+        console.log('router id', id.value);
+        if (id.value) {
+          const { data } = await axios.get('/api/message', { params: { id: id.value } });
           imgSrc.value = '/api/media/' + data.imagepath;
           message.value = data;
           console.log(data);
@@ -142,7 +154,18 @@
         // const annotations =
         console.log('save anno', anno.value.getAnnotations());
       };
-      return { message, imgRef, imgSrc, saveAnnotations, selectedCity1, cities, paymentOptions, value2 };
+
+      const getNeighbor = async(path) => {
+        console.log(path, id.value);
+        const { data } = await axios.get('/api/'+path, { params: { id: id.value } });
+        imgSrc.value = '/api/media/' + data.imagepath;
+        message.value = data;
+        id.value = data.tg_id;
+        console.log(data);
+        router.replace('/message/'+data.tg_id)
+        // must be rewritten with router.push ans storing data in state!!!
+      };
+      return { message, imgRef, imgSrc, saveAnnotations, selectedCity1, cities, paymentOptions, value2, getNeighbor, };
     },
     components: {},
   });
