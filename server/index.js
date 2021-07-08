@@ -156,6 +156,11 @@ let users = [
 		});
 	});
 
+	app.post("/api/anno", async(req, res) =>  {
+		console.log(req.query, req.body.params);
+	 	return res.json(await db.updateMessage(req.body.params));
+	});
+
 	app.get("/api/message", async(req, res) =>  {
 		console.log(req.query);
 	  return res.json(await db.getMessage(Number(req.query.id)));

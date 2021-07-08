@@ -17,6 +17,10 @@ export default {
       let res = await pool.query('select * from messages where tg_id = '+ id + ' LIMIT 1');
       return res.rows.length?res.rows[0]:{};
 	},
+    async updateMessage(params) {
+      let res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4, annotations = $5 WHERE tg_id = $6 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, JSON.stringify(params.annotations), params.tg_id]);
+      return res.rows;
+	},
     async getNext(id) {
       let res = await pool.query('SELECT * FROM messages WHERE tg_id > '+ id + ' ORDER BY tg_id ASC LIMIT 1');
       return res.rows.length?res.rows[0]:{};
