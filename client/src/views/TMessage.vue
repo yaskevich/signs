@@ -91,11 +91,20 @@
       const errorMessages = ref([]);
       const ok = ref(false);
       const countries = [
-        { name: 'Belarus', code: 'BY' },
-        { name: 'Poland', code: 'PL' },
-        { name: 'Great Britain', code: 'GB' },
-        { name: 'Germany', code: 'DE' },
-        { name: 'France', code: 'FR' },
+        { name: 'Belarus', code: 'by' },
+        { name: 'Out of Belarus', code: 'out' },
+        { name: 'Poland', code: 'pl' },
+        { name: 'Great Britain', code: 'gb' },
+        { name: 'Germany', code: 'de' },
+        { name: 'France', code: 'fr' },
+        { name: 'Russia', code: 'ru' },
+        { name: 'USA', code: 'us' },
+        { name: 'Ukraine', code: 'ua' },
+        { name: 'Lithuania', code: 'lt' },
+        { name: 'Latvia', code: 'lv' },
+        { name: 'Switzerland', code: 'ch' },
+        { name: 'Australia', code: 'au' },
+        { name: 'Austria', code: 'at' },
       ];
 
       const orientOptions = [
@@ -113,7 +122,7 @@
             image: imgRef.value,
             widgets: [
               'COMMENT',
-              { widget: 'TAG', vocabulary: [ 'TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT'] }
+              { widget: 'TAG', vocabulary: [ 'TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS'] }
             ],
             // disableEditor: true,
             // allowEmpty: true
@@ -184,9 +193,13 @@
         }
         if (!params.src) {
           errorMessages.value.push("Source title is empty!");
+        } else {
+          params.src = params.src.trim();
         }
         if (!params.url) {
           errorMessages.value.push("Source URL is empty!");
+        } else {
+          params.url = params.url.trim();
         }
         if (!params.annotations||(params.annotations && !params.annotations.length)) {
           errorMessages.value.push("No anotation is provided!!!");
@@ -206,6 +219,8 @@
         message.value = data;
         id.value = Number(data.tg_id);
         console.log(data);
+        errorMessages.value = [];
+        ok.value = false;
         router.replace('/message/' + data.tg_id);
         // must be rewritten with router.push ans storing data in state!!!
       };
