@@ -111,6 +111,10 @@
         anno.value = new Annotorious(
           {
             image: imgRef.value,
+            widgets: [
+              'COMMENT',
+              { widget: 'TAG', vocabulary: [ 'TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT'] }
+            ],
             // disableEditor: true,
             // allowEmpty: true
           },
