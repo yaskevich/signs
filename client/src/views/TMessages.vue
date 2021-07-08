@@ -5,8 +5,8 @@
   </div>
   <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="totalCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
   <div style="text-align:left; margin:auto;">
-    <div v-for="(value, key) in messagesPage" :key="key" class="p-shadow-1 p-p-3 p-d-flex card" style="">
-      <div class="p-mr-6" style="">
+    <div v-for="(value, key) in messagesPage" :key="key" class="p-shadow-1 p-p-3 p-d-flex card" :style="value.annotations && value.annotations.length? 'background-color:#dff6dd': ''">
+      <div class="p-mr-6">
         <table>
           <tr>
             <td style="font-weight:bold;">№</td>
@@ -29,8 +29,11 @@
             <td>{{value.data["views"]}}</td>
           </tr>
           <tr v-if="value.data.message">
-            <td style="font-weight:bold;">Content</td>
-            <td style="border:1px dashed red;"><span v-html="value.data.message?.split('\n').join('<br/>')"></span></td>
+            <td style="font-weight:bold;">{{value.annotations && value.annotations.length ? "Ann.": "Content"}}</td>
+            <td v-if="value.annotations && value.annotations.length" style="border:1px double gold;">
+              <div  v-for="item of value.annotations" v-html="item.body[0].value.split('\n').join('<br/>')"></div>
+            </td>
+            <td v-else style="border:1px dashed gray;"><span v-html="value.data.message?.split('\n').join('<br/>')"></span></td>
           </tr>
           <tr v-if="value.data.grouped_id">
             <td style="font-weight:bold;">Group</td>
@@ -40,7 +43,7 @@
             <td style="font-weight:bold;">Fwd</td>
             <td>
               {{value.data.fwd_from.from_id?.channel_id}}/{{value.data.fwd_from?.channel_post}}
-              <br/>{{value.data.fwd_from.date}}
+              <br/>{{value.data.fwd_from.date.slice(0, -6)}}
             </td>
           </tr>
           <!-- <tr>
@@ -85,7 +88,7 @@
       const page = Number(vuerouter.params.page);
       const batch = Number(vuerouter.params.batch);
 
-      console.log("params", page, batch);
+      // console.log("params", page, batch);
 
       const pageRows = ref( pageOptions.includes(batch) ? batch: 25 );
       const pageOffset = ref( page  * pageRows.value || 0 );
