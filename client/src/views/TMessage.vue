@@ -4,11 +4,9 @@
   <div class="p-p-4">
     <img ref="imgRef" :src="imgSrc" />
   </div>
-  <!-- <div class="p-mt-4">
-            <Button label="Test" class="p-button-outlined p-button-secondary" @click="saveAnnotations" />
-          </div> -->
 
   <Divider></Divider>
+
   <div class="p-grid">
     <div class="p-col">
       <Button label="Previous" class="p-button-outlined p-button-secondary" @click="getNeighbor('prev')" />
@@ -20,8 +18,12 @@
       <Button label="Next" class="p-button-outlined p-button-secondary" @click="getNeighbor('next')" />
     </div>
   </div>
-  <Message severity="warn">Error Message Content</Message>
+
+  <Message severity="warn" v-for="item of errorMessages" >{{item}}</Message>
+  <Message severity="success" v-if="ok">Data are saved succesfully!</Message>
+
   <Divider></Divider>
+
   <div class=" p-text-left">
     <div class="p-grid">
       <div class="p-col">
@@ -35,14 +37,12 @@
                     placeholder="Select a country"
                     style="display:flex;" />
         </div>
-
       </div>
       <div class="p-col">
         <div class="p-field">
           <label for="opts">Orientation</label>
           <SelectButton v-model="orientProp" :options="orientOptions" optionLabel="name" id="opts" />
         </div>
-
       </div>
     </div>
     <div class="p-grid">
@@ -53,7 +53,6 @@
           <small id="source-title-help">Enter text title of the source</small>
         </div>
       </div>
-
       <div class="p-col">
         <div class="p-field">
           <label for="source-url">Source: URL</label>
@@ -61,10 +60,11 @@
           <small id="source-url-help">Put URL (web link) of the source</small>
         </div>
       </div>
-
     </div>
   </div>
+
   <Divider></Divider>
+
   <div style="border:1px dashed orange;" class="p-p-2" v-if="Object.keys(message).length">
     <span v-html="message.data.message.split('\n').join('<br/>')"></span>
   </div>
@@ -83,12 +83,13 @@
   export default defineComponent({
     setup() {
       const vuerouter = useRoute();
-      const id = ref(vuerouter.params.id);
+      const id = ref(Number(vuerouter.params.id));
       const message = ref({});
       const imgSrc = ref('');
       const imgRef = ref();
       const anno = ref();
-
+      const errorMessages = ref([]);
+      const ok = ref(false);
       const countries = [
         { name: 'Belarus', code: 'BY' },
         { name: 'Poland', code: 'PL' },
@@ -97,10 +98,10 @@
         { name: 'France', code: 'FR' },
       ];
 
-      const orientOptions = ref([
+      const orientOptions = [
         { name: 'Basic', value: 1 },
         { name: 'Pro', value: 2 },
-      ]);
+      ];
       const orientProp = ref();
       // const orient = ref(orientOptions.value[1]);
 
@@ -149,15 +150,49 @@
           imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
           message.value = data;
           console.log(data);
+          datum.country = data.country;
+          datum.src = data.src;
+          datum.url = data.url;
+          if (data.orient) {
+            orientProp.value = orientOptions.filter(x => x.value == data.orient)[0];
+          }
+          if (data.annotations) {
+            for (let annotation of data.annotations) {
+              anno.value.addAnnotation(annotation);
+            }
+          }
         }
       });
 
-      const saveAnnotations = () => {
+      const saveAnnotations = async () => {
         // const annotations =
         const params = { ...toRaw(datum) };
-        params.orient = orientProp.value?.value || null
+        errorMessages.value = [];
+        params.orient = orientProp.value?.value || null;
+        params.tg_id = id.value;
+        params.annotations = anno.value.getAnnotations();
         console.log('save', params);
-        console.log('save anno', imgSrc.value, anno.value.getAnnotations());
+        if (!params.country) {
+          errorMessages.value.push("Country is not set!");
+        }
+        if (!params.orient) {
+          errorMessages.value.push("Orientation is not set!");
+        }
+        if (!params.src) {
+          errorMessages.value.push("Source title is empty!");
+        }
+        if (!params.url) {
+          errorMessages.value.push("Source URL is empty!");
+        }
+        if (!params.annotations||(params.annotations && !params.annotations.length)) {
+          errorMessages.value.push("No anotation is provided!!!");
+        }
+        // console.log('save anno', imgSrc.value);
+        const { data } = await axios.post('/api/anno', { params: params });
+        if (data?.[0]["tg_id"] == id.value) {
+          ok.value = true;
+        }
+        // console.log("result", data);
       };
 
       const getNeighbor = async path => {
@@ -165,12 +200,24 @@
         const { data } = await axios.get('/api/' + path, { params: { id: id.value } });
         imgSrc.value = '/api/media/' + data.imagepath;
         message.value = data;
-        id.value = data.tg_id;
+        id.value = Number(data.tg_id);
         console.log(data);
         router.replace('/message/' + data.tg_id);
         // must be rewritten with router.push ans storing data in state!!!
       };
-      return { message, imgRef, imgSrc, saveAnnotations, countries, orientOptions, orientProp, datum, getNeighbor };
+      return {
+        message,
+        imgRef,
+        imgSrc,
+        saveAnnotations,
+        countries,
+        orientOptions,
+        orientProp,
+        datum,
+        getNeighbor,
+        errorMessages,
+        ok,
+      };
     },
     components: {},
   });
