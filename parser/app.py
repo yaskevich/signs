@@ -3,23 +3,64 @@ import traceback
 import json
 from dotenv import load_dotenv # python-dotenv
 import psycopg2 # psycopg2-binary
-from telethon.sync import TelegramClient, events
+from telethon.sync import TelegramClient
+# from telethon.sync import TelegramClient, events
 # from telethon.tl.types import PeerUser, PeerChat, PeerChannel
 
 load_dotenv(verbose=True)
 
 api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
-test_user = os.getenv("USER")
+# test_user = os.getenv("USER")
 group_id = os.getenv("GROUP_ID")
 group_name = os.getenv("GROUP_NAME")
-
-f = open("debug.txt", "w", encoding='utf-8')
+db_user = os.getenv("DB_USER")
+db_name = os.getenv("DB_NAME")
+db_pass = os.getenv("DB_PASSWORD")
+counter = 0
+# f = open("debug.txt", "w", encoding='utf-8')
 # print(api_id, api_hash)
 
-conn = psycopg2.connect(dbname=os.getenv("DB_NAME"), user=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"), host='localhost')
+database_dict = {
+    "messages":
+        """CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,	
+                data json,	
+                created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                imagepath text,
+                tg_id integer unique,
+                annotations json,
+                orient integer,
+                country text,
+                url text,
+                src text
+        )""",
+    "users":
+        """CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,	
+                username text,	
+                firstname text,
+                lastname text,
+                tg_id integer unique
+        )""",
+}
+
+conn = psycopg2.connect(dbname=db_name, user=db_user, password=db_pass, host='localhost')
 cursor = conn.cursor()
-counter = 0
+
+cursor.execute("SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' GROUP BY table_name")
+res = cursor.fetchall()
+if res:
+    tables = [x[0] for x in res]
+    diff = set(database_dict.keys()).difference(set(tables))
+    if(len(diff)):
+        for table in diff:
+            print("init table:", table)
+            # cursor.execute(database_dict[table])
+            # cursor.execute("ALTER TABLE %s OWNER TO %s", (table, db_user))
+            # conn.commit()
+            
+exit()
 
 with TelegramClient('session_name', api_id, api_hash) as client:
     # for dialog in client.iter_dialogs():
@@ -32,7 +73,8 @@ with TelegramClient('session_name', api_id, api_hash) as client:
     for person in client.get_participants(int(group_id)):
         who = person.to_dict()
         # print(who["id"], who["first_name"], who["last_name"], who["username"])
-        cursor.execute("INSERT INTO users(username, firstname, lastname, tg_id) VALUES (%s, %s, %s, %s) ON CONFLICT ON CONSTRAINT users_tg_id_key DO NOTHING", (who["username"], who["first_name"], who["last_name"], who["id"]))
+        cursor.execute("INSERT INTO users(username, firstname, lastname, tg_id) VALUES (%s, %s, %s, %s) ON CONFLICT ON CONSTRAINT users_tg_id_key DO NOTHING",
+        (who["username"], who["first_name"], who["last_name"], who["id"]))
     conn.commit()
 
     for message in client.iter_messages(int(group_id), reverse=True):
@@ -62,6 +104,7 @@ with TelegramClient('session_name', api_id, api_hash) as client:
     print(counter)
     conn.commit()
     cursor.execute("SELECT COUNT(*) from messages")
+    # select count(*) from messages where length(imagepath) > 0;
     res = cursor.fetchall()
     print(f"DB count: {res[0][0]}")
     cursor.close()
