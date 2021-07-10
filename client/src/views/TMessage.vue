@@ -114,7 +114,11 @@
       const orientProp = ref();
       // const orient = ref(orientOptions.value[1]);
 
-      const datum = reactive({ country: null, src: '', url: '' });
+      const datum = reactive({ country: '', src: '', url: '' });
+
+      const tagsLangs  = ['TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL'];
+      const tagsVocabulary = [ ...tagsLangs, 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS'];
+
 
       onMounted(async () => {
         anno.value = new Annotorious(
@@ -122,7 +126,7 @@
             image: imgRef.value,
             widgets: [
               'COMMENT',
-              { widget: 'TAG', vocabulary: [ 'TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS'] }
+              { widget: 'TAG', vocabulary:  tagsVocabulary }
             ],
             // disableEditor: true,
             // allowEmpty: true
@@ -163,7 +167,7 @@
           imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
           message.value = data;
           console.log(data);
-          datum.country = data.country;
+          datum.country = data.country || 'by';
           datum.src = data.src;
           datum.url = data.url;
           if (data.orient) {
@@ -203,6 +207,19 @@
         }
         if (!params.annotations||(params.annotations && !params.annotations.length)) {
           errorMessages.value.push("No anotation is provided!!!");
+        } else {
+          for (let annotation of params.annotations) {
+            if (annotation.type === "Annotation") {
+                const tagsList = annotation.body.filter(x => x.purpose == "tagging");
+                if (tagsList.length) {
+                    if (!tagsList.map(x => x.value).some(x => tagsLangs.includes(x))){
+                        errorMessages.value.push("The annotation does not contain any LANGUAGE tags!");
+                    }
+                } else {
+                  errorMessages.value.push("There are no tags in the annotation!");
+                }
+            }
+          }
         }
         // console.log('save anno', imgSrc.value);
         const { data } = await axios.post('/api/anno', { params: params });
