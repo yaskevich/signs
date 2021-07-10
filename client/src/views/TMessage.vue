@@ -1,8 +1,13 @@
 <template>
 
   <!-- style="max-width:720px;" -->
-  <div class="p-p-4">
+
+  <div class="p-pl-4 p-pr-4">
     <img ref="imgRef" :src="imgSrc" />
+  </div>
+
+  <div>
+    <SelectButton v-model="drawingTool" :options="[{title:'Rectangle', type: 'rect'}, {title: 'Polygon', type: 'polygon'}]" optionLabel="title" optionValue="type" @click="changeTool" />
   </div>
 
   <Divider></Divider>
@@ -41,7 +46,7 @@
       <div class="p-col">
         <div class="p-field">
           <label for="opts">Orientation</label>
-          <SelectButton v-model="orientProp" :options="orientOptions" optionLabel="name" id="opts" />
+          <SelectButton v-model="orientProp" :options="orientOptions" optionLabel="name" id="opts" optionValue="level"/>
         </div>
       </div>
     </div>
@@ -88,6 +93,7 @@
       const imgSrc = ref('');
       const imgRef = ref();
       const anno = ref();
+      const drawingTool = ref('rect');
       const errorMessages = ref([]);
       const ok = ref(false);
       const countries = [
@@ -105,14 +111,19 @@
         { name: 'Switzerland', code: 'ch' },
         { name: 'Australia', code: 'au' },
         { name: 'Austria', code: 'at' },
+        { name: 'Israel', code: 'il' },
+        { name: 'Spain', code: 'es' },
+        { name: 'Spain', code: 'es' },
+        { name: 'Czechia', code: 'cz' },
+        { name: 'Denmark', code: 'dk' },
+        { name: 'Ireland', code: 'ie' },
       ];
 
       const orientOptions = [
-        { name: 'Basic', value: 1 },
-        { name: 'Pro', value: 2 },
+        { name: 'Basic', level: 1 },
+        { name: 'Pro', level: 2 },
       ];
       const orientProp = ref();
-      // const orient = ref(orientOptions.value[1]);
 
       const datum = reactive({ country: '', src: '', url: '' });
 
@@ -171,7 +182,7 @@
           datum.src = data.src;
           datum.url = data.url;
           if (data.orient) {
-            orientProp.value = orientOptions.filter(x => x.value == data.orient)[0];
+            orientProp.value = data.orient;
           }
           if (data.annotations) {
             for (let annotation of data.annotations) {
@@ -185,7 +196,7 @@
         // const annotations =
         const params = { ...toRaw(datum) };
         errorMessages.value = [];
-        params.orient = orientProp.value?.value || null;
+        params.orient = orientProp.value;
         params.tg_id = id.value;
         params.annotations = anno.value.getAnnotations();
         console.log('save', params);
@@ -241,6 +252,12 @@
         router.replace('/message/' + data.tg_id);
         // must be rewritten with router.push ans storing data in state!!!
       };
+
+      const changeTool = () => {
+        anno.value.setDrawingTool(drawingTool.value)
+      }
+
+
       return {
         message,
         imgRef,
@@ -253,6 +270,8 @@
         getNeighbor,
         errorMessages,
         ok,
+        drawingTool,
+        changeTool
       };
     },
     components: {},
