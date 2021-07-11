@@ -43,6 +43,12 @@ database_dict = {
                 lastname text,
                 tg_id integer unique
         )""",
+    "channels":
+        """CREATE TABLE IF NOT EXISTS channels (
+                id SERIAL PRIMARY KEY,	
+                name text,        
+                tg_id integer unique
+        )""",
 }
 
 conn = psycopg2.connect(dbname=db_name, user=db_user, password=db_pass, host='localhost')
