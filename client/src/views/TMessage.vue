@@ -128,7 +128,7 @@
       const datum = reactive({ country: '', src: '', url: '' });
 
       const tagsLangs  = ['TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL'];
-      const tagsVocabulary = [ ...tagsLangs, 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS'];
+      const tagsVocabulary = [ ...tagsLangs, 'TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-MIXED', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT'];
 
 
       onMounted(async () => {
