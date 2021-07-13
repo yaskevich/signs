@@ -31,7 +31,8 @@
           <tr v-if="value.data.message">
             <td style="font-weight:bold;">{{value.annotations && value.annotations.length ? "Ann.": "Content"}}</td>
             <td v-if="value.annotations && value.annotations.length" style="border:1px double gold;">
-              <div  v-for="item of value.annotations" v-html="item.body[0].value.split('\n').join('<br/>')"></div>
+              <!-- <div  v-for="item of value.annotations" v-html="item.body[0].value.split('\n').join('<br/>')"></div> -->
+              <div  v-for="item of value.annotations" v-html="item.body[0]?.value||'ERROR: '+'|'+JSON.stringify(item) + '|'"></div>
             </td>
             <td v-else style="border:1px dashed gray;"><span v-html="value.data.message?.split('\n').join('<br/>')"></span></td>
           </tr>
