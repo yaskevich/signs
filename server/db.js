@@ -10,7 +10,7 @@ export default {
       return res.rows[0];
 	},
     async getMessages(off, batch) {
-      let res = await pool.query('select * from messages order by tg_id OFFSET '+ off + ' LIMIT ' + batch);
+      let res = await pool.query("select tg_id, data::jsonb - 'media' as data, imagepath, annotations as an from messages order by tg_id OFFSET "+ off + " LIMIT " + batch); 
       return res.rows;
 	},
     async getMessage(id) {
