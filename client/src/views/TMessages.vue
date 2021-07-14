@@ -5,7 +5,7 @@
   </div>
   <Paginator :first="pageOffset" :rows="pageRows" :totalRecords="totalCount" :rowsPerPageOptions="pageOptions" @page="onPage($event)"></Paginator>
   <div style="text-align:left; margin:auto;">
-    <div v-for="(value, key) in messagesPage" :key="key" class="p-shadow-1 p-p-3 p-d-flex card" :style="value.annotations && value.annotations.length? 'background-color:#dff6dd': ''">
+    <div v-for="(value, key) in messagesPage" :key="key" class="p-shadow-1 p-p-3 p-d-flex card" :style="value.an && value.an.length? 'background-color:#dff6dd': ''">
       <div class="p-mr-6">
         <table>
           <tr>
@@ -30,9 +30,9 @@
           </tr>
           <tr v-if="value.data.message">
             <td style="font-weight:bold;">{{value.annotations && value.annotations.length ? "Ann.": "Content"}}</td>
-            <td v-if="value.annotations && value.annotations.length" style="border:1px double gold;">
-              <!-- <div  v-for="item of value.annotations" v-html="item.body[0].value.split('\n').join('<br/>')"></div> -->
-              <div  v-for="item of value.annotations" v-html="item.body[0]?.value||'ERROR: '+'|'+JSON.stringify(item) + '|'"></div>
+            <td v-if="value.an && value.an.length" style="border:1px double gold;">
+              <!-- <div  v-for="item of value.an" v-html="item.body[0].value.split('\n').join('<br/>')"></div> -->
+              <div  v-for="item of value.an" v-html="item.body?.filter(x => x.purpose == 'commenting' && x.value.substring(0,4) != 'TAG-').map(x=> x.value)||'ERROR: '+'|'+JSON.stringify(item) + '|'"></div>
             </td>
             <td v-else style="border:1px dashed gray;"><span v-html="value.data.message?.split('\n').join('<br/>')"></span></td>
           </tr>
