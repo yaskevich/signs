@@ -44,6 +44,36 @@ let users = [
   }
 ];
 
+const annotationScheme = {
+	languages: ['TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-DE', 'TAG-UA', 'TAG-FR'].sort(),
+	features: ['TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-MIXED', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT', 'TAG-CODESWITCH'].sort(),
+	countries:  [
+        { name: 'Belarus', code: 'by' },
+        { name: 'Out of Belarus', code: 'out' },
+        { name: 'Poland', code: 'pl' },
+        { name: 'Great Britain', code: 'gb' },
+        { name: 'Germany', code: 'de' },
+        { name: 'France', code: 'fr' },
+        { name: 'Russia', code: 'ru' },
+        { name: 'USA', code: 'us' },
+        { name: 'Ukraine', code: 'ua' },
+        { name: 'Lithuania', code: 'lt' },
+        { name: 'Latvia', code: 'lv' },
+        { name: 'Switzerland', code: 'ch' },
+        { name: 'Australia', code: 'au' },
+        { name: 'Austria', code: 'at' },
+        { name: 'Israel', code: 'il' },
+        { name: 'Spain', code: 'es' },
+        { name: 'Spain', code: 'es' },
+        { name: 'Czechia', code: 'cz' },
+        { name: 'Denmark', code: 'dk' },
+        { name: 'Ireland', code: 'ie' },
+      ],
+      orientation: [
+        { name: 'Basic', level: 1 },
+        { name: 'Pro', level: 2 },
+      ],
+};
 
 (async () => {
 	const app = express();
@@ -140,6 +170,10 @@ let users = [
 		// const data  = id ? await db.getUnits1(id) : [];
 		// return res.json(data);
 	// });
+
+	app.get("/api/scheme", async(req, res) =>  {
+		res.json(annotationScheme)
+	});
 
 	app.get("/api/messages", async(req, res) =>  {
 		console.log(req.query);
