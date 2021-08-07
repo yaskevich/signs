@@ -175,6 +175,17 @@ const annotationScheme = {
 		res.json(annotationScheme)
 	});
 
+	app.get("/api/stats", async(req, res) =>  {
+		const [mCount, aCount, pCount, languagesCount, featuresCount] = await Promise.all([
+      db.getMessagesCount(),
+      db.getAnnotationsCount(),
+      db.getPhotosCount(),
+      Promise.all(annotationScheme.languages.map(x => db.getTagCount(x))),
+      Promise.all(annotationScheme.features.map(x => db.getTagCount(x))),
+    ]);
+		res.json({"scheme": annotationScheme, "messages": mCount, "photos": pCount, "annotations": aCount, "languages": languagesCount, "features": featuresCount, })
+	});
+
 	app.get("/api/messages", async(req, res) =>  {
 		console.log(req.query);
 		const count = await db.getMessagesCount();
@@ -183,7 +194,7 @@ const annotationScheme = {
 		const usersDict = users.reduce((obj, item) => ((obj[[item['tg_id']]] = item), obj), {});
 
 	  return res.json({
-			"count": count.count,
+			"count": count,
 			"data": data,
 			"users": usersDict,
 			// "user": req.isAuthenticated()?getUser(req):{}
