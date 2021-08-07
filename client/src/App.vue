@@ -7,8 +7,15 @@
   <div id="content">
     <router-view/>
   </div>
+  <Divider />
   <div id="footer" class="p-mt-4 p-mb-4">
-    Signs Project, 2020-2021. Coded by Alyaxey Yaskevich. Content is published under GPL.
+    <i class="pi pi-camera p-mr-1"></i>
+    <span style="font-variant: small-caps;">Signs Project</span>
+    2020–2021
+    ●
+    Written by <a href="https://yaskevich.com/" target="_blank" class="p-text-bold">Alyaxey Yaskevich</a>
+    with
+    <i class="pi pi-thumbs-up" title="kek"></i>
   </div>
 </template>
 
