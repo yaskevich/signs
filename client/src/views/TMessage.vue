@@ -36,7 +36,7 @@
           <label for="drop">Country</label>
           <Dropdown id="drop"
                     v-model="datum.country"
-                    :options="countries"
+                    :options="scheme.countries"
                     optionLabel="name"
                     optionValue="code"
                     placeholder="Select a country"
@@ -46,7 +46,7 @@
       <div class="p-col">
         <div class="p-field">
           <label for="opts">Orientation</label>
-          <SelectButton v-model="orientProp" :options="orientOptions" optionLabel="name" id="opts" optionValue="level"/>
+          <SelectButton v-model="orientProp" :options="scheme.orientation" optionLabel="name" id="opts" optionValue="level"/>
         </div>
       </div>
     </div>
@@ -89,6 +89,7 @@
     setup() {
       const vuerouter = useRoute();
       const id = ref(Number(vuerouter.params.id));
+      const scheme = reactive({languages:[], features: [], countries:[], orientation: [], });
       const message = ref({});
       const imgSrc = ref('');
       const imgRef = ref();
@@ -96,41 +97,34 @@
       const drawingTool = ref('rect');
       const errorMessages = ref([]);
       const ok = ref(false);
-      const countries = [
-        { name: 'Belarus', code: 'by' },
-        { name: 'Out of Belarus', code: 'out' },
-        { name: 'Poland', code: 'pl' },
-        { name: 'Great Britain', code: 'gb' },
-        { name: 'Germany', code: 'de' },
-        { name: 'France', code: 'fr' },
-        { name: 'Russia', code: 'ru' },
-        { name: 'USA', code: 'us' },
-        { name: 'Ukraine', code: 'ua' },
-        { name: 'Lithuania', code: 'lt' },
-        { name: 'Latvia', code: 'lv' },
-        { name: 'Switzerland', code: 'ch' },
-        { name: 'Australia', code: 'au' },
-        { name: 'Austria', code: 'at' },
-        { name: 'Israel', code: 'il' },
-        { name: 'Spain', code: 'es' },
-        { name: 'Spain', code: 'es' },
-        { name: 'Czechia', code: 'cz' },
-        { name: 'Denmark', code: 'dk' },
-        { name: 'Ireland', code: 'ie' },
-      ];
-
-      const orientOptions = [
-        { name: 'Basic', level: 1 },
-        { name: 'Pro', level: 2 },
-      ];
+      const datum = reactive({ country: '', src: '', url: '' });
       const orientProp = ref();
 
-      const datum = reactive({ country: '', src: '', url: '' });
+      onBeforeMount(async () => {
+        console.log('router id', id.value);
 
-      const tagsLangs  = ['TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-DE', 'TAG-UA', 'TAG-FR'].sort();
-      const tagsOther = ['TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-MIXED', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT', 'TAG-CODESWITCH'].sort();
-      const tagsVocabulary = [ ...tagsLangs, ...tagsOther];
+        const result = await axios.get('/api/scheme');
+        Object.assign(scheme, result.data)
+        console.log("scheme", scheme);
 
+        if (id.value) {
+          const { data } = await axios.get('/api/message', { params: { id: id.value } });
+          imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
+          message.value = data;
+          console.log(data);
+          datum.country = data.country || 'by';
+          datum.src = data.src;
+          datum.url = data.url;
+          if (data.orient) {
+            orientProp.value = data.orient;
+          }
+          if (data.annotations) {
+            for (let annotation of data.annotations) {
+              anno.value.addAnnotation(annotation);
+            }
+          }
+        }
+      });
 
       onMounted(async () => {
         anno.value = new Annotorious(
@@ -138,7 +132,7 @@
             image: imgRef.value,
             widgets: [
               'COMMENT',
-              { widget: 'TAG', vocabulary:  tagsVocabulary }
+              { widget: 'TAG', vocabulary:  [ ...scheme.languages, ...scheme.features] }
             ],
             // disableEditor: true,
             // allowEmpty: true
@@ -172,27 +166,6 @@
         // });
       });
 
-      onBeforeMount(async () => {
-        console.log('router id', id.value);
-        if (id.value) {
-          const { data } = await axios.get('/api/message', { params: { id: id.value } });
-          imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
-          message.value = data;
-          console.log(data);
-          datum.country = data.country || 'by';
-          datum.src = data.src;
-          datum.url = data.url;
-          if (data.orient) {
-            orientProp.value = data.orient;
-          }
-          if (data.annotations) {
-            for (let annotation of data.annotations) {
-              anno.value.addAnnotation(annotation);
-            }
-          }
-        }
-      });
-
       const saveAnnotations = async () => {
         // const annotations =
         const params = { ...toRaw(datum) };
@@ -224,7 +197,7 @@
             if (annotation.type === "Annotation") {
                 const tagsList = annotation.body.filter(x => x.purpose == "tagging");
                 if (tagsList.length) {
-                    if (!tagsList.map(x => x.value).some(x => tagsLangs.includes(x))){
+                    if (!tagsList.map(x => x.value).some(x => scheme.languages.includes(x))){
                         errorMessages.value.push("The annotation does not contain any LANGUAGE tags!");
                     }
                 } else {
@@ -264,8 +237,7 @@
         imgRef,
         imgSrc,
         saveAnnotations,
-        countries,
-        orientOptions,
+        scheme,
         orientProp,
         datum,
         getNeighbor,
