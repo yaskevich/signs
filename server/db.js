@@ -33,8 +33,15 @@ export default {
       return res.rows.length?res.rows[0]:{};
 	},
     async updateMessage(params) {
-      const res= await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4, annotations = $5 WHERE tg_id = $6 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, JSON.stringify(params.annotations), params.tg_id]);
-      return res.rows;
+        let data = {};
+
+        if (params.orient && params.src && params.country && params.tg_id) {
+            // console.log("save to DB");
+            const res= await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4, annotations = $5 WHERE tg_id = $6 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, JSON.stringify(params.annotations), params.tg_id]);
+            data = res.rows[0];
+        }
+
+        return data;
 	},
     async getNext(id) {
       const res= await pool.query('SELECT * FROM messages WHERE tg_id > '+ id + ' ORDER BY tg_id ASC LIMIT 1');
