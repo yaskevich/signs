@@ -101,17 +101,17 @@
       const orientProp = ref();
 
       onBeforeMount(async () => {
-        console.log('router id', id.value);
+        // console.log('router id', id.value);
 
         const result = await axios.get('/api/scheme');
         Object.assign(scheme, result.data)
-        console.log("scheme", scheme);
+        // console.log("scheme", scheme);
 
         if (id.value) {
           const { data } = await axios.get('/api/message', { params: { id: id.value } });
           imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
           message.value = data;
-          console.log(data);
+          // console.log(data);
           datum.country = data.country || 'by';
           datum.src = data.src;
           datum.url = data.url;
@@ -173,7 +173,7 @@
         params.orient = orientProp.value;
         params.tg_id = id.value;
         params.annotations = anno.value.getAnnotations();
-        console.log('save', params);
+        console.log('data to save', params);
         if (!params.country) {
           errorMessages.value.push("Country is not set!");
         }
@@ -207,9 +207,15 @@
           }
         }
         // console.log('save anno', imgSrc.value);
-        const { data } = await axios.post('/api/anno', { params: params });
-        if (data?.[0]["tg_id"] == id.value) {
-          ok.value = true;
+        if (errorMessages.value.length) {
+          console.log(`not saved – errors: ${errorMessages.value.length}`);
+        } else {
+          const { data } = await axios.post('/api/anno', { params: params });
+          if (data?.tg_id == id.value) {
+            ok.value = true;
+          } else {
+            console.log("post was not saved!");
+          }
         }
         // console.log("result", data);
       };
