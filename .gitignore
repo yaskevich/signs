@@ -1,11 +1,9 @@
 # Logs
 logs
 *.log
-server/.env
-server/package-lock.json
-server/node_modules
+.env
+package-lock.json
+node_modules
 .ftpconfig
-server/media
-client/media
-client/package-lock.json
-client/node_modules
+/media
+
