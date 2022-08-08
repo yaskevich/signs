@@ -1,31 +1,27 @@
 <template>
-  <div class="about">
-    <!-- <h1>Data</h1> -->
-  </div>
-  <n-space vertical size="large" v-if="isLoaded">
-    <n-pagination
-      :page-sizes="pageOptions"
-      v-model:page="currentPage"
-      v-model:page-size="pageSize"
-      @update:page="onPageNumberChange"
-      @update:page-size="onPageBatchChange"
-      :item-count="totalCount"
-      show-size-picker
-    ></n-pagination>
+  <div v-if="isLoaded">
+    <n-space vertical size="large">
+      <n-space justify="center">
+        <n-pagination
+          :page-sizes="pageOptions"
+          v-model:page="currentPage"
+          v-model:page-size="pageSize"
+          @update:page="onPageNumberChange"
+          @update:page-size="onPageBatchChange"
+          :item-count="totalCount"
+          show-size-picker
+        ></n-pagination>
+      </n-space>
 
-    <div style="text-align:left; margin:auto;">
-      <div
+      <n-card
+        :title="`${value['tg_id']}`"
         v-for="(value, key) in messagesPage"
         :key="key"
-        class="shadow-1 3 d-flex card"
         :style="value.annotations && value.annotations.length ? 'background-color:#dff6dd' : ''"
       >
-        <div class="mr-6">
+        <n-grid x-gap="12" :cols="12" >
+          <n-gi :span="9">
           <table>
-            <tr>
-              <td style="font-weight:bold;">№</td>
-              <td>{{ value["tg_id"] }}</td>
-            </tr>
             <tr>
               <td style="font-weight:bold;">User</td>
               <td>{{ users?.[value.data.from_id?.user_id]?.["firstname"] }}</td>
@@ -53,6 +49,7 @@
                 <!-- <div  v-for="item of value.an" v-html="item.body[0].value.split('\n').join('<br/>')"></div> -->
                 <div
                   v-for="item of value.annotations"
+                  style="max-width: 500px"
                   v-html="item.body?.filter(x => x.purpose == 'commenting' && x.value.substring(0, 4) != 'TAG-').map(x => x.value) || 'ERROR: ' + '|' + JSON.stringify(item) + '|'"
                 ></div>
               </td>
@@ -72,40 +69,33 @@
                 {{ value.data.fwd_from.date.slice(0, -6) }}
               </td>
             </tr>
-            <!-- <tr>
-              <td></td>
-              <td>
-              </td>
-            </tr>-->
           </table>
-        </div>
-        <div class="ml-auto">
-          <div class="text-right mb-2">
-            <!-- <Button label="Annotate" class="button-outlined button-secondary" @click="goToMessage(value.tg_id)" v-if="value.imagepath && value.data['_'] == 'Message'"/> -->
-          </div>
-          <div>
-            <router-link :to="'/message/' + value.tg_id">
-              <img
-                :src="'/api/media/thumbs/' + value.imagepath"
-                v-if="value.imagepath"
-                class="image-navi"
-              />
-            </router-link>
-          </div>
-        </div>
-      </div>
-    </div>
-    <n-pagination
-      :page-sizes="pageOptions"
-      v-model:page="currentPage"
-      v-model:page-size="pageSize"
-      @update:page="onPageNumberChange"
-      @update:page-size="onPageBatchChange"
-      :item-count="totalCount"
-      show-size-picker
-    ></n-pagination>
-  </n-space>
-  <div v-else>...loading</div>
+          </n-gi>
+          <n-gi :span="3">
+           <router-link :to="'/message/' + value.tg_id">
+          <img
+            :src="'/api/media/thumbs/' + value.imagepath"
+            v-if="value.imagepath"
+            class="image-navi"
+          />
+        </router-link>         
+          </n-gi>
+        </n-grid>
+      </n-card>
+      <n-space justify="center">
+        <n-pagination
+          :page-sizes="pageOptions"
+          v-model:page="currentPage"
+          v-model:page-size="pageSize"
+          @update:page="onPageNumberChange"
+          @update:page-size="onPageBatchChange"
+          :item-count="totalCount"
+          show-size-picker
+        ></n-pagination>
+      </n-space>
+    </n-space>
+  </div>
+  <div v-else style="text-align:center">...loading</div>
 </template>
 
 <script setup lang="ts">
@@ -148,7 +138,7 @@ onBeforeMount(async () => {
   const datum = await getPages();
   totalCount.value = Number(datum.count);
   users.value = datum.users;
-    isLoaded.value = true;
+  isLoaded.value = true;
 
 });
 
@@ -156,6 +146,7 @@ const onPageBatchChange = async (i: number) => {
   // console.log("request to change to batch", i);
   // console.log(pageSize.value, i, currentPage.value);
   pageSize.value = i;
+  currentPage.value = 1;
   await getPages();
 };
 
