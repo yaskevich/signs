@@ -5,6 +5,6 @@ logs
 package-lock.json
 node_modules
 .ftpconfig
-/media
+/server/media
 /client/dist
 
