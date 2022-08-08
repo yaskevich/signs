@@ -100,7 +100,7 @@ const annotationScheme = {
     done(null, user);
   });
 
-  app.use('/api/media', express.static(path.join(__dirname, '..', 'media')));
+  app.use('/api/media', express.static(path.join(__dirname, 'media')));
   app.use(express.static('public'));
 
   app.use(compression());
