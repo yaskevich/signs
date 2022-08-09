@@ -1,7 +1,7 @@
 <template>
   <n-space vertical>
     <n-space justify="center">
-      <img ref="imgRef" :src="imgSrc" />
+      <img ref="imgRef" :src="imgSrc" style="max-width:100%;"/>
     </n-space>
     <n-space justify="center">
       <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool">
