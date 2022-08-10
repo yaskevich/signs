@@ -33,6 +33,17 @@ cp $DIR/$APP.env $WORK/.env
 printf "\nCOMMIT=%s" $HASH >> $WORK/.env
 cd $WORK
 rm -rf $WORK/client $WORK/server
+
+if [ -d $DIR/media ] 
+then
+    ln -s $DIR/media $WORK/media
+    echo "Soft link for media directory was created"
+else
+    echo "Directory for media was not found!"
+fi
+
+
+
 # # https://pm2.keymetrics.io/docs/usage/application-declaration/#ecosystem-file
 # # --cwd
 pm2 start ecosystem.config.cjs --cwd $WORK
