@@ -54,4 +54,14 @@ export default {
     const res = await pool.query('select * from users');
     return res.rows;
   },
+  async getAnnotations(params) {
+    const offset = params?.offset || 0;
+    const limit = params?.limit || 100;
+    // console.log('offset/limit', offset, limit);
+    const count = await pool.query('select count(*) from messages where length (annotations::text) > 2');
+    const res = await pool.query('select annotations from messages where length (annotations::text) > 2 OFFSET $1 LIMIT $2', [offset, limit]);
+    return {
+      count: count?.rows?.shift().count, selection: res.rows, offset, limit
+    };
+  },
 };
