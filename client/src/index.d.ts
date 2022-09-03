@@ -11,6 +11,7 @@ interface IStats {
 }
 
 interface IAnnotation {
+    id: string,
     type: string,
     body: Array<{
         "type": string,
