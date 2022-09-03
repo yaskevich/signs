@@ -3,6 +3,7 @@
     <n-layout-header id="nav">
       <router-link to="/" class="nav">Home</router-link>|
       <router-link to="/messages" class="nav">Posts</router-link>|
+      <router-link to="/flow" class="nav">Flow</router-link>|
       <router-link to="/about" class="nav">About</router-link>
     </n-layout-header>
     <n-layout-content style="max-width:900px;margin: auto;">
