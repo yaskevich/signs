@@ -191,6 +191,8 @@ const annotationScheme = {
     });
   });
 
+  app.get('/api/annotations', async (req, res) => res.json(await db.getAnnotations(req.query)));
+
   app.post('/api/anno', async (req, res) => {
     console.log(req.query, req.body.params);
     return res.json(await db.updateMessage(req.body.params));
