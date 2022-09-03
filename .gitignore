@@ -8,4 +8,4 @@ node_modules
 /server/media
 /client/dist
 /client/dev-dist
-
+client/components.d.ts
