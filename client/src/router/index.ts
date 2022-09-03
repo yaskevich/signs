@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw, RouterScrollBehavior, }
 import Home from '../components/Home.vue'
 import TMessages from '../components/TMessages.vue'
 import TMessage from '../components/TMessage.vue'
+import Flow from '../components/Flow.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -23,6 +24,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/message/:id?',
     name: 'TMessage',
     component: TMessage
+  },
+  {
+    path: '/flow',
+    name: 'Flow',
+    component: Flow
   },
   {
     path: '/about',
