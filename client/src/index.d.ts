@@ -43,3 +43,7 @@ interface IUser {
 interface IUsersDict {
     [id: string]: IUser,
 }
+
+interface keyable {
+    [key: string]: any,
+}
