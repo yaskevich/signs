@@ -13,12 +13,12 @@
             <div v-for="(item, index) in items" :key="index" class="photo">
                 <div v-for="anno in item.annotations" :key="anno.id" class="anno">
                     <n-space>
-                        <template v-for="feature in anno.body">
-                            <n-h6
-                                prefix="bar"
-                                align-text
-                                v-if="feature.purpose === 'commenting'"
-                            >{{ feature.value }}</n-h6>
+                        <n-button @click="$router.push(`/message/${item?.tg_id}`)">{{ item?.tg_id }}</n-button>
+                        <template v-for="(feature, n) in anno.body">
+                            <div v-if="feature.purpose === 'commenting'">
+                                <n-h6 align-text>{{ feature.value }}</n-h6>
+                            </div>
+
                             <n-tag
                                 type="success"
                                 v-if="feature.purpose === 'tagging'"
@@ -28,6 +28,9 @@
                             >{{ feature }}</span>
                         </template>
                     </n-space>
+                    <div>
+                        <n-tag>{{ countries?.[item?.country]?.name }}</n-tag>
+                    </div>
                 </div>
             </div>
         </n-space>
@@ -42,11 +45,18 @@ const pageSize = ref(100);
 const totalCount = ref(0);
 const isLoaded = ref(false);
 const items = reactive<Array<IMessage>>([]);
+const countries = reactive({} as keyable);
 
 const updatePage = async () => {
-    const { data } = await axios.get('/api/annotations', { params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value } });
+    let { data } = await axios.get('/api/annotations', { params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value } });
     Object.assign(items, data.selection);
     totalCount.value = Number(data.count);
+
+    ({ data } = await axios.get('/api/scheme'));
+    const countriesList = Object.assign({}, ...(data.countries.map((x: any) => ({ [x.code]: x }))));
+    Object.assign(countries, countriesList);
+
+
     isLoaded.value = true;
 }
 
