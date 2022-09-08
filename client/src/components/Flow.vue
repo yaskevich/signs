@@ -12,7 +12,7 @@
             />
             <div v-for="(item, index) in items" :key="index" class="photo">
                 <div
-                    v-for="anno in item?.annotations.map(x => processAnnotations(x, item.tg_id))"
+                    v-for="anno in item?.annotations?.map(x => processAnnotations(x, item.tg_id))"
                     :key="anno.id"
                     class="anno"
                     v-bind:class="{ error: anno.error }"
@@ -84,7 +84,7 @@
 import { reactive, ref, onBeforeMount } from 'vue';
 import axios from 'axios';
 import { ArrowDown, ArrowUp, InfoCircle, } from '@vicons/fa';
-import { useRoute } from 'vue-router';
+import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from "../router";
 
 
@@ -161,7 +161,7 @@ const updatePage = async () => {
     ({ data } = await axios.get('/api/scheme'));
     const countriesList = Object.assign({}, ...(data.countries.map((x: any) => ({ [x.code]: x }))));
     Object.assign(countries, countriesList);
-    router.replace(`/flow/${pageSize.value}/${(page.value || '')}`);
+    router.push(`/flow/${pageSize.value}/${(page.value || '')}`);
     isLoaded.value = true;
 };
 
@@ -178,8 +178,17 @@ const changePageSize = async (i: number) => {
 };
 
 onBeforeMount(async () => {
+    console.log('mount');
     await updatePage();
 });
+
+onBeforeRouteUpdate(async (to, from) => {
+    // console.log('route', to.params, from.params);
+    page.value = Number(to.params.page);
+    pageSize.value = Number(to.params.batch);
+    await updatePage();
+})
+
 </script>
 
 <style lang="scss" scoped>
