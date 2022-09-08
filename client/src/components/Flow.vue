@@ -1,15 +1,16 @@
 <template>
-    <n-card :title="`All annotations (${totalCount})`" v-show="isLoaded">
-        <n-space vertical size="large">
-            <n-pagination
-                v-model:page="page"
-                v-model:page-size="pageSize"
-                show-size-picker
-                :item-count="totalCount"
-                :page-sizes="[50, 100, 250, 500, 1000]"
-                @update:page="changePage"
-                @update:page-size="changePageSize"
-            />
+    <n-card :title="`All annotations (${totalCount})`">
+        <n-pagination
+            v-model:page="page"
+            v-model:page-size="pageSize"
+            show-size-picker
+            :item-count="totalCount"
+            :page-sizes="[10, 50, 100, 250, 500, 1000]"
+            @update:page="changePage"
+            @update:page-size="changePageSize"
+        />
+        <n-divider></n-divider>
+        <n-space vertical size="large" v-show="isLoaded">
             <div v-for="(item, index) in items" :key="index" class="photo">
                 <div
                     v-for="anno in item?.annotations?.map(x => processAnnotations(x, item.tg_id))"
@@ -149,11 +150,18 @@ const processAnnotations = (itemAnn: IAnnotation, id: number) => {
         }
     }
 
+    if (!heading) {
+        error = true;
+    }
+
     return ({ ...(error) && { error }, ...{ heading, tags, id: itemAnn.id } });
     // return '';
 };
 
 const updatePage = async () => {
+    isLoaded.value = false;
+    console.log('call update page');
+
     let { data } = await axios.get('/api/annotations', { params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value } });
     Object.assign(items, data.selection);
     totalCount.value = Number(data.count);
@@ -161,29 +169,35 @@ const updatePage = async () => {
     ({ data } = await axios.get('/api/scheme'));
     const countriesList = Object.assign({}, ...(data.countries.map((x: any) => ({ [x.code]: x }))));
     Object.assign(countries, countriesList);
-    router.push(`/flow/${pageSize.value}/${(page.value || '')}`);
     isLoaded.value = true;
+};
+
+const updateURL = () => {
+    router.push(`/flow/${pageSize.value}/${(page.value || '')}`);
 };
 
 const changePage = async (i: number) => {
     console.log('change page', page.value, i);
-    await updatePage();
+    router.push(`/flow/${pageSize.value}/${(page.value || '')}`);
+    updateURL();
 };
 
 const changePageSize = async (i: number) => {
     console.log('change size', pageSize.value, i);
     pageSize.value = i;
     page.value = 1;
-    await updatePage();
+    updateURL();
 };
 
 onBeforeMount(async () => {
     console.log('mount');
+    updateURL();
     await updatePage();
 });
 
 onBeforeRouteUpdate(async (to, from) => {
     // console.log('route', to.params, from.params);
+    console.log("route update");
     page.value = Number(to.params.page);
     pageSize.value = Number(to.params.batch);
     await updatePage();
