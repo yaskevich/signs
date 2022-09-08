@@ -11,8 +11,31 @@
                 @update:page-size="changePageSize"
             />
             <div v-for="(item, index) in items" :key="index" class="photo">
-                <div v-for="anno in item.annotations" :key="anno.id" class="anno">
-                    <n-space>
+                <div
+                    v-for="anno in item.annotations.map(x => processAnnotations(x, item.tg_id))"
+                    :key="anno.id"
+                    class="anno"
+                    v-bind:class="{ error: anno.error }"
+                >
+                    <!-- <span>{{ anno }}}</span> -->
+                    <n-space vertical>
+                        <n-h3
+                            prefix="bar"
+                            type="primary"
+                            style="margin-bottom: -1px;"
+                        >{{ anno?.heading }}</n-h3>
+                        <n-space>
+                            <template v-for="tag in anno.tags">
+                                <n-tooltip trigger="hover" v-if="tag?.title">
+                                    <template #trigger>
+                                        <n-button type="info" size="small">{{ tag.label }}</n-button>
+                                    </template>
+                                    {{ tag.title }}
+                                </n-tooltip>
+                                <n-tag v-else type="success">{{ tag.label }}</n-tag>
+                            </template>
+                        </n-space>
+                        <!-- <n-space>
                         <n-button @click="$router.push(`/message/${item?.tg_id}`)">{{ item?.tg_id }}</n-button>
                         <template v-for="(feature, n) in anno.body">
                             <div v-if="feature.purpose === 'commenting'">
@@ -27,10 +50,24 @@
                                 v-if="!['commenting', 'tagging'].includes(feature.purpose)"
                             >{{ feature }}</span>
                         </template>
+                        </n-space>-->
+                        <n-space justify="space-between">
+                            <n-tag>{{ countries?.[item?.country]?.name }}</n-tag>
+                            <n-button quaternary type="primary">
+                                <template #icon>
+                                    <n-icon
+                                        :component="item?.orient > 1 ? ArrowUp : ArrowDown"
+                                        :color="item?.orient > 1 ? 'red' : 'green'"
+                                    />
+                                </template>
+                            </n-button>
+
+                            <n-button
+                                size="small"
+                                @click="$router.push(`/message/${item?.tg_id}`)"
+                            >Go to {{ item?.tg_id }}</n-button>
+                        </n-space>
                     </n-space>
-                    <div>
-                        <n-tag>{{ countries?.[item?.country]?.name }}</n-tag>
-                    </div>
                 </div>
             </div>
         </n-space>
@@ -39,13 +76,60 @@
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
 import axios from 'axios';
+import { ArrowDown, ArrowUp } from '@vicons/fa';
 
 const page = ref(1);
-const pageSize = ref(100);
+const pageSize = ref(50);
 const totalCount = ref(0);
 const isLoaded = ref(false);
 const items = reactive<Array<IMessage>>([]);
 const countries = reactive({} as keyable);
+
+const processAnnotations = (itemAnn: IAnnotation, id: number) => {
+    // console.log(annos);
+    const suggestions = {} as keyable;
+    const tags = [];
+    let flag = true;
+    let heading = '';
+    let error = false;
+    for (let item of itemAnn.body) {
+        if (['commenting', 'replying'].includes(item.purpose)) {
+            if (flag) {
+                heading = item.value;
+                flag = false;
+            } else {
+                const tagContent = item.value.replaceAll('\n', '');
+                const matches = tagContent.matchAll(/^(TAG-[A-Z]+)[:]?\s*(.*)$/g);
+                const results = Array.from(matches);
+                if (results?.[0]?.length) {
+                    if (!results?.[0][2]) {
+                        console.error(id, results?.[0]?.length, results?.[0]);
+                        error = true;
+                    } else {
+                        suggestions[results?.[0][1]] = results?.[0][2];
+                    }
+                } else {
+                    console.error(id, item.value);
+                    error = true;
+                }
+            }
+        }
+    }
+
+    for (let item of itemAnn.body) {
+        if (item.purpose === "tagging") {
+            const obj = { label: item.value.replace('TAG-', ''), tag: item.value } as keyable;
+            const title = suggestions?.[item.value];
+            if (title) {
+                obj.title = title;
+            }
+            tags.push(obj);
+        }
+    }
+
+    return ({ ...(error) && { error }, ...{ heading, tags, id: itemAnn.id } });
+    // return '';
+};
 
 const updatePage = async () => {
     let { data } = await axios.get('/api/annotations', { params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value } });
@@ -85,5 +169,8 @@ onBeforeMount(async () => {
     border: 1px dashed silver;
     padding: 5px;
     margin: 5px;
+}
+.error {
+    background-color: pink;
 }
 </style>
