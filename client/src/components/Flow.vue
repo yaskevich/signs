@@ -12,7 +12,7 @@
             />
             <div v-for="(item, index) in items" :key="index" class="photo">
                 <div
-                    v-for="anno in item.annotations.map(x => processAnnotations(x, item.tg_id))"
+                    v-for="anno in item?.annotations.map(x => processAnnotations(x, item.tg_id))"
                     :key="anno.id"
                     class="anno"
                     v-bind:class="{ error: anno.error }"
@@ -25,7 +25,7 @@
                             style="margin-bottom: -1px;"
                         >{{ anno?.heading }}</n-h3>
                         <n-space>
-                            <template v-for="tag in anno.tags">
+                            <template v-for="tag in anno?.tags">
                                 <n-tooltip trigger="hover" v-if="tag?.title">
                                     <template #trigger>
                                         <n-button type="info" size="small">{{ tag.label }}</n-button>
@@ -77,6 +77,9 @@
 import { reactive, ref, onBeforeMount } from 'vue';
 import axios from 'axios';
 import { ArrowDown, ArrowUp } from '@vicons/fa';
+import { useRoute } from 'vue-router';
+import router from "../router";
+
 
 const page = ref(1);
 const pageSize = ref(50);
@@ -84,6 +87,18 @@ const totalCount = ref(0);
 const isLoaded = ref(false);
 const items = reactive<Array<IMessage>>([]);
 const countries = reactive({} as keyable);
+
+
+const vuerouter = useRoute();
+const pageIn = Number(vuerouter.params.page);
+if (pageIn) {
+    page.value = pageIn;
+}
+
+const batchIn = Number(vuerouter.params.batch);
+if (batchIn) {
+    pageSize.value = batchIn;
+}
 
 const processAnnotations = (itemAnn: IAnnotation, id: number) => {
     // console.log(annos);
@@ -103,13 +118,13 @@ const processAnnotations = (itemAnn: IAnnotation, id: number) => {
                 const results = Array.from(matches);
                 if (results?.[0]?.length) {
                     if (!results?.[0][2]) {
-                        console.error(id, results?.[0]?.length, results?.[0]);
+                        console.warn(id, results?.[0]?.length, results?.[0]);
                         error = true;
                     } else {
                         suggestions[results?.[0][1]] = results?.[0][2];
                     }
                 } else {
-                    console.error(id, item.value);
+                    console.warn(id, item.value);
                     error = true;
                 }
             }
@@ -139,10 +154,9 @@ const updatePage = async () => {
     ({ data } = await axios.get('/api/scheme'));
     const countriesList = Object.assign({}, ...(data.countries.map((x: any) => ({ [x.code]: x }))));
     Object.assign(countries, countriesList);
-
-
+    router.replace(`/flow/${pageSize.value}/${(page.value || '')}`);
     isLoaded.value = true;
-}
+};
 
 const changePage = async (i: number) => {
     console.log('change page', page.value, i);
