@@ -26,7 +26,7 @@ const routes: Array<RouteRecordRaw> = [
     component: TMessage
   },
   {
-    path: '/flow',
+    path: '/flow/:batch?/:page?',
     name: 'Flow',
     component: Flow
   },
