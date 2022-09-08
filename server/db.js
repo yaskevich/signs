@@ -59,7 +59,7 @@ export default {
     const limit = params?.limit || 100;
     // console.log('offset/limit', offset, limit);
     const count = await pool.query('select count(*) from messages where length (annotations::text) > 2');
-    const res = await pool.query('select annotations from messages where length (annotations::text) > 2 OFFSET $1 LIMIT $2', [offset, limit]);
+    const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
     return {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
