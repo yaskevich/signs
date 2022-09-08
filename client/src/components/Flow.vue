@@ -21,18 +21,25 @@
                     <n-space vertical>
                         <n-h3
                             prefix="bar"
-                            type="primary"
+                            type="info"
                             style="margin-bottom: -1px;"
                         >{{ anno?.heading }}</n-h3>
                         <n-space>
                             <template v-for="tag in anno?.tags">
-                                <n-tooltip trigger="hover" v-if="tag?.title">
-                                    <template #trigger>
-                                        <n-button type="info" size="small">{{ tag.label }}</n-button>
-                                    </template>
-                                    {{ tag.title }}
-                                </n-tooltip>
-                                <n-tag v-else type="success">{{ tag.label }}</n-tag>
+                                <n-button-group size="small" v-if="tag?.title">
+                                    <n-button type="info" size="small">{{ tag.label }}</n-button>
+                                    <n-tooltip trigger="hover">
+                                        <template #trigger>
+                                            <n-button size="small" color="#2080f0">
+                                                <template #icon>
+                                                    <n-icon :component="InfoCircle" />
+                                                </template>
+                                            </n-button>
+                                        </template>
+                                        {{ tag.title }}
+                                    </n-tooltip>
+                                </n-button-group>
+                                <n-button v-else type="info" size="small">{{ tag.label }}</n-button>
                             </template>
                         </n-space>
                         <!-- <n-space>
@@ -76,7 +83,7 @@
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
 import axios from 'axios';
-import { ArrowDown, ArrowUp } from '@vicons/fa';
+import { ArrowDown, ArrowUp, InfoCircle, } from '@vicons/fa';
 import { useRoute } from 'vue-router';
 import router from "../router";
 
