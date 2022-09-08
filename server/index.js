@@ -38,8 +38,8 @@ function getUser(request) {
 const LocalStrategy = passportLocal.Strategy;
 
 const annotationScheme = {
-  languages: ['TAG-BE', 'TAG-RU', 'TAG-EN', 'TAG-PL', 'TAG-DE', 'TAG-UA', 'TAG-FR'].sort(),
-  features: ['TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-MIXED', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT', 'TAG-CODESWITCH'].sort(),
+  languages: ['TAG-BE', 'TAG-RU', 'TAG-MIXED', 'TAG-EN', 'TAG-PL', 'TAG-DE', 'TAG-UA', 'TAG-FR'].sort(),
+  features: ['TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT', 'TAG-CODESWITCH'].sort(),
   countries: [
     { name: 'Belarus', code: 'by' },
     { name: 'Out of Belarus', code: 'out' },
