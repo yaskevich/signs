@@ -1,99 +1,87 @@
 <template>
   <n-space vertical>
     <n-space justify="center">
-      <img ref="imgRef" :src="imgSrc" style="max-width:100%;"/>
-    </n-space>
-    <n-space justify="center">
-      <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool">
-        <n-radio-button
-          v-for="item in toolsOptions"
-          :key="item.type"
-          :value="item.type"
-          :label="item.title"
-        />
-      </n-radio-group>
+      <img ref="imgRef" :src="imgSrc" style="max-width: 100%" />
     </n-space>
 
-    <n-divider></n-divider>
+    <!-- <n-divider></n-divider> -->
     <n-space justify="space-around">
       <n-button @click="getNeighbor('prev')">Previous</n-button>
-      <n-button @click="saveAnnotations" type="primary">Save</n-button>
+      <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool">
+        <n-radio-button v-for="item in toolsOptions" :key="item.type" :value="item.type" :label="item.title" />
+      </n-radio-group>
       <n-button @click="getNeighbor('next')">Next</n-button>
     </n-space>
 
     <n-alert title="Errors" type="warning" v-if="errorMessages?.length">
       <div v-for="item of errorMessages">{{ item }}</div>
     </n-alert>
-
-    <n-alert title="Success" type="success" v-if="ok">Data are saved succesfully!</n-alert>
+    <!-- <n-divider></n-divider> -->
+    <n-card title="Image properties">
+      <template #header-extra>
+        <n-button @click="saveAnnotations" type="primary">Save</n-button>
+      </template>
+      <n-form>
+        <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
+          <n-form-item-gi label="Country">
+            <n-select
+              v-model:value="datum.country"
+              :options="scheme.countries"
+              label-field="name"
+              value-field="code"
+              placeholder="Select a country"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi label="Orientation">
+            <n-select
+              v-model:value="orientProp"
+              :options="scheme.orientation"
+              label-field="name"
+              value-field="level"
+              placeholder="Select an attitude"
+            />
+          </n-form-item-gi>
+          <n-form-item-gi label="Source: title" feedback="Enter text title of the source">
+            <n-input v-model:value="datum.src" type="text" placeholder="Source" />
+          </n-form-item-gi>
+          <n-form-item-gi label="Source: URL" feedback="Put URL (web link) of the source">
+            <n-input v-model:value="datum.url" type="text" placeholder="URL" />
+          </n-form-item-gi>
+        </n-grid>
+      </n-form>
+    </n-card>
   </n-space>
-  <n-divider></n-divider>
 
-  <n-grid x-gap="12" :cols="2">
-    <n-gi>
-      <label for="drop">Country</label>
-      <n-select
-        v-model:value="datum.country"
-        :options="scheme.countries"
-        label-field="name"
-        value-field="code"
-        placeholder="Select a country"
-      />
-    </n-gi>
-    <n-gi>
-      <label for="opts">Orientation</label>
-      <n-select
-        v-model:value="orientProp"
-        :options="scheme.orientation"
-        label-field="name"
-        value-field="level"
-        placeholder="Select an attitude"
-      />
-    </n-gi>
+  <!-- <n-divider></n-divider> -->
 
-    <n-gi>
-      <label for="source-title">Source: title</label>
-      <n-input v-model:value="datum.src" type="text" placeholder="Source" />
-      <small id="source-title-help">Enter text title of the source</small>
-    </n-gi>
-    <n-gi>
-      <label for="source-url">Source: URL</label>
-      <n-input v-model:value="datum.url" type="text" placeholder="URL" />
-      <small id="source-url-help">Put URL (web link) of the source</small>
-    </n-gi>
-  </n-grid>
-
-  <n-divider></n-divider>
-
-  <div
-    style="border:1px dashed orange; margin: 1rem;padding: 5px"
-    v-if="Object.keys(message).length"
-  >
-    <span v-html="message.data.message.split('\n').join('<br/>')"></span>
+  <div style="border: 1px dashed orange; margin: 1rem; padding: 5px" v-if="Object.keys(msg).length">
+    <span v-html="msg.data.message.split('\n').join('<br/>')"></span>
   </div>
 </template>
 
 <script setup lang="ts">
-
 import { ref, reactive, onBeforeMount, onMounted, toRaw } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '../router';
 import axios from 'axios';
+import { useMessage } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 
-const toolsOptions = [{ title: 'Rectangle', type: 'rect' }, { title: 'Polygon', type: 'polygon' }];
-
+const toolsOptions = [
+  { title: 'Rectangle', type: 'rect' },
+  { title: 'Polygon', type: 'polygon' },
+];
+const message = useMessage();
 const vuerouter = useRoute();
 const id = ref(Number(vuerouter.params.id));
-const scheme = reactive({ languages: [], features: [], countries: [], orientation: [], });
-const message = ref({} as IMessage);
+const scheme = reactive({ languages: [], features: [], countries: [], orientation: [] });
+const msg = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
 const anno = ref();
 const drawingTool = ref('rect');
 const errorMessages = ref([] as Array<string>);
-const ok = ref(false);
 const datum = reactive({ country: '', src: '', url: '' });
 const orientProp = ref();
 
@@ -101,13 +89,13 @@ onBeforeMount(async () => {
   // console.log('router id', id.value);
 
   const result = await axios.get('/api/scheme');
-  Object.assign(scheme, result.data)
+  Object.assign(scheme, result.data);
   // console.log("scheme", scheme);
 
   if (id.value) {
     const { data } = await axios.get('/api/message', { params: { id: id.value } });
     imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
-    message.value = data;
+    msg.value = data;
     // console.log(data);
     datum.country = data.country || 'by';
     datum.src = data.src;
@@ -124,17 +112,12 @@ onBeforeMount(async () => {
 });
 
 onMounted(async () => {
-  anno.value = new Annotorious(
-    {
-      image: imgRef.value,
-      widgets: [
-        'COMMENT',
-        { widget: 'TAG', vocabulary: [...scheme.languages, ...scheme.features] }
-      ],
-      // disableEditor: true,
-      // allowEmpty: true
-    },
-  );
+  anno.value = new Annotorious({
+    image: imgRef.value,
+    widgets: ['COMMENT', { widget: 'TAG', vocabulary: [...scheme.languages, ...scheme.features] }],
+    // disableEditor: true,
+    // allowEmpty: true
+  });
   // Annotorious.TiltedBox(anno.value);
   // console.log(Annotorious);
   anno.value.setDrawingTool('rect');
@@ -153,7 +136,7 @@ onMounted(async () => {
   //   .on('deleteAnnotation', function (annotation) {
   //     console.log('deleteAnnotation');
   //     // saveAnnotations();
-  //   });
+  //   })
   // .on('createSelection', function(selection) {
   //   console.log("create", selection);
   // })
@@ -171,33 +154,33 @@ const saveAnnotations = async () => {
   params.annotations = anno.value.getAnnotations();
   console.log('data to save', params);
   if (!params.country) {
-    errorMessages.value.push("Country is not set!");
+    errorMessages.value.push('Country is not set!');
   }
   if (!params.orient) {
-    errorMessages.value.push("Orientation is not set!");
+    errorMessages.value.push('Orientation is not set!');
   }
-  if (!params.src) {
-    errorMessages.value.push("Source title is empty!");
-  } else {
-    params.src = params.src.trim();
-  }
-  if (!params.url) {
-    errorMessages.value.push("Source URL is empty!");
-  } else {
-    params.url = params.url.trim();
-  }
+  // if (!params.src) {
+  //   errorMessages.value.push("Source title is empty!");
+  // } else {
+  //   params.src = params.src.trim();
+  // }
+  // if (!params.url) {
+  //   errorMessages.value.push("Source URL is empty!");
+  // } else {
+  //   params.url = params.url.trim();
+  // }
   if (!params.annotations || (params.annotations && !params.annotations.length)) {
-    errorMessages.value.push("No anotation is provided!!!");
+    errorMessages.value.push('No anotation is provided!!!');
   } else {
     for (let annotation of params.annotations) {
-      if (annotation.type === "Annotation") {
-        const tagsList = annotation.body.filter(x => x.purpose == "tagging");
+      if (annotation.type === 'Annotation') {
+        const tagsList = annotation.body.filter(x => x.purpose == 'tagging');
         if (tagsList.length) {
-          if (!tagsList.map(x => x.value).some((x) => (scheme.languages as Array<string>).includes(x))) {
-            errorMessages.value.push("The annotation does not contain any LANGUAGE tags!");
+          if (!tagsList.map(x => x.value).some(x => (scheme.languages as Array<string>).includes(x))) {
+            errorMessages.value.push('The annotation does not contain any LANGUAGE tags!');
           }
         } else {
-          errorMessages.value.push("There are no tags in the annotation!");
+          errorMessages.value.push('There are no tags in the annotation!');
         }
       }
     }
@@ -208,9 +191,9 @@ const saveAnnotations = async () => {
   } else {
     const { data } = await axios.post('/api/anno', { params: params });
     if (data?.tg_id == id.value) {
-      ok.value = true;
+      message.success('The data were saved.');
     } else {
-      console.log("post was not saved!");
+      message.error('The data were not saved!');
     }
   }
   // console.log("result", data);
@@ -220,21 +203,19 @@ const getNeighbor = async (path: string) => {
   console.log(path, id.value);
   const { data } = await axios.get('/api/' + path, { params: { id: id.value } });
   imgSrc.value = '/api/media/' + data.imagepath;
-  message.value = data;
+  msg.value = data;
   id.value = Number(data.tg_id);
   console.log(data);
   errorMessages.value = [];
-  ok.value = false;
   router.push(`/message/${data.tg_id}`);
   // must be rewritten with router.push ans storing data in state!!!
 };
 
 const changeTool = (name: string) => {
   drawingTool.value = name;
-  console.log("change tool", name);
+  console.log('change tool', name);
   anno.value.setDrawingTool(drawingTool.value);
-}
-
+};
 </script>
 
 <style lang="scss" scoped>
