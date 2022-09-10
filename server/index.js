@@ -164,20 +164,21 @@ const annotationScheme = {
   });
 
   app.get('/api/stats', async (req, res) => {
-    const [mCount, aCount, pCount, languagesCount, featuresCount] = await Promise.all([
+    const [mCount, aCount, pCount, languagesCount, featuresCount, photosCount] = await Promise.all([
       db.getMessagesCount(),
       db.getAnnotationsCount(),
       db.getPhotosCount(),
       Promise.all(annotationScheme.languages.map((x) => db.getTagCount(x))),
       Promise.all(annotationScheme.features.map((x) => db.getTagCount(x))),
+      Promise.all([1, 2].map((x) => db.getPhotoStats('orient', x))),
     ]);
     res.json({
-      scheme: annotationScheme, messages: mCount, photos: pCount, annotations: aCount, languages: languagesCount, features: featuresCount,
+      scheme: annotationScheme, messages: mCount, photos: pCount, annotations: aCount, languages: languagesCount, features: featuresCount, orientation: photosCount
     });
   });
 
   app.get('/api/messages', async (req, res) => {
-    console.log(req.query);
+    // console.log(req.query);
     const count = await db.getMessagesCount();
     const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
     const usersList = await db.getUsers();
