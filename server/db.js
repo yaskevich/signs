@@ -64,4 +64,14 @@ export default {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
   },
+  async getPhotoStats(propName, propValue) {
+    let results = [];
+    try {
+      const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_length(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
+      results = result.map((x) => x.rows).map((x) => Number(x.shift().num));
+    } catch (error) {
+      console.error(error);
+    }
+    return results;
+  }
 };
