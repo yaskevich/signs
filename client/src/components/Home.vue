@@ -13,6 +13,12 @@
         </n-descriptions-item>
       </n-descriptions>
 
+      <h5>Orientation</h5>
+      <n-grid v-for="(value, key) in [1, 2]" :key="key" x-gap="12" :cols="2">
+        <n-gi>{{ datum?.scheme?.orientation[key]?.name }}</n-gi>
+        <n-gi><span title="photos">{{datum?.orientation?.[key]?.[0]}}</span> / <span title="annotations">{{datum?.orientation?.[key]?.[1]}}</span></n-gi>
+      </n-grid> 
+
       <h5>Languages</h5>
       <n-grid v-for="(value, key) in datum?.scheme?.languages" :key="key" x-gap="12" :cols="2">
         <n-gi>{{ value.replace('TAG-', '') }}</n-gi>

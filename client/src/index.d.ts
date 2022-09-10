@@ -1,12 +1,18 @@
+interface keyable {
+    [key: string]: any,
+}
+
 interface IStats {
     annotations: number,
     messages: number,
     photos: number,
+    orientation: Array<Array<number>>,
     languages: Array<string>,
     features: Array<string>,
     scheme: {
         languages: Array<string>,
         features: Array<string>,
+        orientation: keyable,
     },
 }
 
@@ -42,8 +48,4 @@ interface IUser {
 
 interface IUsersDict {
     [id: string]: IUser,
-}
-
-interface keyable {
-    [key: string]: any,
 }
