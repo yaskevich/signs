@@ -70,7 +70,7 @@ const annotationScheme = {
 
 (async () => {
   const app = express();
-  const port = process.env.PORT || 5000;
+  const port = process.env.PORT || 8080;
 
   passport.use(
     new LocalStrategy(
@@ -163,6 +163,10 @@ const annotationScheme = {
     res.json(annotationScheme);
   });
 
+  app.get('/api/features', async (req, res) => {
+    res.json(await db.getFeatures());
+  });
+
   app.get('/api/stats', async (req, res) => {
     const [mCount, aCount, pCount, languagesCount, featuresCount, photosCount] = await Promise.all([
       db.getMessagesCount(),
@@ -182,8 +186,7 @@ const annotationScheme = {
     const count = await db.getMessagesCount();
     const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
     const usersList = await db.getUsers();
-    const usersDict = usersList.reduce((obj, item) => ((obj[[item.tg_id]] = item), obj), {});
-
+    const usersDict = Object.fromEntries(usersList.map((x) => [x.tg_id, x]));
     return res.json({
       count,
       data,
@@ -194,25 +197,13 @@ const annotationScheme = {
 
   app.get('/api/annotations', async (req, res) => res.json(await db.getAnnotations(req.query)));
 
-  app.post('/api/anno', async (req, res) => {
-    console.log(req.query, req.body.params);
-    return res.json(await db.updateMessage(req.body.params));
-  });
+  app.post('/api/anno', async (req, res) => res.json(await db.updateMessage(req.body.params)));
 
-  app.get('/api/message', async (req, res) => {
-    console.log(req.query);
-    return res.json(await db.getMessage(Number(req.query.id)));
-  });
+  app.get('/api/message', async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
-  app.get('/api/next', async (req, res) => {
-    console.log(req.query);
-    return res.json(await db.getNext(Number(req.query.id)));
-  });
+  app.get('/api/next', async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
-  app.get('/api/prev', async (req, res) => {
-    console.log(req.query);
-    return res.json(await db.getPrev(Number(req.query.id)));
-  });
+  app.get('/api/prev', async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
 
   const authMiddleware = (req, res, next) => {
     if (!req.isAuthenticated()) {
