@@ -28,8 +28,11 @@ export default {
     return res.rows;
   },
   async getMessage(id) {
-    const res = await pool.query(`select * from messages where tg_id = ${id} LIMIT 1`);
-    return res.rows.length ? res.rows[0] : {};
+    const res = await pool.query('select * from messages where imagepath <> \'\' AND tg_id = $1', [id]);
+    const nextMsg = await pool.query('SELECT tg_id as next FROM messages where imagepath <> \'\' AND tg_id > $1 ORDER BY tg_id ASC LIMIT 1', [id]);
+    const prevMsg = await pool.query('SELECT  tg_id as prev FROM messages where imagepath <> \'\' AND tg_id < $1 ORDER BY tg_id DESC LIMIT 1', [id]);
+    // console.log('next', nextMsg.rows.shift());
+    return { ...res.rows.shift(), ...nextMsg.rows.shift(), ...prevMsg.rows.shift() };
   },
   async updateMessage(params) {
     let data = {};
@@ -73,5 +76,5 @@ export default {
       console.error(error);
     }
     return results;
-  }
+  },
 };
