@@ -4,13 +4,22 @@
       <img ref="imgRef" :src="imgSrc" style="max-width: 100%" />
     </n-space>
 
-    <!-- <n-divider></n-divider> -->
-    <n-space justify="space-around">
-      <n-button @click="getNeighbor('prev')">Previous</n-button>
-      <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool">
+    <n-space justify="space-around" size="small">
+      <!-- <n-button @click="getNext(true)">Previous</n-button> -->
+      <n-button @click="getNext(true)" :disabled="!msg?.prev" size="small">
+        <template #icon>
+          <n-icon :component="ArrowLeft" />
+        </template>
+      </n-button>
+      <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool" size="small">
         <n-radio-button v-for="item in toolsOptions" :key="item.type" :value="item.type" :label="item.title" />
       </n-radio-group>
-      <n-button @click="getNeighbor('next')">Next</n-button>
+      <!-- <n-button @click="getNext()">Next</n-button> -->
+      <n-button @click="getNext()" :disabled="!msg?.next" size="small">
+        <template #icon>
+          <n-icon :component="ArrowRight" />
+        </template>
+      </n-button>
     </n-space>
 
     <n-alert title="Errors" type="warning" v-if="errorMessages?.length">
@@ -67,10 +76,13 @@ import axios from 'axios';
 import { useMessage } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
+import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
+import { ArrowLeft, ArrowRight } from '@vicons/fa';
 
 const toolsOptions = [
   { title: 'Rectangle', type: 'rect' },
   { title: 'Polygon', type: 'polygon' },
+  { title: 'Tilted Box', type: 'annotorious-tilted-box' },
 ];
 const message = useMessage();
 const vuerouter = useRoute();
@@ -85,13 +97,41 @@ const errorMessages = ref([] as Array<string>);
 const datum = reactive({ country: '', src: '', url: '' });
 const orientProp = ref();
 
+const initAnnotorius = () => {
+  const vocabulary = [...scheme.languages, ...scheme.features];
+  // console.log(vocabulary);
+  anno.value = new Annotorious({
+    image: imgRef.value,
+    widgets: ['COMMENT', { widget: 'TAG', vocabulary }],
+    // disableEditor: true,
+    // allowEmpty: true
+  });
+  TiltedBoxPlugin(anno.value);
+  // anno.value.setDrawingTool('rect');
+  anno.value.clearAuthInfo();
+  // anno.value
+  //   .on('updateAnnotation', function (annotation, previous) {
+  //     console.log('updateAnnotation');
+  //     // saveAnnotations();
+  //   })
+  //   .on('createAnnotation', function (annotation) {
+  //     console.log('createAnnotation');
+  //     // saveAnnotations();
+  //   })
+  //   .on('deleteAnnotation', function (annotation) {
+  //     console.log('deleteAnnotation');
+  //     // saveAnnotations();
+  //   })
+  // .on('createSelection', function(selection) {
+  //   console.log("create", selection);
+  // })
+  // .on('selectAnnotation', function(annotation) {
+  //   console.log("selected", annotation);
+  // });
+};
+
 onBeforeMount(async () => {
   // console.log('router id', id.value);
-
-  const result = await axios.get('/api/scheme');
-  Object.assign(scheme, result.data);
-  // console.log("scheme", scheme);
-
   if (id.value) {
     const { data } = await axios.get('/api/message', { params: { id: id.value } });
     imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
@@ -112,37 +152,9 @@ onBeforeMount(async () => {
 });
 
 onMounted(async () => {
-  anno.value = new Annotorious({
-    image: imgRef.value,
-    widgets: ['COMMENT', { widget: 'TAG', vocabulary: [...scheme.languages, ...scheme.features] }],
-    // disableEditor: true,
-    // allowEmpty: true
-  });
-  // Annotorious.TiltedBox(anno.value);
-  // console.log(Annotorious);
-  anno.value.setDrawingTool('rect');
-  // anno.setDrawingTool('annotorious-tilted-box');
-  anno.value.clearAuthInfo();
-
-  // anno.value
-  //   .on('updateAnnotation', function (annotation, previous) {
-  //     console.log('updateAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('createAnnotation', function (annotation) {
-  //     console.log('createAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('deleteAnnotation', function (annotation) {
-  //     console.log('deleteAnnotation');
-  //     // saveAnnotations();
-  //   })
-  // .on('createSelection', function(selection) {
-  //   console.log("create", selection);
-  // })
-  // .on('selectAnnotation', function(annotation) {
-  //   console.log("selected", annotation);
-  // });
+  const result = await axios.get('/api/scheme');
+  Object.assign(scheme, result.data);
+  initAnnotorius();
 });
 
 const saveAnnotations = async () => {
@@ -199,16 +211,12 @@ const saveAnnotations = async () => {
   // console.log("result", data);
 };
 
-const getNeighbor = async (path: string) => {
-  console.log(path, id.value);
-  const { data } = await axios.get('/api/' + path, { params: { id: id.value } });
-  imgSrc.value = '/api/media/' + data.imagepath;
-  msg.value = data;
-  id.value = Number(data.tg_id);
-  console.log(data);
-  errorMessages.value = [];
-  router.push(`/message/${data.tg_id}`);
-  // must be rewritten with router.push ans storing data in state!!!
+const getNext = (isReversed?: boolean) => {
+  const newId = msg.value?.[isReversed ? 'prev' : 'next'];
+  if (newId) {
+    // console.log(`GO TO: /message/${newId}`);
+    router.push(`/message/${newId}`);
+  }
 };
 
 const changeTool = (name: string) => {
@@ -222,7 +230,6 @@ const changeTool = (name: string) => {
 .dropdown {
   width: 14rem;
 }
-
 .country-item {
   img {
     width: 17px;
