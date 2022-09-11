@@ -30,6 +30,8 @@ interface IMessage {
     tg_id: number,
     orient: number,
     country: string,
+    next?: number,
+    prev?: number,
     url: string,
     src: string,
     created: string,
