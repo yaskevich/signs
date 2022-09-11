@@ -3,12 +3,18 @@ import Home from '../components/Home.vue'
 import TMessages from '../components/TMessages.vue'
 import TMessage from '../components/TMessage.vue'
 import Flow from '../components/Flow.vue'
+import Features from '../components/Features.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
     component: Home
+  },
+  {
+    path: '/features',
+    name: 'Features',
+    component: Features
   },
   // {
   //   path: '/messages',
