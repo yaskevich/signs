@@ -200,7 +200,7 @@ onBeforeRouteUpdate(async (to, from) => {
   console.log('route update');
   page.value = Number(to.params.page);
   pageSize.value = Number(to.params.batch);
-  await updatePage();
+  // await updatePage();
 });
 </script>
 
