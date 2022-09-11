@@ -77,4 +77,8 @@ export default {
     }
     return results;
   },
+  async getFeatures() {
+    const res = await pool.query('select * from features');
+    return res.rows;
+  },
 };
