@@ -4,11 +4,12 @@
       <router-link to="/" class="nav">Home</router-link>|
       <router-link to="/messages" class="nav">Posts</router-link>|
       <router-link to="/flow" class="nav">Flow</router-link>|
+      <router-link to="/features" class="nav">Features</router-link>|
       <router-link to="/about" class="nav">About</router-link>
     </n-layout-header>
     <n-layout-content style="max-width:900px;min-height:500px;margin: auto;">
       <n-message-provider>
-        <router-view />
+        <router-view :key="$route.fullPath" />
       </n-message-provider>
     </n-layout-content>
     <n-layout-footer style="margin: 1rem;padding: 1rem;">
