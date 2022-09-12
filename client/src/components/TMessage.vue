@@ -110,32 +110,37 @@ const initAnnotorius = () => {
   // anno.value.setDrawingTool('rect');
   anno.value.clearAuthInfo();
   // anno.value
-    //   .on('updateAnnotation', function (annotation, previous) {
-    //     console.log('updateAnnotation');
-    //     // saveAnnotations();
-    //   })
-    //   .on('createAnnotation', function (annotation:any) {
-    //     console.log('createAnnotation');
-    //     // saveAnnotations();
-    //   })
-    //   .on('deleteAnnotation', function (annotation:any) {
-    //     console.log('deleteAnnotation');
-    //     // saveAnnotations();
-    //   })
-    // .on('createSelection', function(selection:any) {
-    //   console.log("create", selection);
-    // })
-    // .on('selectAnnotation', function (annotation:any) {
-    //   console.log('selected', annotation);
-    // })
-    // .on('createSelection', function (selection:any) {
-    //   console.log('create selection', selection);
-    //   // The user has created a new shape...
-    // });
+  //   .on('updateAnnotation', function (annotation, previous) {
+  //     console.log('updateAnnotation');
+  //     // saveAnnotations();
+  //   })
+  //   .on('createAnnotation', function (annotation:any) {
+  //     console.log('createAnnotation');
+  //     // saveAnnotations();
+  //   })
+  //   .on('deleteAnnotation', function (annotation:any) {
+  //     console.log('deleteAnnotation');
+  //     // saveAnnotations();
+  //   })
+  // .on('createSelection', function(selection:any) {
+  //   console.log("create", selection);
+  // })
+  // .on('selectAnnotation', function (annotation:any) {
+  //   console.log('selected', annotation);
+  // })
+  // .on('createSelection', function (selection:any) {
+  //   console.log('create selection', selection);
+  //   // The user has created a new shape...
+  // });
 };
 
-onBeforeMount(async () => {
-  // console.log('router id', id.value);
+// onBeforeMount(async () => {
+// });
+
+onMounted(async () => {
+  const result = await axios.get('/api/scheme');
+  Object.assign(scheme, result.data);
+  initAnnotorius();
   if (id.value) {
     const { data } = await axios.get('/api/message', { params: { id: id.value } });
     imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
@@ -149,17 +154,11 @@ onBeforeMount(async () => {
     }
     if (data.annotations) {
       for (let annotation of data.annotations) {
-        console.log(annotation);
+        // console.log(annotation);
         anno.value.addAnnotation(annotation);
       }
     }
   }
-});
-
-onMounted(async () => {
-  const result = await axios.get('/api/scheme');
-  Object.assign(scheme, result.data);
-  initAnnotorius();
 });
 
 const saveAnnotations = async () => {
@@ -242,9 +241,7 @@ const changeTool = (name: string) => {
   }
 }
 
-:deep {
-  .r6o-editor {
-    width: 80%;
-  }
+:deep(.r6o-editor) {
+  width: 80%;
 }
 </style>
