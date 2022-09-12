@@ -110,24 +110,28 @@ const initAnnotorius = () => {
   // anno.value.setDrawingTool('rect');
   anno.value.clearAuthInfo();
   // anno.value
-  //   .on('updateAnnotation', function (annotation, previous) {
-  //     console.log('updateAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('createAnnotation', function (annotation) {
-  //     console.log('createAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('deleteAnnotation', function (annotation) {
-  //     console.log('deleteAnnotation');
-  //     // saveAnnotations();
-  //   })
-  // .on('createSelection', function(selection) {
-  //   console.log("create", selection);
-  // })
-  // .on('selectAnnotation', function(annotation) {
-  //   console.log("selected", annotation);
-  // });
+    //   .on('updateAnnotation', function (annotation, previous) {
+    //     console.log('updateAnnotation');
+    //     // saveAnnotations();
+    //   })
+    //   .on('createAnnotation', function (annotation:any) {
+    //     console.log('createAnnotation');
+    //     // saveAnnotations();
+    //   })
+    //   .on('deleteAnnotation', function (annotation:any) {
+    //     console.log('deleteAnnotation');
+    //     // saveAnnotations();
+    //   })
+    // .on('createSelection', function(selection:any) {
+    //   console.log("create", selection);
+    // })
+    // .on('selectAnnotation', function (annotation:any) {
+    //   console.log('selected', annotation);
+    // })
+    // .on('createSelection', function (selection:any) {
+    //   console.log('create selection', selection);
+    //   // The user has created a new shape...
+    // });
 };
 
 onBeforeMount(async () => {
@@ -145,6 +149,7 @@ onBeforeMount(async () => {
     }
     if (data.annotations) {
       for (let annotation of data.annotations) {
+        console.log(annotation);
         anno.value.addAnnotation(annotation);
       }
     }
@@ -201,7 +206,7 @@ const saveAnnotations = async () => {
   if (errorMessages.value.length) {
     console.log(`not saved – errors: ${errorMessages.value.length}`);
   } else {
-    const { data } = await axios.post('/api/anno', { params: params });
+    const { data } = await axios.post('/api/anno', { params });
     if (data?.tg_id == id.value) {
       message.success('The data were saved.');
     } else {
@@ -234,6 +239,12 @@ const changeTool = (name: string) => {
   img {
     width: 17px;
     margin-right: 0.5rem;
+  }
+}
+
+:deep {
+  .r6o-editor {
+    width: 80%;
   }
 }
 </style>
