@@ -14,9 +14,9 @@ api_hash = os.getenv("API_HASH")
 # test_user = os.getenv("USER")
 group_id = os.getenv("GROUP_ID")
 group_name = os.getenv("GROUP_NAME")
-db_user = os.getenv("DB_USER")
-db_name = os.getenv("DB_NAME")
-db_pass = os.getenv("DB_PASSWORD")
+db_user = os.getenv("PGUSER")
+db_name = os.getenv("PGDATABASE")
+db_pass = os.getenv("PGPASSWORD")
 counter = 0
 # f = open("debug.txt", "w", encoding='utf-8')
 # print(api_id, api_hash)
@@ -41,7 +41,7 @@ database_dict = {
                 username text,	
                 firstname text,
                 lastname text,
-                tg_id integer unique
+                tg_id BIGINT unique
         )""",
     "channels":
         """CREATE TABLE IF NOT EXISTS channels (
@@ -66,7 +66,6 @@ if res:
             # cursor.execute("ALTER TABLE %s OWNER TO %s", (table, db_user))
             # conn.commit()
             
-exit()
 
 with TelegramClient('session_name', api_id, api_hash) as client:
     # for dialog in client.iter_dialogs():
@@ -105,7 +104,6 @@ with TelegramClient('session_name', api_id, api_hash) as client:
             print(message_json)
             print("=====================================")
             exit()
-
 
     print(counter)
     conn.commit()
