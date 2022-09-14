@@ -143,7 +143,7 @@ onMounted(async () => {
   initAnnotorius();
   if (id.value) {
     const { data } = await axios.get('/api/message', { params: { id: id.value } });
-    imgSrc.value = window.location.origin + '/api/media/' + data.imagepath;
+    imgSrc.value = window.location.origin + '/api/media/downloaded/' + data.imagepath;
     msg.value = data;
     // console.log(data);
     datum.country = data.country || 'by';
