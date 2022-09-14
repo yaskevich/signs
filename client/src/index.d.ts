@@ -5,7 +5,7 @@ interface keyable {
 interface IStats {
     annotations: number,
     messages: number,
-    photos: number,
+    photos: {total: number, dups: number},
     orientation: Array<Array<number>>,
     languages: Array<string>,
     features: Array<string>,
