@@ -1,4 +1,10 @@
 import pg from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const { Pool } = pg;
 const pool = new Pool();
@@ -16,15 +22,18 @@ export default {
     return res.rows[0].count;
   },
   async getPhotosCount() {
-    const res = await pool.query("select count(*) from messages where imagepath <> ''");
-    return res.rows[0].count;
+    const res1 = await pool.query("select count(*) from messages where imagepath <> ''");
+    const total = res1.rows[0].count;
+    const res2 = await pool.query("select imagepath from messages where imagepath <> '' group by imagepath having count(*) > 1");
+    const dups = res2.rows.length;
+    return { total, dups };
   },
   async getAnnotationsCount() {
     const res = await pool.query('select COUNT(*) from messages where length (annotations::text) > 2');
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select tg_id, data::jsonb - 'media' as data, imagepath, annotations from messages order by tg_id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select id, tg_id, data::jsonb - 'media' as data, imagepath, annotations from messages order by tg_id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
