@@ -78,6 +78,15 @@ export default {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
   },
+  async getAttachedAnnotations(tgId) {
+    let data = [];
+    const id = Number(tgId);
+    if (id) {
+      const res = await pool.query('select * from annotations where tg_id =$1', [id]);
+      data = res.rows;
+    }
+    return data;
+  },
   async getPhotoStats(propName, propValue) {
     let results = [];
     try {
