@@ -34,7 +34,7 @@ export default {
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select id, tg_id, data::jsonb - 'media' as data, imagepath, annotations from messages order by tg_id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, anns.count as annotated from messages LEFT JOIN (SELECT annotations.tg_id, count(annotations.tg_id) FROM annotations GROUP BY annotations.tg_id) as anns ON messages.tg_id = anns.tg_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -49,7 +49,7 @@ export default {
 
     if (params.orient && params.country && params.tg_id) {
       // console.log("save to DB");
-      const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4, annotations = $5 WHERE tg_id = $6 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, JSON.stringify(params.annotations), params.tg_id]);
+      const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4 WHERE tg_id = $5 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, params.tg_id]);
       data = res.rows?.[0];
     }
 
