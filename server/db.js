@@ -2,6 +2,7 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,8 +71,9 @@ export default {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
     // console.log('offset/limit', offset, limit);
-    const count = await pool.query('select count(*) from messages where length (annotations::text) > 2');
-    const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
+    const count = await pool.query('select count(*) from annotations');
+    // const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
+    const res = await pool.query('select ann.id, ann.content, ann.tg_id, ann.features, messages.country, messages.orient from annotations as ann left join messages on ann.tg_id = messages.tg_id ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2', [offset, limit]);
     return {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
@@ -105,8 +107,15 @@ export default {
         const id = result?.rows?.shift()?.id;
         if (id) {
           // console.log(id);
-          const pathToFragment = path.join(__dirname, 'media', 'fragments', `${id}.jpg`);
+          const pathToFragment = path.join(__dirname, 'media', 'fragments', `${id}-original.png`);
           fs.writeFileSync(pathToFragment, item.buffer);
+          const constraints = {
+            //   width: 650,
+            height: 128,
+            fit: 'inside',
+          };
+          const pathToThumbnail = path.join(__dirname, 'media', 'fragments', `${id}.png`);
+          await sharp(pathToFragment).resize(constraints).toFile(pathToThumbnail);
           images.push(pathToFragment);
         }
         // break;
