@@ -2,32 +2,31 @@
   <n-layout position="absolute">
     <n-layout-header id="nav">
       <router-link to="/" class="nav">Home</router-link>|
-      <router-link to="/messages" class="nav">Posts</router-link>|
-      <router-link to="/flow" class="nav">Flow</router-link>|
+      <router-link to="/messages" class="nav">Messages</router-link>|
+      <router-link to="/flow" class="nav">Annotations</router-link>|
       <router-link to="/features" class="nav">Features</router-link>|
       <router-link to="/about" class="nav">About</router-link>
     </n-layout-header>
-    <n-layout-content style="max-width:900px;min-height:500px;margin: auto;">
+    <n-layout-content style="max-width: 900px; min-height: 500px; margin: auto">
       <n-message-provider>
         <router-view :key="$route.fullPath" />
       </n-message-provider>
     </n-layout-content>
-    <n-layout-footer style="margin: 1rem;padding: 1rem;">
+    <n-layout-footer style="margin: 1rem; padding: 1rem">
       <n-space justify="center">
-        <n-icon :component="Camera" />
-        <span style="font-variant: small-caps;">Signs Project</span>
-        2020–2022 ● Made by
-        <n-button text tag="a" href="https://yaskevich.com/" target="_blank">Alyaxey Yaskevich</n-button>with
-        <n-icon :component="ThumbsUpRegular" />
+        <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
+          <template #icon>
+            <n-icon :component="Camera" />
+          </template>
+          2020–2022 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
+        </n-button>
       </n-space>
     </n-layout-footer>
   </n-layout>
 </template>
 <script setup lang="ts">
 import { ThumbsUpRegular, Camera } from '@vicons/fa';
-
 </script>
-
 
 <style lang="scss">
 #app {
