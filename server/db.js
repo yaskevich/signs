@@ -90,4 +90,44 @@ export default {
     const res = await pool.query('select * from features');
     return res.rows;
   },
+  async importAnnotations(data) {
+    const t0 = performance.now();
+    const client = await pool.connect();
+    let isError = false;
+    const images = [];
+    try {
+      await client.query('BEGIN');
+      /* eslint-disable no-unreachable-loop */
+      /* eslint-disable-next-line no-restricted-syntax */
+      for (const item of data) {
+        /* eslint-disable no-await-in-loop */
+        const result = await client.query('INSERT INTO annotations (content, features, uuid, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id', [item.content, JSON.stringify(item.features), item.uuid, item.tg_id, item.data_id, item.shape, item.geometry]);
+        const id = result?.rows?.shift()?.id;
+        if (id) {
+          // console.log(id);
+          const pathToFragment = path.join(__dirname, 'media', 'fragments', `${id}.jpg`);
+          fs.writeFileSync(pathToFragment, item.buffer);
+          images.push(pathToFragment);
+        }
+        // break;
+      }
+      await client.query('COMMIT');
+      console.log('commit');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      images.map(fs.unlinkSync);
+      isError = true;
+      console.error(error);
+      console.log('rollback');
+    } finally {
+      client.release();
+    }
+    if (isError) {
+      return undefined;
+    }
+    const t1 = performance.now();
+    const secs = ((t1 - t0) / 1000).toFixed(2);
+    // console.log(`batch: ${secs}s`);
+    return secs;
+  },
 };
