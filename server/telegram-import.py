@@ -93,9 +93,14 @@ with TelegramClient('session_name', api_id, api_hash) as client:
                 # print('File Name :' + str(dir(message.media.photo)))
                 # print('File Name :' + message.file.ext, message.media.photo.dc_id)
                 jpg_name = str(message.media.photo.id) + message.file.ext
-                jpg_path = os.path.join("media", jpg_name)
+                jpg_path = os.path.join("media", "downloads", jpg_name)
                 if not os.path.exists(jpg_path):
                     saved_path = message.download_media(jpg_path)
+                    image_size = os.stat(jpg_path).st_size
+                    if not image_size:
+                        print("Error with image", message.id)
+                    else:
+                        print("Loaded:", message.id, saved_path)
             cursor.execute("INSERT INTO messages(tg_id, data, imagepath) VALUES (%s, %s, %s) ON CONFLICT ON CONSTRAINT messages_tg_id_key DO NOTHING", (message.id, message_json, jpg_name))
 
         except:
