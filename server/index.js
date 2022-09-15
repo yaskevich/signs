@@ -195,7 +195,9 @@ app.get('/api/messages', async (req, res) => {
 
 app.get('/api/annotations', async (req, res) => res.json(await db.getAnnotations(req.query)));
 
-app.post('/api/anno', async (req, res) => res.json(await db.updateMessage(req.body.params)));
+app.get('/api/attached', async (req, res) => res.json(await db.getAttachedAnnotations(req.query.id)));
+
+app.post('/api/meta', async (req, res) => res.json(await db.updateMessage(req.body.params)));
 
 app.get('/api/message', async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
