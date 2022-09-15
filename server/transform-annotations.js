@@ -123,7 +123,7 @@ const clipShape = async (tgId, imagePath, shape, geometry) => {
 
   if (fs.existsSync(originalFullPath)) {
     try {
-      const image = await sharp(originalFullPath);
+      const image = await sharp(originalFullPath).toFormat('png').flatten({ background: '#ffffff' });
       const metadata = await image.metadata();
       // console.log(shape);
       if (shape === 'rect') {
@@ -134,7 +134,7 @@ const clipShape = async (tgId, imagePath, shape, geometry) => {
       } else {
         const svg = `<svg height="${metadata.height}" width="${metadata.width}"><polygon points="${geometry}"/></svg>`;
         const bufComposited = await image.composite([{ input: Buffer.from(svg), blend: 'dest-in' }]).toBuffer();
-        buf = await sharp(bufComposited).trim(1).toBuffer();
+        buf = await sharp(bufComposited).trim().toBuffer();
       }
     } catch (error) {
       console.log(tgId, 'Image error!', imagePath);
