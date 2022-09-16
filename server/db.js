@@ -101,11 +101,20 @@ export default {
     const res = await pool.query('select * from features');
     return res.rows;
   },
+  async getAnnotationsStats() {
+    const res = await pool.query("SELECT fid, count(fid) FROM (select cast(json_array_elements(features)->'id' as text) as fid from annotations) as unnested group by fid");
+    return res.rows;
+  },
+  async getAllMessages(off, batch) {
+    const res = await pool.query(`select id, tg_id, data::jsonb - 'media' as data, imagepath, annotations from messages order by tg_id OFFSET ${off} LIMIT ${batch}`);
+    return res.rows;
+  },
   async importAnnotations(data) {
     const t0 = performance.now();
     const client = await pool.connect();
     let isError = false;
     const images = [];
+    console.log(data.length);
     try {
       await client.query('BEGIN');
       /* eslint-disable no-unreachable-loop */
