@@ -40,7 +40,7 @@
                       </n-tooltip>
                     </n-button-group>
                     <template v-else>
-                      <n-button v-if="features[tag.id]?.parent === 1" color="#5a428d" size="small">{{
+                      <n-button v-if="features[features[tag.id]?.parent]?.code === 'languages'" color="#5a428d" size="small">{{
                         features[tag.id]?.code?.toUpperCase()
                       }}</n-button>
                       <n-button v-else type="info" size="small">{{ features[tag.id]?.code?.toUpperCase() }}</n-button>
