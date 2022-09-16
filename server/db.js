@@ -30,7 +30,12 @@ export default {
     return { total, dups };
   },
   async getAnnotationsCount() {
-    const res = await pool.query('select COUNT(*) from messages where length (annotations::text) > 2');
+    // const res = await pool.query('select COUNT(*) from messages where length (annotations::text) > 2');
+    const res = await pool.query('select COUNT(*) from annotations');
+    return res.rows[0].count;
+  },
+  async getMessagesAnnotatedCount() {
+    const res = await pool.query('select count(distinct(tg_id)) from annotations where tg_id is not null');
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
