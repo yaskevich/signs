@@ -165,7 +165,7 @@ const prepareData = async (msgs) => {
   return annotationsArray;
 };
 
-const messages = await db.getMessages(0, 10000);
+const messages = await db.getAllMessages(0, 10000);
 const data = await prepareData(messages);
 const secs = await db.importAnnotations(data);
 console.log(`Completed: ${secs ? `${secs}s` : 'FAIL!'}`);
