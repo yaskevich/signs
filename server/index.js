@@ -38,8 +38,6 @@ function getUser(request) {
 const LocalStrategy = passportLocal.Strategy;
 
 const annotationScheme = {
-  languages: ['TAG-BE', 'TAG-RU', 'TAG-MIXED', 'TAG-EN', 'TAG-PL', 'TAG-DE', 'TAG-UA', 'TAG-FR', 'TAG-NOTEXT', 'TAG-AMBILANG', 'TAG-LA', 'TAG-LT'].sort(),
-  features: ['TAG-COPY', 'TAG-PRINTED', 'TAG-PICT', 'TAG-CAPS', 'TAG-GRAPH', 'TAG-LINE', 'TAG-OBJ', 'TAG-FRAGM', 'TAG-INTERTEXT', 'TAG-SYMB', 'TAG-NOPUNCT', 'TAG-CODESWITCH'].sort(),
   countries: [
     { name: 'Belarus', code: 'by' },
     { name: 'Out of Belarus', code: 'out' },
@@ -166,16 +164,24 @@ app.get('/api/features', async (req, res) => {
 });
 
 app.get('/api/stats', async (req, res) => {
-  const [mCount, aCount, pCount, languagesCount, featuresCount, photosCount] = await Promise.all([
+  const [messages, annotated, photos, orientation, featuresCount, ftree, annotations] = await Promise.all([
     db.getMessagesCount(),
-    db.getAnnotationsCount(),
+    db.getMessagesAnnotatedCount(),
     db.getPhotosCount(),
-    Promise.all(annotationScheme.languages.map((x) => db.getTagCount(x))),
-    Promise.all(annotationScheme.features.map((x) => db.getTagCount(x))),
     Promise.all([1, 2].map((x) => db.getPhotoStats('orient', x))),
+    db.getAnnotationsStats(),
+    db.getFeatures(),
+    db.getAnnotationsCount()
   ]);
   res.json({
-    scheme: annotationScheme, messages: mCount, photos: pCount, annotations: aCount, languages: languagesCount, features: featuresCount, orientation: photosCount
+    scheme: annotationScheme,
+    messages,
+    photos,
+    annotations,
+    annotated,
+    orientation,
+    fstat: Object.fromEntries(featuresCount.map((x) => [x.fid, Number(x.count)])),
+    ftree,
   });
 });
 
