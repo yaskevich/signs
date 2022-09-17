@@ -26,18 +26,6 @@
         >
       </n-grid>
 
-      <!-- <h5>Languages</h5>
-      <n-grid v-for="(value, key) in datum?.scheme?.languages" :key="key" x-gap="12" :cols="2">
-        <n-gi>{{ value.replace('TAG-', '') }}</n-gi>
-        <n-gi style="color: orange">{{ datum?.languages[key] }}</n-gi>
-      </n-grid>
-
-      <h5>Features</h5>
-      <n-grid v-for="(value, key) in datum?.scheme?.features" :key="key" x-gap="12" :cols="2">
-        <n-gi>{{ value.replace('TAG-', '') }}</n-gi>
-        <n-gi style="color: gray">{{ datum?.features[key] }}</n-gi>
-      </n-grid> -->
-
       <div v-for="(value, key) in tree" style="text-align: center; max-width: 350px; margin: auto">
         <div>
           <n-h3>
@@ -47,11 +35,9 @@
             </n-text></n-h3
           >
           <div v-for="(value2, key2) in value.children">
-            <n-h5 style="font-variant: small-caps"
-              >{{ value2.code }}</n-h5
-            >
+            <n-h5 style="font-variant: small-caps">{{ value2.code }}</n-h5>
             <template v-for="(value3, key3) in value2.children">
-              <n-space justify="space-between">
+              <n-space justify="space-between" v-if="stats?.[value3?.id]">
                 <span>{{ value3.code.toUpperCase() }}</span> <span>{{ stats?.[value3?.id] || 0 }}</span>
               </n-space>
             </template>
@@ -70,7 +56,7 @@ import axios from 'axios';
 const isLoaded = ref(false);
 const datum = reactive({} as IStats);
 const tree = reactive({} as Array<IFeature>);
-const stats = reactive({});
+const stats = reactive({} as keyable);
 
 const nest = (items: any, id = 0) =>
   items
