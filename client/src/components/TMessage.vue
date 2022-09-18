@@ -96,43 +96,82 @@ const drawingTool = ref('rect');
 const errorMessages = ref([] as Array<string>);
 const datum = reactive({ country: '', src: '', url: '' });
 const orientProp = ref();
+const selectedId = ref<number | null>();
 
 const initAnnotorius = () => {
   const vocabulary = [...scheme.languages, ...scheme.features];
   // console.log(vocabulary);
   anno.value = new Annotorious({
     image: imgRef.value,
-    widgets: ['COMMENT', { widget: 'TAG', vocabulary }],
-    // disableEditor: true,
-    // allowEmpty: true
+    // widgets: ['COMMENT', { widget: 'TAG', vocabulary }],
+    disableEditor: true,
+    allowEmpty: true,
   });
   TiltedBoxPlugin(anno.value);
   // anno.value.setDrawingTool('rect');
   anno.value.clearAuthInfo();
-  // anno.value
-  //   .on('updateAnnotation', function (annotation, previous) {
-  //     console.log('updateAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('createAnnotation', function (annotation:any) {
-  //     console.log('createAnnotation');
-  //     // saveAnnotations();
-  //   })
-  //   .on('deleteAnnotation', function (annotation:any) {
-  //     console.log('deleteAnnotation');
-  //     // saveAnnotations();
-  //   })
-  // .on('createSelection', function(selection:any) {
-  //   console.log("create", selection);
-  // })
-  // .on('selectAnnotation', function (annotation:any) {
-  //   console.log('selected', annotation);
-  // })
-  // .on('createSelection', function (selection:any) {
-  //   console.log('create selection', selection);
-  //   // The user has created a new shape...
-  // });
+  anno.value
+    .on('updateAnnotation', function (annotation: any, previous: any) {
+      console.log('updateAnnotation');
+      // saveAnnotations();
+      return false;
+    })
+    .on('clickAnnotation', function (annotation: any, element: any) {
+      console.log('click!', selectedId.value);
+    })
+    .on('deleteAnnotation', function (annotation: any) {
+      console.log('delete', annotation);
+      anno.value.addAnnotation(annotation);
+    })
+    .on('changeSelectionTarget', function (target: any) {
+      console.log('change shape');
+    })
+    //   .on('createAnnotation', function (annotation:any) {
+    //     console.log('createAnnotation');
+    //     // saveAnnotations();
+    //   })
+    //   .on('deleteAnnotation', function (annotation:any) {
+    //     console.log('deleteAnnotation');
+    //     // saveAnnotations();
+    //   })
+    // .on('createSelection', function(selection:any) {
+    //   console.log("create", selection);
+    // })
+    .on('selectAnnotation', function (annotation: any) {
+      selectedId.value = annotation.id;
+      console.log('selected', annotation);
+    })
+    .on('cancelSelected', function (selection: any) {
+      selectedId.value = null;
+
+      console.log('cancel selection');
+    })
+    .on('createSelection', function (selection: any) {
+      console.log('create selection', selection);
+      // The user has created a new shape...
+    });
 };
+
+const buildWebAnno = (aId: number, shape: string, geometry: string, path: string) => ({
+  type: 'Annotation',
+  body: [],
+  '@context': 'http://www.w3.org/ns/anno.jsonld',
+  id: aId,
+  target: {
+    source: path,
+    selector:
+      shape === 'rect'
+        ? {
+            type: 'FragmentSelector',
+            conformsTo: 'http://www.w3.org/TR/media-frags/',
+            value: `xywh=pixel:${geometry}`,
+          }
+        : {
+            type: 'SvgSelector',
+            value: `<svg><polygon points="${geometry}"></polygon></svg>`,
+          },
+  },
+});
 
 // onBeforeMount(async () => {
 // });
@@ -142,22 +181,21 @@ onMounted(async () => {
   Object.assign(scheme, result.data);
   initAnnotorius();
   if (id.value) {
-    const { data } = await axios.get('/api/message', { params: { id: id.value } });
-    imgSrc.value = window.location.origin + '/api/media/downloaded/' + data.imagepath;
+    let { data } = await axios.get('/api/message', { params: { id: id.value } });
+    const imagepath = window.location.origin + '/api/media/downloads/' + data.imagepath;
+    imgSrc.value = imagepath;
     msg.value = data;
     // console.log(data);
-    datum.country = data.country || 'by';
+    datum.country = data.country;
     datum.src = data.src;
     datum.url = data.url;
+
     if (data.orient) {
       orientProp.value = data.orient;
     }
-    if (data.annotations) {
-      for (let annotation of data.annotations) {
-        // console.log(annotation);
-        anno.value.addAnnotation(annotation);
-      }
-    }
+
+    const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
+    attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
   }
 });
 
@@ -167,7 +205,7 @@ const saveAnnotations = async () => {
   errorMessages.value = [];
   params.orient = orientProp.value;
   params.tg_id = id.value;
-  params.annotations = anno.value.getAnnotations();
+  // params.annotations = anno.value.getAnnotations();
   console.log('data to save', params);
   if (!params.country) {
     errorMessages.value.push('Country is not set!');
@@ -185,27 +223,27 @@ const saveAnnotations = async () => {
   // } else {
   //   params.url = params.url.trim();
   // }
-  if (!params.annotations || (params.annotations && !params.annotations.length)) {
-    errorMessages.value.push('No anotation is provided!!!');
-  } else {
-    for (let annotation of params.annotations) {
-      if (annotation.type === 'Annotation') {
-        const tagsList = annotation.body.filter(x => x.purpose == 'tagging');
-        if (tagsList.length) {
-          if (!tagsList.map(x => x.value).some(x => (scheme.languages as Array<string>).includes(x))) {
-            errorMessages.value.push('The annotation does not contain any LANGUAGE tags!');
-          }
-        } else {
-          errorMessages.value.push('There are no tags in the annotation!');
-        }
-      }
-    }
-  }
+  // if (!params.annotations || (params.annotations && !params.annotations.length)) {
+  //   errorMessages.value.push('No anotation is provided!!!');
+  // } else {
+  //   for (let annotation of params.annotations) {
+  //     if (annotation.type === 'Annotation') {
+  //       const tagsList = annotation.body.filter(x => x.purpose == 'tagging');
+  //       if (tagsList.length) {
+  //         if (!tagsList.map(x => x.value).some(x => (scheme.languages as Array<string>).includes(x))) {
+  //           errorMessages.value.push('The annotation does not contain any LANGUAGE tags!');
+  //         }
+  //       } else {
+  //         errorMessages.value.push('There are no tags in the annotation!');
+  //       }
+  //     }
+  //   }
+  // }
   // console.log('save anno', imgSrc.value);
   if (errorMessages.value.length) {
     console.log(`not saved – errors: ${errorMessages.value.length}`);
   } else {
-    const { data } = await axios.post('/api/anno', { params });
+    const { data } = await axios.post('/api/meta', { params });
     if (data?.tg_id == id.value) {
       message.success('The data were saved.');
     } else {
