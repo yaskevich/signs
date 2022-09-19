@@ -23,11 +23,11 @@ export default {
     return res.rows[0].count;
   },
   async getPhotosCount() {
-    const res1 = await pool.query("select count(*) from messages where imagepath <> ''");
-    const total = res1.rows[0].count;
+    const res1 = await pool.query("select COUNT(*) as all,  count(*) FILTER (where imagepath <> '') as images from messages");
+    const total = res1.rows[0];
     const res2 = await pool.query("select imagepath from messages where imagepath <> '' group by imagepath having count(*) > 1");
     const dups = res2.rows.length;
-    return { total, dups };
+    return { ...total, dups };
   },
   async getAnnotationsCount() {
     // const res = await pool.query('select COUNT(*) from messages where length (annotations::text) > 2');
@@ -92,18 +92,20 @@ export default {
     }
     return data;
   },
-  async getPhotoStats(propName, propValue) {
-    let results = [];
-    try {
-      const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_length(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
-      results = result.map((x) => x.rows).map((x) => Number(x.shift().num));
-    } catch (error) {
-      console.error(error);
-    }
-    return results;
+  async getPhotoStats() {
+    // let results = [];
+    // try {
+    //   const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_length(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
+    //   results = result.map((x) => x.rows).map((x) => Number(x.shift().num));
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    // return results;
+    const res = await pool.query("SELECT fid, count(fid) FROM (select cast(json_array_elements(features)->'id' as text) as fid from messages) as unnested group by fid");
+    return res.rows;
   },
   async getFeatures() {
-    const res = await pool.query('select * from features');
+    const res = await pool.query('select * from features ORDER BY id');
     return res.rows;
   },
   async getAnnotationsStats() {
