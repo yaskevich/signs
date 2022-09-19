@@ -1,49 +1,47 @@
 <template>
   <div class="home">
-    <div v-if="isLoaded" style="margin: auto; text-align: center">
-      <n-descriptions label-placement="top" title="Stats" :column="4" label-align="center">
-        <n-descriptions-item>
-          <template #label>Total Messages</template>
-          {{ datum?.messages }}
-        </n-descriptions-item>
-        <n-descriptions-item label="with Photos"
-          ><span :title="'total, including ' + datum?.photos?.dups + ' duplicates'">{{ datum?.photos?.total }}</span>
-        </n-descriptions-item>
-        <n-descriptions-item label="Unique Photos"
-          ><span style="font-weight: bold">{{ datum?.photos?.total - datum?.photos?.dups }}</span></n-descriptions-item
-        >
-        <n-descriptions-item label="Annotated Photos">
-          <span style="color: rgb(255, 0, 162); font-weight: bold">{{ datum?.annotated }}</span>
-        </n-descriptions-item>
-      </n-descriptions>
-
-      <h5>Orientation</h5>
-      <n-grid v-for="(value, key) in [1, 2]" :key="key" x-gap="12" :cols="2">
-        <n-gi>{{ datum?.scheme?.orientation[key]?.name }}</n-gi>
-        <n-gi
-          ><span title="photos">{{ datum?.orientation?.[key]?.[0] }}</span> /
-          <span title="annotations">{{ datum?.orientation?.[key]?.[1] }}</span></n-gi
-        >
-      </n-grid>
-
-      <div v-for="(value, key) in tree" style="text-align: center; max-width: 350px; margin: auto">
-        <div>
-          <n-h3>
-            <n-text type="info">
-              {{ value.code }}
-              <span v-if="value.code === 'annotations'">({{ datum?.annotations }})</span>
-            </n-text></n-h3
-          >
-          <div v-for="(value2, key2) in value.children">
-            <n-h5 style="font-variant: small-caps">{{ value2.code }}</n-h5>
-            <template v-for="(value3, key3) in value2.children">
-              <n-space justify="space-between" v-if="stats?.[value3?.id]">
-                <span>{{ value3.code.toUpperCase() }}</span> <span>{{ stats?.[value3?.id] || 0 }}</span>
+    <div v-if="isLoaded" style="text-align: center; max-width: 350px; margin: auto">
+      <div v-for="item in datum?.tree">
+        <n-h3> {{ item.code }} ({{ (datum as keyable)?.[item.code] }})</n-h3>
+        <div v-for="item2 in item.children.filter((x:any) => x.type !== 'text')">
+          <n-h5 style="font-variant: small-caps">{{ item2.code }}</n-h5>
+          <template v-for="item3 in item2?.children?.sort((a:any, b:any) => b.num - a.num)">
+            <template v-if="item3.type">
+              <n-space vertical>
+                <n-text>{{ item2.code }} / {{ item3.code }}</n-text>
+                <n-space justify="space-between" v-for="item4 in item3.children.sort((a:any, b:any) => b.num - a.num)">
+                  <template v-if="item4?.num">
+                    <span>{{ item4.code.toUpperCase() }}</span> <span>{{ item4?.num || 0 }}</span>
+                  </template>
+                </n-space>
               </n-space>
             </template>
-          </div>
+            <template v-else>
+              <n-space justify="space-between">
+                <template v-if="item3?.num">
+                  <span>{{ item3.code.toUpperCase() }}</span> <span>{{ item3?.num || 0 }}</span>
+                </template>
+              </n-space>
+            </template>
+          </template>
         </div>
+        <n-divider></n-divider>
       </div>
+      <n-h3>Messages</n-h3>
+      <n-space vertical>
+        <n-space justify="space-between">
+          <span>Total</span> <span> {{ datum?.messages?.all }} </span>
+        </n-space>
+        <n-space justify="space-between">
+          <span>...with photos</span>
+          <span :title="'total, including ' + datum?.messages?.dups + ' duplicates'">{{
+            datum?.messages?.images
+          }}</span>
+        </n-space>
+        <n-space justify="space-between">
+          <span>...with unique photos</span> <span> {{ datum?.messages?.images - datum?.messages?.dups }} </span>
+        </n-space>
+      </n-space>
     </div>
     <div v-else style="text-align: center">...loading</div>
   </div>
@@ -56,23 +54,11 @@ import axios from 'axios';
 const isLoaded = ref(false);
 const datum = reactive({} as IStats);
 const tree = reactive({} as Array<IFeature>);
-const stats = reactive({} as keyable);
-
-const nest = (items: any, id = 0) =>
-  items
-    .filter((x: any) => x.parent === id)
-    .map((x: any) => {
-      const children = nest(items, x.id);
-      return { ...x, ...(children?.length && { children }) };
-    });
 
 onBeforeMount(async () => {
   const { data } = await axios.get('/api/stats');
   Object.assign(datum, data);
-  console.log('stats', data);
-  Object.assign(tree, nest(data.ftree));
-  Object.assign(stats, data.fstat);
-
+  // console.log('stats', data);
   isLoaded.value = true;
 });
 </script>
