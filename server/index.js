@@ -16,6 +16,13 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const nest = (items, id = 0) => items
+  .filter((x) => x.parent === id)
+  .map((x) => {
+    const children = nest(items, x.id);
+    return { ...x, ...(children?.length && { children }) };
+  });
+
 const users = [
   {
     id: 1,
@@ -35,39 +42,9 @@ function getUser(request) {
   return users.find((user) => user.id === request.session.passport.user);
 }
 
-const LocalStrategy = passportLocal.Strategy;
-
-const annotationScheme = {
-  countries: [
-    { name: 'Belarus', code: 'by' },
-    { name: 'Out of Belarus', code: 'out' },
-    { name: 'Poland', code: 'pl' },
-    { name: 'Great Britain', code: 'gb' },
-    { name: 'Germany', code: 'de' },
-    { name: 'France', code: 'fr' },
-    { name: 'Russia', code: 'ru' },
-    { name: 'USA', code: 'us' },
-    { name: 'Ukraine', code: 'ua' },
-    { name: 'Lithuania', code: 'lt' },
-    { name: 'Latvia', code: 'lv' },
-    { name: 'Switzerland', code: 'ch' },
-    { name: 'Australia', code: 'au' },
-    { name: 'Austria', code: 'at' },
-    { name: 'Israel', code: 'il' },
-    { name: 'Spain', code: 'es' },
-    { name: 'Spain', code: 'es' },
-    { name: 'Czechia', code: 'cz' },
-    { name: 'Denmark', code: 'dk' },
-    { name: 'Ireland', code: 'ie' },
-  ],
-  orientation: [
-    { name: 'Basic', level: 1 },
-    { name: 'Pro', level: 2 },
-  ],
-};
-
 const app = express();
 const port = process.env.PORT || 8080;
+const LocalStrategy = passportLocal.Strategy;
 
 passport.use(
   new LocalStrategy(
@@ -155,33 +132,27 @@ app.get('/api/logout', (req, res) => {
 // return res.json(data);
 // });
 
-app.get('/api/scheme', async (req, res) => {
-  res.json(annotationScheme);
-});
+// app.get('/api/scheme', async (req, res) => {
+//   res.json(annotationScheme);
+// });
 
 app.get('/api/features', async (req, res) => {
   res.json(await db.getFeatures());
 });
 
 app.get('/api/stats', async (req, res) => {
-  const [messages, annotated, photos, orientation, featuresCount, ftree, annotations] = await Promise.all([
-    db.getMessagesCount(),
+  const [photos, messages, features, annotations, astat, pstat] = await Promise.all([
     db.getMessagesAnnotatedCount(),
     db.getPhotosCount(),
-    Promise.all([1, 2].map((x) => db.getPhotoStats('orient', x))),
-    db.getAnnotationsStats(),
     db.getFeatures(),
-    db.getAnnotationsCount()
+    db.getAnnotationsCount(),
+    db.getAnnotationsStats(),
+    db.getPhotoStats(),
   ]);
+  const stats = Object.fromEntries(astat.concat(pstat).map((x) => [x.fid, Number(x.count)]));
+  const tree = nest(features.map((x) => ({ ...x, num: stats[x.id] })));
   res.json({
-    scheme: annotationScheme,
-    messages,
-    photos,
-    annotations,
-    annotated,
-    orientation,
-    fstat: Object.fromEntries(featuresCount.map((x) => [x.fid, Number(x.count)])),
-    ftree,
+    messages, annotations, photos, tree
   });
 });
 
