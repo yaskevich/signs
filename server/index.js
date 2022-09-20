@@ -176,6 +176,8 @@ app.get('/api/attached', async (req, res) => res.json(await db.getAttachedAnnota
 
 app.post('/api/meta', async (req, res) => res.json(await db.updateMessage(req.body.params)));
 
+app.post('/api/feature', async (req, res) => res.json(await db.updateFeature(req.body.params)));
+
 app.get('/api/message', async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
 app.get('/api/next', async (req, res) => res.json(await db.getNext(Number(req.query.id))));
