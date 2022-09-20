@@ -40,20 +40,27 @@
                       </n-tooltip>
                     </n-button-group>
                     <template v-else>
-                      <n-button v-if="features[features[tag.id]?.parent]?.code === 'languages'" color="#5a428d" size="small">{{
-                        features[tag.id]?.code?.toUpperCase()
-                      }}</n-button>
+                      <n-button
+                        v-if="features[features[tag.id]?.parent]?.code === 'languages'"
+                        color="#5a428d"
+                        size="small"
+                        >{{ features[tag.id]?.code?.toUpperCase() }}</n-button
+                      >
                       <n-button v-else type="info" size="small">{{ features[tag.id]?.code?.toUpperCase() }}</n-button>
                     </template>
                   </template>
                 </n-space>
                 <n-space justify="start">
-                  <n-button tertiary>{{ countries?.[item?.country]?.name }}</n-button>
-                  <n-button :type="item?.orient > 1 ? 'secondary' : 'primary'">
-                    <template #icon>
-                      <n-icon :component="Square" color="red" />
+                  <template v-for="tag in item.properties">
+                    <template v-if="!features[tag?.id]?.type">
+                      <n-button :type="tag.id === 52 ? 'secondary' : 'primary'" v-if="features[tag.id]?.parent === 51">
+                        <template #icon>
+                          <n-icon :component="Square" color="red" />
+                        </template>
+                      </n-button>
+                      <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button>
                     </template>
-                  </n-button>
+                  </template>
                 </n-space>
               </n-space>
               <img style="max-width: 300px" :src="'/api/media/fragments/' + item.id + '.png'" />
@@ -110,10 +117,6 @@ const updatePage = async () => {
   Object.assign(items, data.selection);
 
   totalCount.value = Number(data.count);
-
-  ({ data } = await axios.get('/api/scheme'));
-  const countriesList = Object.assign({}, ...data.countries.map((x: any) => ({ [x.code]: x })));
-  Object.assign(countries, countriesList);
 
   ({ data } = await axios.get('/api/features'));
   const featuresData = Object.fromEntries(data.map((x: any) => [x.id, x]));
