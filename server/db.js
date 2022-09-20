@@ -60,6 +60,19 @@ export default {
 
     return data;
   },
+  async updateFeature(params) {
+    let data = {};
+    console.log(params);
+    if (params.id && params.code) {
+      const { code } = params;
+      const title = params.title || params.code;
+      const comment = params.comment || '';
+      // console.log("save to DB");
+      const res = await pool.query('UPDATE features SET code = $1, title = $2, comment = $3 WHERE id = $4 RETURNING id', [code, title, comment, Number(params.id)]);
+      data = res.rows?.[0];
+    }
+    return data;
+  },
   async getNext(id) {
     const res = await pool.query(`SELECT * FROM messages WHERE tg_id > ${id} ORDER BY tg_id ASC LIMIT 1`);
     return res.rows.length ? res.rows[0] : {};
@@ -78,7 +91,7 @@ export default {
     // console.log('offset/limit', offset, limit);
     const count = await pool.query('select count(*) from annotations');
     // const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
-    const res = await pool.query('select ann.id, ann.content, ann.tg_id, ann.features, messages.country, messages.orient from annotations as ann left join messages on ann.tg_id = messages.tg_id ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2', [offset, limit]);
+    const res = await pool.query('select ann.id, ann.content, ann.tg_id, ann.features, messages.features as properties from annotations as ann left join messages on ann.tg_id = messages.tg_id ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2', [offset, limit]);
     return {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
