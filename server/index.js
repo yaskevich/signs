@@ -2,6 +2,7 @@ import express from 'express';
 import path, { dirname } from 'path';
 import compression from 'compression';
 import bodyParser from 'body-parser';
+import fs from 'fs';
 import session from 'cookie-session';
 import passport from 'passport';
 import passportLocal from 'passport-local';
@@ -15,6 +16,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const __package = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
@@ -135,6 +137,12 @@ app.get('/api/logout', (req, res) => {
 // app.get('/api/scheme', async (req, res) => {
 //   res.json(annotationScheme);
 // });
+
+app.get('/api/user/info', async (req, res) => {
+  res.json({
+    server: __package.version, commit: process.env.COMMIT, unix: process.env.COMMITUNIX,
+  });
+});
 
 app.get('/api/features', async (req, res) => {
   res.json(await db.getFeatures());
