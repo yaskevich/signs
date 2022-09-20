@@ -10,6 +10,7 @@ rm -rf $DIR/$PROD/$APP
 # degit $USER/$APP#$BRANCH $WORK
 git clone https://github.com/$USER/$APP  $WORK --depth 1
 HASH=$(git -C $WORK rev-parse --short HEAD)
+UNIX=$(git -C $WORK log -1 --format=%ct)
 # echo $HASH
 
 rm $WORK/* 2>/dev/null
@@ -31,6 +32,8 @@ done
 npm install --prefix $WORK
 cp $DIR/$APP.env $WORK/.env
 printf "\nCOMMIT=%s" $HASH >> $WORK/.env
+printf "\nCOMMITUNIX=%s" $UNIX >> $WORK/.env
+
 cd $WORK
 rm -rf $WORK/client $WORK/server
 
