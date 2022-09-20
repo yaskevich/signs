@@ -2,16 +2,16 @@
   <div class="home">
     <div v-if="isLoaded" style="text-align: center; max-width: 350px; margin: auto">
       <div v-for="item in datum?.tree">
-        <n-h3> {{ item.code }} ({{ (datum as keyable)?.[item.code] }})</n-h3>
+        <n-h3> {{ item.title || item.code }} ({{ (datum as keyable)?.[item.code] }})</n-h3>
         <div v-for="item2 in item.children.filter((x:any) => x.type !== 'text')">
           <n-h5 style="font-variant: small-caps">{{ item2.code }}</n-h5>
           <template v-for="item3 in item2?.children?.sort((a:any, b:any) => b.num - a.num)">
             <template v-if="item3.type">
               <n-space vertical>
-                <n-text>{{ item2.code }} / {{ item3.code }}</n-text>
+                <n-text>{{ item2.title || item2.code }} / {{ item3.title || item3.code }}</n-text>
                 <n-space justify="space-between" v-for="item4 in item3.children.sort((a:any, b:any) => b.num - a.num)">
                   <template v-if="item4?.num">
-                    <span>{{ item4.code.toUpperCase() }}</span> <span>{{ item4?.num || 0 }}</span>
+                    <span>{{ item4.title || item4.code.toUpperCase() }}</span> <span>{{ item4?.num || 0 }}</span>
                   </template>
                 </n-space>
               </n-space>
@@ -19,7 +19,7 @@
             <template v-else>
               <n-space justify="space-between">
                 <template v-if="item3?.num">
-                  <span>{{ item3.code.toUpperCase() }}</span> <span>{{ item3?.num || 0 }}</span>
+                  <span>{{ item3.title || item3.code.toUpperCase() }}</span> <span>{{ item3?.num || 0 }}</span>
                 </template>
               </n-space>
             </template>
@@ -53,7 +53,6 @@ import axios from 'axios';
 
 const isLoaded = ref(false);
 const datum = reactive({} as IStats);
-const tree = reactive({} as Array<IFeature>);
 
 onBeforeMount(async () => {
   const { data } = await axios.get('/api/stats');
