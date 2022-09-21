@@ -5,9 +5,8 @@ interface keyable {
 interface IStats {
   annotations: number;
   annotated: number;
+  photos: number;
   messages: { all: number; images: number; dups: number };
-  orientation: Array<Array<number>>;
-  languages: Array<string>;
   features: Array<string>;
   tree: keyable;
 }
@@ -22,7 +21,7 @@ interface IFeature {
   type: string;
   comment: string;
   children: Array<IFeature>;
-  ref?: IFeature
+  ref?: IFeature;
 }
 
 interface IAnnotation {
@@ -47,6 +46,7 @@ interface IMessage {
   created: string;
   imagepath: string;
   annotated: string;
+  features: Array<IFeature>;
   data: {
     message: string;
     grouped_id: string;
