@@ -6,7 +6,7 @@
 
     <n-space justify="space-around" size="small">
       <!-- <n-button @click="getNext(true)">Previous</n-button> -->
-      <n-button @click="getNext(true)" :disabled="!msg?.prev" size="small">
+      <n-button @click="getNext(true)" :disabled="!photo?.prev" size="small">
         <template #icon>
           <n-icon :component="ArrowLeft" />
         </template>
@@ -15,7 +15,7 @@
         <n-radio-button v-for="item in toolsOptions" :key="item.type" :value="item.type" :label="item.title" />
       </n-radio-group>
       <!-- <n-button @click="getNext()">Next</n-button> -->
-      <n-button @click="getNext()" :disabled="!msg?.next" size="small">
+      <n-button @click="getNext()" :disabled="!photo?.next" size="small">
         <template #icon>
           <n-icon :component="ArrowRight" />
         </template>
@@ -26,12 +26,55 @@
       <div v-for="item of errorMessages">{{ item }}</div>
     </n-alert>
     <!-- <n-divider></n-divider> -->
-    <n-card title="Image properties">
+    <n-card title="Photo">
       <template #header-extra>
         <n-button @click="saveAnnotations" type="primary">Save</n-button>
       </template>
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
+          <n-form-item-gi v-for="(item, index) in scheme?.[0]?.children" :label="item?.title">
+            <!-- :value="features?.find((x:IFeature) => x.id === item.id)?.value" -->
+            <n-input
+              v-if="item?.type === 'text'"
+              type="text"
+              :placeholder="item?.title"
+              v-model:value="values[item.id]"
+            />
+
+            <n-select
+              v-if="item?.type === 'single'"
+              :options="item.children"
+              label-field="title"
+              value-field="id"
+              filterable
+              :placeholder="'Select ' + item?.title"
+              v-model:value="values[item.id]"
+            />
+            <!-- :value="item?.children?.find(x => features?.map(x => x.id).includes(x.id))?.id" -->
+
+            <template v-else>
+              <template v-for="value in item.children">
+                <template v-if="value?.children?.length">
+                  <n-space justify="space-between">
+                    <n-tag size="large">{{ value.title }}</n-tag>
+                    <!-- :value="value?.children?.find(x => features?.map(x => x.id).includes(x.id))?.id" -->
+                    <n-select
+                      v-if="value?.type === 'single'"
+                      :options="value.children"
+                      label-field="title"
+                      value-field="id"
+                      :placeholder="'Select ' + value?.title"
+                      filterable
+                      v-model:value="values[value.id]"
+                    />
+                  </n-space>
+                </template>
+              </template>
+            </template>
+          </n-form-item-gi>
+        </n-grid>
+
+        <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <n-form-item-gi label="Country">
             <n-select
               v-model:value="datum.country"
@@ -56,15 +99,15 @@
           <n-form-item-gi label="Source: URL" feedback="Put URL (web link) of the source">
             <n-input v-model:value="datum.url" type="text" placeholder="URL" />
           </n-form-item-gi>
-        </n-grid>
+        </n-grid> -->
       </n-form>
     </n-card>
   </n-space>
 
   <!-- <n-divider></n-divider> -->
 
-  <div style="border: 1px dashed orange; margin: 1rem; padding: 5px" v-if="Object.keys(msg).length">
-    <span v-html="msg.data.message.split('\n').join('<br/>')"></span>
+  <div style="border: 1px dashed orange; margin: 1rem; padding: 5px" v-if="Object.keys(photo).length">
+    <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
   </div>
 </template>
 
@@ -87,19 +130,19 @@ const toolsOptions = [
 const message = useMessage();
 const vuerouter = useRoute();
 const id = ref(Number(vuerouter.params.id));
-const scheme = reactive({ languages: [], features: [], countries: [], orientation: [] });
-const msg = ref({} as IMessage);
+const photo = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
 const anno = ref();
 const drawingTool = ref('rect');
 const errorMessages = ref([] as Array<string>);
-const datum = reactive({ country: '', src: '', url: '' });
-const orientProp = ref();
 const selectedId = ref<number | null>();
+const features = reactive({} as keyable);
+const scheme = reactive([] as Array<IFeature>);
+const values = reactive({} as keyable);
 
 const initAnnotorius = () => {
-  const vocabulary = [...scheme.languages, ...scheme.features];
+  // const vocabulary = [...scheme.languages, ...scheme.features];
   // console.log(vocabulary);
   anno.value = new Annotorious({
     image: imgRef.value,
@@ -173,26 +216,47 @@ const buildWebAnno = (aId: number, shape: string, geometry: string, path: string
   },
 });
 
+const nest = (items: any, id = 0) =>
+  items
+    .filter((x: any) => x.parent === id)
+    .map((x: any) => {
+      const children = nest(items, x.id);
+      return { ...x, ...(children?.length && { children }) };
+    });
+
 // onBeforeMount(async () => {
 // });
 
 onMounted(async () => {
-  const result = await axios.get('/api/scheme');
-  Object.assign(scheme, result.data);
+  // const result = await axios.get('/api/scheme');
+  // Object.assign(scheme, result.data);
+  const fdata = await axios.get('/api/features');
+  Object.assign(scheme, nest(fdata.data));
+
   initAnnotorius();
   if (id.value) {
     let { data } = await axios.get('/api/message', { params: { id: id.value } });
     const imagepath = window.location.origin + '/api/media/downloads/' + data.imagepath;
     imgSrc.value = imagepath;
-    msg.value = data;
-    // console.log(data);
-    datum.country = data.country;
-    datum.src = data.src;
-    datum.url = data.url;
+    photo.value = data;
+    // console.log('values scheme', toRaw(formArray));
+    console.log(data.features);
 
-    if (data.orient) {
-      orientProp.value = data.orient;
+    Object.assign(features, Object.fromEntries(fdata.data.map((x: any) => [x.id, x])));
+
+    for (const unit of photo.value?.features) {
+      const rule = features[unit.id];
+      const unitId = rule.type ? unit.id : rule.parent;
+      const value = rule.type ? unit.value : unit.id;
+      values[unitId] = value;
     }
+    // datum.country = data.country;
+    // datum.src = data.src;
+    // datum.url = data.url;
+
+    // if (data.orient) {
+    //   orientProp.value = data.orient;
+    // }
 
     const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
     attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
@@ -201,18 +265,46 @@ onMounted(async () => {
 
 const saveAnnotations = async () => {
   // const annotations =
-  const params = { ...toRaw(datum) } as IMessage;
-  errorMessages.value = [];
-  params.orient = orientProp.value;
-  params.tg_id = id.value;
+  // const params = { ...toRaw(datum) } as IMessage;
+  // const result = values.map((x: any, i: any) =>
+  //   formArray[i].type === 'text' ? { id: formArray[i].id, value: x } : { id: x, value: true }
+  // );
+
+  // console.log('result', result);
+
+  // console.log(values);
+  // console.log(values.map(x => features[]));
+
+  // for (const [key, value] of Object.entries(values)) {
+  //   console.log(`${key}: ${value}`);
+  // }
+  const jsonFeatures = Object.entries(values).map(x =>
+    features[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }
+  );
+  console.log(jsonFeatures);
+  const params = {
+    features: jsonFeatures,
+    tg_id: id.value,
+  };
+  const { data } = await axios.post('/api/meta', { params });
+  if (data?.tg_id == id.value) {
+    message.success('The data were saved.');
+  } else {
+    message.error('The data were not saved!');
+  }
+
+  // errorMessages.value = [];
+  // params.orient = orientProp.value;
+  // params.tg_id = id.value;
   // params.annotations = anno.value.getAnnotations();
-  console.log('data to save', params);
-  if (!params.country) {
-    errorMessages.value.push('Country is not set!');
-  }
-  if (!params.orient) {
-    errorMessages.value.push('Orientation is not set!');
-  }
+  // console.log('data to save', params);
+  // if (!params.country) {
+  //   errorMessages.value.push('Country is not set!');
+  // }
+  // if (!params.orient) {
+  //   errorMessages.value.push('Orientation is not set!');
+  // }
+
   // if (!params.src) {
   //   errorMessages.value.push("Source title is empty!");
   // } else {
@@ -240,21 +332,21 @@ const saveAnnotations = async () => {
   //   }
   // }
   // console.log('save anno', imgSrc.value);
-  if (errorMessages.value.length) {
-    console.log(`not saved – errors: ${errorMessages.value.length}`);
-  } else {
-    const { data } = await axios.post('/api/meta', { params });
-    if (data?.tg_id == id.value) {
-      message.success('The data were saved.');
-    } else {
-      message.error('The data were not saved!');
-    }
-  }
+  // if (errorMessages.value.length) {
+  //   console.log(`not saved – errors: ${errorMessages.value.length}`);
+  // } else {
+  // const { data } = await axios.post('/api/meta', { params });
+  // if (data?.tg_id == id.value) {
+  //   message.success('The data were saved.');
+  // } else {
+  //   message.error('The data were not saved!');
+  // }
+  // }
   // console.log("result", data);
 };
 
 const getNext = (isReversed?: boolean) => {
-  const newId = msg.value?.[isReversed ? 'prev' : 'next'];
+  const newId = photo.value?.[isReversed ? 'prev' : 'next'];
   if (newId) {
     // console.log(`GO TO: /message/${newId}`);
     router.push(`/message/${newId}`);
