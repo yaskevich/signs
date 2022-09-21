@@ -149,7 +149,7 @@ app.get('/api/features', async (req, res) => {
 });
 
 app.get('/api/stats', async (req, res) => {
-  const [photos, messages, features, annotations, astat, pstat] = await Promise.all([
+  const [photos, messages, features, objects, astat, pstat] = await Promise.all([
     db.getMessagesAnnotatedCount(),
     db.getPhotosCount(),
     db.getFeatures(),
@@ -160,7 +160,7 @@ app.get('/api/stats', async (req, res) => {
   const stats = Object.fromEntries(astat.concat(pstat).map((x) => [x.fid, Number(x.count)]));
   const tree = nest(features.map((x) => ({ ...x, num: stats[x.id] })));
   res.json({
-    messages, annotations, photos, tree
+    messages, objects, photos, tree
   });
 });
 
@@ -182,7 +182,7 @@ app.get('/api/annotations', async (req, res) => res.json(await db.getAnnotations
 
 app.get('/api/attached', async (req, res) => res.json(await db.getAttachedAnnotations(req.query.id)));
 
-app.post('/api/meta', async (req, res) => res.json(await db.updateMessage(req.body.params)));
+app.post('/api/meta', async (req, res) => res.json(await db.setPhotoMeta(req.body.params)));
 
 app.post('/api/feature', async (req, res) => res.json(await db.updateFeature(req.body.params)));
 
