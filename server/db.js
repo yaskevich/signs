@@ -60,9 +60,17 @@ export default {
 
     return data;
   },
+  async setPhotoMeta(datum) {
+    let data = {};
+
+    const res = await pool.query('UPDATE messages SET features = $1 WHERE tg_id = $2 RETURNING tg_id', [JSON.stringify(datum.features), datum.tg_id]);
+    data = res.rows?.[0];
+
+    return data;
+  },
   async updateFeature(params) {
     let data = {};
-    console.log(params);
+    // console.log(params);
     if (params.id && params.code) {
       const { code } = params;
       const title = params.title || params.code;
