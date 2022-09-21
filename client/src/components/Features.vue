@@ -22,13 +22,7 @@
   >
     <n-form>
       <n-form-item label="Code" feedback="For internal use. Numbers and English letters only">
-        <n-input
-          v-model:value="feature.code"
-          clearable
-          placeholder="..."
-          :allow-input="onlyAllowedInput"
-          :maxlength="8"
-        />
+        <n-input v-model:value="feature.code" clearable placeholder="..." :allow-input="onlyAllowedInput" />
       </n-form-item>
 
       <n-form-item label="Title" feedback="Displayed everywhere">
@@ -75,7 +69,7 @@ const renderOption = (e: any) => {
       size: 'small',
       onClick: () => handleSelect(e.option),
     },
-    { default: () => e.option.title || e.option.code }
+    { default: () => (e.option.title || e.option.code) + (e.option.type ? ' (' + e.option.type + ')' : '') }
   );
 };
 
