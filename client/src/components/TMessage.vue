@@ -22,51 +22,80 @@
       </n-button>
     </n-space>
 
-    <n-alert title="Errors" type="warning" v-if="errorMessages?.length">
-      <div v-for="item of errorMessages">{{ item }}</div>
-    </n-alert>
-    <!-- <n-divider></n-divider> -->
-    <n-card title="Photo">
+    <n-card :title="`Object ${selectedId}`" v-if="showObjectForm && selectedId">
+      <template #header-extra>
+        <n-button
+          ghost
+          @click="
+            anno.cancelSelected();
+            selectedId = null;
+          "
+          type="primary"
+          >Back</n-button
+        >
+      </template>
+
+      <n-space vertical size="large">
+        <n-card embedded>
+          <n-input v-model:value="objects[selectedId].content" type="textarea" placeholder="Text" />
+        </n-card>
+        <div v-for="item in scheme.find(x => x.code === 'objects')?.children">
+          <n-space justify="start">
+            <n-tag type="info">{{ item.title }}</n-tag>
+            <template v-for="subitem in item?.children">
+              <n-checkbox :checked="selectedObject?.[subitem.id]?.value">{{ subitem.title }}</n-checkbox>
+              <n-input
+                autosize
+                v-if="selectedObject?.[subitem.id]"
+                v-model:value="selectedObject[subitem.id].note"
+                type="text"
+                size="tiny"
+                placeholder="Note..."
+                style="margin-left: -15px; min-width: 60px" />
+              <!-- <n-switch>
+                <template #checked> {{ subitem.title }} </template>
+                <template #unchecked> {{ subitem.title }} </template>
+              </n-switch> -->
+            </template>
+          </n-space>
+        </div>
+      </n-space>
+    </n-card>
+    <n-card title="Photo" v-else>
       <template #header-extra>
         <n-button @click="saveAnnotations" type="primary">Save</n-button>
       </template>
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
-          <n-form-item-gi v-for="(item, index) in scheme?.[0]?.children" :label="item?.title">
-            <!-- :value="features?.find((x:IFeature) => x.id === item.id)?.value" -->
+          <n-form-item-gi v-for="item in scheme?.[0]?.children" :label="item?.title">
             <n-input
               v-if="item?.type === 'text'"
               type="text"
               :placeholder="item?.title"
-              v-model:value="values[item.id]"
-            />
+              v-model:value="values[item.id]" />
 
             <n-select
               v-if="item?.type === 'single'"
-              :options="item.children"
+              :options="item?.children"
               label-field="title"
               value-field="id"
               filterable
               :placeholder="'Select ' + item?.title"
-              v-model:value="values[item.id]"
-            />
-            <!-- :value="item?.children?.find(x => features?.map(x => x.id).includes(x.id))?.id" -->
+              v-model:value="values[item.id]" />
 
             <template v-else>
-              <template v-for="value in item.children">
+              <template v-for="value in item?.children">
                 <template v-if="value?.children?.length">
                   <n-space justify="space-between">
-                    <n-tag size="large">{{ value.title }}</n-tag>
-                    <!-- :value="value?.children?.find(x => features?.map(x => x.id).includes(x.id))?.id" -->
+                    <n-tag size="large">{{ value?.title }}</n-tag>
                     <n-select
                       v-if="value?.type === 'single'"
-                      :options="value.children"
+                      :options="value?.children"
                       label-field="title"
                       value-field="id"
                       :placeholder="'Select ' + value?.title"
                       filterable
-                      v-model:value="values[value.id]"
-                    />
+                      v-model:value="values[value.id]" />
                   </n-space>
                 </template>
               </template>
@@ -101,14 +130,11 @@
           </n-form-item-gi>
         </n-grid> -->
       </n-form>
+      <n-card v-if="photo?.data?.message" embedded>
+        <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
+      </n-card>
     </n-card>
   </n-space>
-
-  <!-- <n-divider></n-divider> -->
-
-  <div style="border: 1px dashed orange; margin: 1rem; padding: 5px" v-if="Object.keys(photo).length">
-    <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -135,11 +161,13 @@ const imgSrc = ref('');
 const imgRef = ref();
 const anno = ref();
 const drawingTool = ref('rect');
-const errorMessages = ref([] as Array<string>);
-const selectedId = ref<number | null>();
 const features = reactive({} as keyable);
 const scheme = reactive([] as Array<IFeature>);
 const values = reactive({} as keyable);
+const objects = reactive([] as Array<keyable>);
+const selectedId = ref<number | null>();
+const selectedObject = reactive({} as keyable);
+const showObjectForm = ref(false);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -161,10 +189,18 @@ const initAnnotorius = () => {
     })
     .on('clickAnnotation', function (annotation: any, element: any) {
       console.log('click!', selectedId.value);
+      if (selectedId.value) {
+        showObjectForm.value = true;
+      }
     })
     .on('deleteAnnotation', function (annotation: any) {
-      console.log('delete', annotation);
-      anno.value.addAnnotation(annotation);
+      if (showObjectForm.value === true) {
+        console.log('ignore DEL press');
+        anno.value.addAnnotation(annotation);
+      } else {
+        console.log('delete', annotation);
+        anno.value.addAnnotation(annotation);
+      }
     })
     .on('changeSelectionTarget', function (target: any) {
       console.log('change shape');
@@ -182,10 +218,17 @@ const initAnnotorius = () => {
     // })
     .on('selectAnnotation', function (annotation: any) {
       selectedId.value = annotation.id;
+      Object.assign(
+        selectedObject,
+        Object.fromEntries(objects[annotation.id]?.features.map((x: any) => [x.id, { note: '', ...x }]))
+      );
+      console.log(selectedObject);
+
       console.log('selected', annotation);
     })
     .on('cancelSelected', function (selection: any) {
       selectedId.value = null;
+      showObjectForm.value = false;
 
       console.log('cancel selection');
     })
@@ -240,7 +283,7 @@ onMounted(async () => {
     imgSrc.value = imagepath;
     photo.value = data;
     // console.log('values scheme', toRaw(formArray));
-    console.log(data.features);
+    // console.log(data.features);
 
     Object.assign(features, Object.fromEntries(fdata.data.map((x: any) => [x.id, x])));
 
@@ -260,6 +303,8 @@ onMounted(async () => {
 
     const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
     attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
+    Object.assign(objects, Object.fromEntries(attachedData.data.map((x: any) => [x.id, x])));
+    console.log(objects);
   }
 });
 
