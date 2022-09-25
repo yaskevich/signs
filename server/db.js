@@ -185,4 +185,16 @@ export default {
     // console.log(`batch: ${secs}s`);
     return secs;
   },
+  async setObject(params) {
+    let data = {};
+    if (params.id) {
+      console.log('upd', params);
+      const res = await pool.query('UPDATE annotations SET features = $2, content =$3, shape =$4, geometry = $5 WHERE id = $1 RETURNING id', [params.id, JSON.stringify(params.features), params.content, params.shape, params.geometry]);
+      data = res.rows?.[0];
+    } else {
+      const res = await pool.query('INSERT INTO annotations (features, content, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id', [JSON.stringify(params.features), params.content, params.tg_id, params.data_id, params.shape, params.geometry]);
+      data = res.rows?.[0];
+    }
+    return data;
+  },
 };
