@@ -151,6 +151,7 @@ const toolsOptions = [
 const message = useMessage();
 const vuerouter = useRoute();
 const id = ref(Number(vuerouter.params.id));
+const requestedObjectId = vuerouter.query?.obj;
 const photo = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
@@ -229,9 +230,8 @@ const initAnnotorius = () => {
       // const { snippet, transform } = anno.value.getSelectedImageSnippet();
       // console.log(snippet, transform);
     })
-    .on('changeSelected', function (selected:any, previous:any) {
+    .on('changeSelected', function (selected: any, previous: any) {
       console.log('change selected', selected, previous);
-      
     });
 };
 
@@ -300,7 +300,10 @@ onMounted(async () => {
     const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
     attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
     Object.assign(objects, Object.fromEntries(attachedData.data.map((x: any) => [x.id, x])));
-    console.log(objects);
+    // console.log(objects);
+    if (requestedObjectId) {
+      anno.value.selectAnnotation(requestedObjectId);
+    }
   }
 });
 
