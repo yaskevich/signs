@@ -22,32 +22,27 @@
       </n-button>
     </n-space>
 
-    <n-card :title="`Object ${selectedId}`" v-if="showObjectForm && selectedId">
+    <n-card :title="`Object ${selectedObject.id}`" v-if="showObjectForm && selectedObject?.id">
       <template #header-extra>
-        <n-button
-          ghost
-          @click="
-            anno.cancelSelected();
-            selectedId = null;
-          "
-          type="primary"
-          >Back</n-button
-        >
+        <n-space justify="space-between">
+          <n-button ghost @click="discardChanges" type="primary">Back to photo</n-button>
+          <n-button @click="saveObjectAnnotation" type="info">Save</n-button>
+        </n-space>
       </template>
 
       <n-space vertical size="large">
         <n-card embedded>
-          <n-input v-model:value="objects[selectedId].content" type="textarea" placeholder="Text" />
+          <n-input v-model:value="selectedObject.content" type="textarea" placeholder="Text" />
         </n-card>
         <div v-for="item in scheme.find(x => x.code === 'objects')?.children">
           <n-space justify="start">
             <n-tag type="info">{{ item.title }}</n-tag>
             <template v-for="subitem in item?.children">
-              <n-checkbox :checked="selectedObject?.[subitem.id]?.value">{{ subitem.title }}</n-checkbox>
+              <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{ subitem.title }}</n-checkbox>
               <n-input
                 autosize
-                v-if="selectedObject?.[subitem.id]"
-                v-model:value="selectedObject[subitem.id].note"
+                v-if="selectedObject.features[subitem.id]?.value"
+                v-model:value="selectedObject.features[subitem.id].note"
                 type="text"
                 size="tiny"
                 placeholder="Note..."
@@ -63,7 +58,7 @@
     </n-card>
     <n-card title="Photo" v-else>
       <template #header-extra>
-        <n-button @click="saveAnnotations" type="primary">Save</n-button>
+        <n-button @click="savePhotoAnnotation" type="primary">Save</n-button>
       </template>
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
@@ -165,9 +160,9 @@ const features = reactive({} as keyable);
 const scheme = reactive([] as Array<IFeature>);
 const values = reactive({} as keyable);
 const objects = reactive([] as Array<keyable>);
-const selectedId = ref<number | null>();
-const selectedObject = reactive({} as keyable);
+const selectedObject = reactive({} as IObject);
 const showObjectForm = ref(false);
+const matrix = reactive([] as Array<IFeature>);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -188,8 +183,8 @@ const initAnnotorius = () => {
       return false;
     })
     .on('clickAnnotation', function (annotation: any, element: any) {
-      console.log('click!', selectedId.value);
-      if (selectedId.value) {
+      console.log('click!', selectedObject?.id, annotation);
+      if (selectedObject?.id) {
         showObjectForm.value = true;
       }
     })
@@ -205,36 +200,38 @@ const initAnnotorius = () => {
     .on('changeSelectionTarget', function (target: any) {
       console.log('change shape');
     })
-    //   .on('createAnnotation', function (annotation:any) {
-    //     console.log('createAnnotation');
-    //     // saveAnnotations();
-    //   })
-    //   .on('deleteAnnotation', function (annotation:any) {
-    //     console.log('deleteAnnotation');
-    //     // saveAnnotations();
-    //   })
-    // .on('createSelection', function(selection:any) {
-    //   console.log("create", selection);
-    // })
+    .on('createAnnotation', function (annotation: any) {
+      console.log('createAnnotation', annotation);
+      // saveAnnotations();
+    })
     .on('selectAnnotation', function (annotation: any) {
-      selectedId.value = annotation.id;
-      Object.assign(
-        selectedObject,
-        Object.fromEntries(objects[annotation.id]?.features.map((x: any) => [x.id, { note: '', ...x }]))
+      const featuresFull = Object.fromEntries(
+        matrix.map((x: any) => {
+          const prop = objects[annotation.id]?.features.find((y: any) => y.id === x.id) || { note: '', value: false };
+          return [x.id, { ...x, ...prop }];
+        })
       );
-      console.log(selectedObject);
 
+      Object.assign(selectedObject, objects[annotation.id], { features: featuresFull });
       console.log('selected', annotation);
     })
     .on('cancelSelected', function (selection: any) {
-      selectedId.value = null;
+      Object.assign(selectedObject, { id: null });
       showObjectForm.value = false;
-
       console.log('cancel selection');
     })
     .on('createSelection', function (selection: any) {
       console.log('create selection', selection);
-      // The user has created a new shape...
+      // anno.value.updateSelected(selection, true);
+      // anno.value.selectAnnotation(selection);
+
+      // anno.value.readOnly = true;
+      // const { snippet, transform } = anno.value.getSelectedImageSnippet();
+      // console.log(snippet, transform);
+    })
+    .on('changeSelected', function (selected:any, previous:any) {
+      console.log('change selected', selected, previous);
+      
     });
 };
 
@@ -271,9 +268,8 @@ const nest = (items: any, id = 0) =>
 // });
 
 onMounted(async () => {
-  // const result = await axios.get('/api/scheme');
-  // Object.assign(scheme, result.data);
   const fdata = await axios.get('/api/features');
+  Object.assign(matrix, fdata.data);
   Object.assign(scheme, nest(fdata.data));
 
   initAnnotorius();
@@ -308,7 +304,28 @@ onMounted(async () => {
   }
 });
 
-const saveAnnotations = async () => {
+const discardChanges = () => {
+  anno.value.cancelSelected();
+  Object.assign(selectedObject, { id: null });
+};
+
+const saveObjectAnnotation = async () => {
+  const newFeatures = Object.values(selectedObject.features)
+    .filter((x: IFeature) => x.value)
+    .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
+  console.log(newFeatures);
+  const datum = { ...toRaw(selectedObject), features: newFeatures };
+
+  const { data } = await axios.post('/api/object', { params: datum });
+  if (data?.id === selectedObject.id) {
+    Object.assign(objects[selectedObject.id], datum);
+    message.success('The object data were saved.');
+  } else {
+    message.error('The object data were not saved!');
+  }
+};
+
+const savePhotoAnnotation = async () => {
   // const annotations =
   // const params = { ...toRaw(datum) } as IMessage;
   // const result = values.map((x: any, i: any) =>
@@ -333,9 +350,9 @@ const saveAnnotations = async () => {
   };
   const { data } = await axios.post('/api/meta', { params });
   if (data?.tg_id == id.value) {
-    message.success('The data were saved.');
+    message.success('The photo data were saved.');
   } else {
-    message.error('The data were not saved!');
+    message.error('The photo data were not saved!');
   }
 
   // errorMessages.value = [];
@@ -418,5 +435,13 @@ const changeTool = (name: string) => {
 
 :deep(.r6o-editor) {
   width: 80%;
+}
+:deep(.a9s-annotation.selected .a9s-inner) {
+  stroke: #ff00e3;
+  stroke-width: 5px;
+}
+:deep(.a9s-selection .a9s-inner) {
+  stroke: #ff00e3;
+  stroke-width: 5px;
 }
 </style>
