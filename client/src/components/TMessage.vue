@@ -22,11 +22,11 @@
       </n-button>
     </n-space>
 
-    <n-card :title="`Object ${selectedObject.id}`" v-if="showObjectForm && selectedObject?.id">
+    <n-card :title="selectedObject?.id ? `Object ${selectedObject.id}` : 'New object'" v-if="showObjectForm">
       <template #header-extra>
         <n-space justify="space-between">
-          <n-button ghost @click="discardChanges" type="primary">Back to photo</n-button>
-          <n-button @click="saveObjectAnnotation" type="info">Save</n-button>
+          <n-button ghost @click="discardChanges" type="primary">Cancel</n-button>
+          <n-button @click="saveObject" type="info">Save</n-button>
         </n-space>
       </template>
 
@@ -125,9 +125,9 @@
           </n-form-item-gi>
         </n-grid> -->
       </n-form>
-      <n-card v-if="photo?.data?.message" embedded>
-        <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
-      </n-card>
+    </n-card>
+    <n-card v-if="photo?.data?.message" embedded>
+      <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
     </n-card>
   </n-space>
 </template>
@@ -184,10 +184,10 @@ const initAnnotorius = () => {
       return false;
     })
     .on('clickAnnotation', function (annotation: any, element: any) {
-      console.log('click!', selectedObject?.id, annotation);
-      if (selectedObject?.id) {
-        showObjectForm.value = true;
-      }
+      // console.log('click!', selectedObject?.id, annotation);
+      // if (selectedObject?.id) {
+      //   showObjectForm.value = true;
+      // }
     })
     .on('deleteAnnotation', function (annotation: any) {
       if (showObjectForm.value === true) {
@@ -199,22 +199,30 @@ const initAnnotorius = () => {
       }
     })
     .on('changeSelectionTarget', function (target: any) {
-      console.log('change shape');
+      // console.log('change shape', selectedObject?.id);
+      if (selectedObject?.id) {
+        const [shape, geometry] = parseSelector(target.selector);
+        selectedObject.shape = shape;
+        selectedObject.geometry = geometry;
+        selectedObject.image = photo.value.imagepath;
+      }
     })
     .on('createAnnotation', function (annotation: any) {
-      console.log('createAnnotation', annotation);
+      console.log('createAnnotation (& delete)', annotation);
+      anno.value.removeAnnotation(annotation);
+      showObjectForm.value = false;
       // saveAnnotations();
     })
     .on('selectAnnotation', function (annotation: any) {
+      // console.log('selected', annotation);
       const featuresFull = Object.fromEntries(
         matrix.map((x: any) => {
           const prop = objects[annotation.id]?.features.find((y: any) => y.id === x.id) || { note: '', value: false };
           return [x.id, { ...x, ...prop }];
         })
       );
-
       Object.assign(selectedObject, objects[annotation.id], { features: featuresFull });
-      console.log('selected', annotation);
+      showObjectForm.value = true;
     })
     .on('cancelSelected', function (selection: any) {
       Object.assign(selectedObject, { id: null });
@@ -225,14 +233,41 @@ const initAnnotorius = () => {
       console.log('create selection', selection);
       // anno.value.updateSelected(selection, true);
       // anno.value.selectAnnotation(selection);
-
       // anno.value.readOnly = true;
       // const { snippet, transform } = anno.value.getSelectedImageSnippet();
       // console.log(snippet, transform);
+      const [shape, geometry] = parseSelector(selection.target.selector);
+      if (shape && geometry) {
+        const newFeatures = Object.fromEntries(matrix.map(x => [x.id, { ...x, note: '', value: false }]));
+        Object.assign(selectedObject, {
+          shape,
+          geometry,
+          content: '',
+          features: newFeatures,
+          tg_id: photo.value.tg_id,
+          data_id: photo.value.id,
+          image: photo.value.imagepath,
+        });
+        showObjectForm.value = true;
+      } else {
+        message.error('Snippet format error');
+      }
     })
     .on('changeSelected', function (selected: any, previous: any) {
       console.log('change selected', selected, previous);
     });
+};
+
+const parseSelector = (selectionObject: any) => {
+  let shape: string = '';
+  let geometry: string = '';
+
+  if (selectionObject.type === 'SvgSelector') {
+    [shape, geometry] = ['polygon', selectionObject.value.split('"')[1]];
+  } else if (selectionObject.type === 'FragmentSelector') {
+    [shape, geometry] = ['rect', selectionObject.value.split(':')[1]];
+  }
+  return [shape, geometry];
 };
 
 const buildWebAnno = (aId: number, shape: string, geometry: string, path: string) => ({
@@ -267,6 +302,8 @@ const nest = (items: any, id = 0) =>
 // onBeforeMount(async () => {
 // });
 
+const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
+
 onMounted(async () => {
   const fdata = await axios.get('/api/features');
   Object.assign(matrix, fdata.data);
@@ -275,7 +312,7 @@ onMounted(async () => {
   initAnnotorius();
   if (id.value) {
     let { data } = await axios.get('/api/message', { params: { id: id.value } });
-    const imagepath = window.location.origin + '/api/media/downloads/' + data.imagepath;
+    const imagepath = buildImagePath(data.imagepath);
     imgSrc.value = imagepath;
     photo.value = data;
     // console.log('values scheme', toRaw(formArray));
@@ -309,10 +346,11 @@ onMounted(async () => {
 
 const discardChanges = () => {
   anno.value.cancelSelected();
-  Object.assign(selectedObject, { id: null });
+  Object.assign(selectedObject, { id: null, content: '' });
+  showObjectForm.value = false;
 };
 
-const saveObjectAnnotation = async () => {
+const saveObject = async () => {
   const newFeatures = Object.values(selectedObject.features)
     .filter((x: IFeature) => x.value)
     .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
@@ -320,8 +358,18 @@ const saveObjectAnnotation = async () => {
   const datum = { ...toRaw(selectedObject), features: newFeatures };
 
   const { data } = await axios.post('/api/object', { params: datum });
-  if (data?.id === selectedObject.id) {
-    Object.assign(objects[selectedObject.id], datum);
+  if (data?.id) {
+    if (selectedObject?.id) {
+      Object.assign(objects[selectedObject.id], datum);
+    } else {
+      const dataId = Number(data.id);
+      selectedObject.id = dataId;
+      datum.id = dataId;
+      objects.push(datum);
+      anno.value.addAnnotation(
+        buildWebAnno(data.id, datum.shape, datum.geometry, buildImagePath(photo.value.imagepath))
+      );
+    }
     message.success('The object data were saved.');
   } else {
     message.error('The object data were not saved!');
