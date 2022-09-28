@@ -10,6 +10,44 @@ const __dirname = path.dirname(__filename);
 const { Pool } = pg;
 const pool = new Pool();
 
+const clipShape = async (id, shape, geometry, imageFile, imageDir, fragmentsDir) => {
+  const originalFullPath = path.join(imageDir, imageFile);
+
+  if (fs.existsSync(originalFullPath)) {
+    let buf; // base64 = buf.toString('base64');
+
+    try {
+      const image = await sharp(originalFullPath).toFormat('png').flatten({ background: '#ffffff' });
+      const metadata = await image.metadata();
+      // console.log(shape);
+      if (shape === 'rect') {
+        const [left, top, width, height] = geometry.split(',').map(Number).map(Math.round);
+        buf = await image.extract({
+          left, top, width, height
+        }).toBuffer(); // .toFile('test.jpg');
+      } else {
+        const svg = `<svg height="${metadata.height}" width="${metadata.width}"><polygon points="${geometry}"/></svg>`;
+        const bufComposited = await image.composite([{ input: Buffer.from(svg), blend: 'dest-in' }]).toBuffer();
+        buf = await sharp(bufComposited).trim().toBuffer();
+      }
+      if (buf) {
+        const pathToFragment = path.join(fragmentsDir, `${id}-original.png`);
+        fs.writeFileSync(pathToFragment, buf);
+        const constraints = {
+          //   width: 650,
+          height: 128,
+          fit: 'inside',
+        };
+        const pathToThumbnail = path.join(fragmentsDir, `${id}.png`);
+        await sharp(pathToFragment).resize(constraints).toFile(pathToThumbnail);
+      }
+    } catch (error) {
+      console.log(id, 'Image error!', imageFile);
+      console.error(error);
+    }
+  }
+};
+
 export default {
   async getTagCount(tag) {
     const res = await pool.query(`
@@ -185,15 +223,40 @@ export default {
     // console.log(`batch: ${secs}s`);
     return secs;
   },
-  async setObject(params) {
+  async setObject(params, imageDir, fragmentsDir) {
     let data = {};
-    if (params.id) {
-      console.log('upd', params);
-      const res = await pool.query('UPDATE annotations SET features = $2, content =$3, shape =$4, geometry = $5 WHERE id = $1 RETURNING id', [params.id, JSON.stringify(params.features), params.content, params.shape, params.geometry]);
-      data = res.rows?.[0];
-    } else {
-      const res = await pool.query('INSERT INTO annotations (features, content, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id', [JSON.stringify(params.features), params.content, params.tg_id, params.data_id, params.shape, params.geometry]);
-      data = res.rows?.[0];
+    let id = Number(params?.id);
+    try {
+      if (params.id) {
+        const res = await pool.query('UPDATE annotations SET features = $2, content =$3, shape =$4, geometry = $5 WHERE id = $1 RETURNING id', [id, JSON.stringify(params.features), params.content, params.shape, params.geometry]);
+        data = res.rows?.[0];
+      } else {
+        const res = await pool.query('INSERT INTO annotations (features, content, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [JSON.stringify(params.features), params.content, params.tg_id, params.data_id, params.shape, params.geometry]);
+        data = res.rows?.[0];
+        id = data?.id;
+      }
+      if (id && params.image) {
+        console.log('clip shape for', id);
+        await clipShape(id, params.shape, params.geometry, params.image, imageDir, fragmentsDir);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    return data;
+  },
+  async deleteObject(id, fragmentsDir) {
+    console.log('DELETE request for', id);
+    let data = {};
+    try {
+      await pool.query('DELETE FROM annotations WHERE id = $1', [id]);
+      // console.log(res);
+      const pathToFragment = path.join(fragmentsDir, `${id}-original.png`);
+      const pathToThumbnail = path.join(fragmentsDir, `${id}.png`);
+      fs.unlinkSync(pathToFragment);
+      fs.unlinkSync(pathToThumbnail);
+    } catch (error) {
+      data = { error };
+      console.error(error);
     }
     return data;
   },
