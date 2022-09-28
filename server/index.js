@@ -18,6 +18,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const __package = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
+const imagesDir = path.join(__dirname, 'media', 'downloads');
+const fragmentsDir = path.join(__dirname, 'media', 'fragments');
+
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
   .map((x) => {
@@ -186,7 +189,9 @@ app.post('/api/meta', async (req, res) => res.json(await db.setPhotoMeta(req.bod
 
 app.post('/api/feature', async (req, res) => res.json(await db.updateFeature(req.body.params)));
 
-app.post('/api/object', async (req, res) => res.json(await db.setObject(req.body.params)));
+app.post('/api/object', async (req, res) => res.json(await db.setObject(req.body.params, imagesDir, fragmentsDir)));
+
+app.delete('/api/object/:id', async (req, res) => res.json(await db.deleteObject(req.params.id, fragmentsDir)));
 
 app.get('/api/message', async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
