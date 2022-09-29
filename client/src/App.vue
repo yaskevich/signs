@@ -1,11 +1,7 @@
 <template>
   <n-layout position="absolute">
     <n-layout-header id="nav">
-      <router-link to="/" class="nav">Home</router-link>|
-      <router-link to="/messages" class="nav">Messages</router-link>|
-      <router-link to="/flow" class="nav">Annotations</router-link>|
-      <router-link to="/features" class="nav">Features</router-link>|
-      <router-link to="/about" class="nav">About</router-link>
+      <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" />
     </n-layout-header>
     <n-layout-content style="max-width: 900px; min-height: 500px; margin: auto">
       <n-message-provider>
@@ -25,7 +21,35 @@
   </n-layout>
 </template>
 <script setup lang="ts">
-import { ThumbsUpRegular, Camera } from '@vicons/fa';
+import { ThumbsUpRegular, Camera, Bars, Faucet, ObjectGroupRegular, Sitemap, Home } from '@vicons/fa';
+import router from './router';
+import { RouterLink, useRoute } from 'vue-router';
+import { h, Component, ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue';
+import { MenuOption, NIcon } from 'naive-ui';
+
+const vuerouter = useRoute();
+const activeKey = ref<string | null>(null); // vuerouter?.name||'Home'
+
+const renderIcon = (icon: Component) => {
+  return () => h(NIcon, null, { default: () => h(icon) });
+};
+
+const makeItem = (name: string, title: string, icon: Component) => ({
+  label: () => h(RouterLink, { to: { name: name } }, { default: () => title }),
+  key: name,
+  icon: renderIcon(icon),
+});
+
+const menuOptions: MenuOption[] = reactive([
+  makeItem('Home', 'Home', Home),
+  makeItem('TMessages', 'Messages', Faucet),
+  makeItem('Flow', 'Objects', ObjectGroupRegular),
+  makeItem('Features', 'Features', Sitemap),
+]);
+
+onMounted(async () => {
+  activeKey.value = String(vuerouter.name);
+});
 </script>
 
 <style lang="scss">
