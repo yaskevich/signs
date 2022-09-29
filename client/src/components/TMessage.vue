@@ -34,7 +34,7 @@
         <n-card embedded>
           <n-input v-model:value="selectedObject.content" type="textarea" placeholder="Text" />
         </n-card>
-        <div v-for="item in scheme.find(x => x.code === 'objects')?.children">
+        <div v-for="item in featuresTree.find(x => x.code === 'objects')?.children">
           <n-space justify="start">
             <n-tag type="info">{{ item.title }}</n-tag>
             <template v-for="subitem in item?.children">
@@ -54,6 +54,13 @@
             </template>
           </n-space>
         </div>
+        <n-popconfirm @positive-click="deleteObject">
+          <template #trigger>
+            <n-button type="error">Delete</n-button>
+          </template>
+          Please confirm removing the object from the database.<br />
+          It cannot be restored after that.
+        </n-popconfirm>
       </n-space>
     </n-card>
     <n-card title="Photo" v-else>
@@ -62,12 +69,12 @@
       </template>
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
-          <n-form-item-gi v-for="item in scheme?.[0]?.children" :label="item?.title">
+          <n-form-item-gi v-for="item in featuresTree?.[0]?.children" :label="item?.title">
             <n-input
               v-if="item?.type === 'text'"
               type="text"
               :placeholder="item?.title"
-              v-model:value="values[item.id]" />
+              v-model:value="valuesMap[item.id]" />
 
             <n-select
               v-if="item?.type === 'single'"
@@ -76,7 +83,7 @@
               value-field="id"
               filterable
               :placeholder="'Select ' + item?.title"
-              v-model:value="values[item.id]" />
+              v-model:value="valuesMap[item.id]" />
 
             <template v-else>
               <template v-for="value in item?.children">
@@ -90,7 +97,7 @@
                       value-field="id"
                       :placeholder="'Select ' + value?.title"
                       filterable
-                      v-model:value="values[value.id]" />
+                      v-model:value="valuesMap[value.id]" />
                   </n-space>
                 </template>
               </template>
@@ -133,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, onMounted, toRaw } from 'vue';
+import { ref, reactive, onBeforeMount, onMounted, onBeforeUnmount, toRaw } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '../router';
 import axios from 'axios';
@@ -151,19 +158,19 @@ const toolsOptions = [
 const message = useMessage();
 const vuerouter = useRoute();
 const id = ref(Number(vuerouter.params.id));
-const requestedObjectId = vuerouter.query?.obj;
+const requestedObjectId = Number(vuerouter.query?.object);
 const photo = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
 const anno = ref();
 const drawingTool = ref('rect');
-const features = reactive({} as keyable);
-const scheme = reactive([] as Array<IFeature>);
-const values = reactive({} as keyable);
-const objects = reactive([] as Array<keyable>);
+const featuresMap = reactive({} as keyable);
+const featuresTree = reactive([] as Array<IFeature>);
+const featuresList = reactive([] as Array<IFeature>);
+const valuesMap = reactive({} as keyable);
+const objectsMap = reactive({} as keyable);
 const selectedObject = reactive({} as IObject);
 const showObjectForm = ref(false);
-const matrix = reactive([] as Array<IFeature>);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -208,21 +215,14 @@ const initAnnotorius = () => {
       }
     })
     .on('createAnnotation', function (annotation: any) {
-      console.log('createAnnotation (& delete)', annotation);
+      // console.log('createAnnotation (& delete)', annotation);
       anno.value.removeAnnotation(annotation);
       showObjectForm.value = false;
       // saveAnnotations();
     })
     .on('selectAnnotation', function (annotation: any) {
       // console.log('selected', annotation);
-      const featuresFull = Object.fromEntries(
-        matrix.map((x: any) => {
-          const prop = objects[annotation.id]?.features.find((y: any) => y.id === x.id) || { note: '', value: false };
-          return [x.id, { ...x, ...prop }];
-        })
-      );
-      Object.assign(selectedObject, objects[annotation.id], { features: featuresFull });
-      showObjectForm.value = true;
+      selectObject(annotation.id);
     })
     .on('cancelSelected', function (selection: any) {
       Object.assign(selectedObject, { id: null });
@@ -238,7 +238,7 @@ const initAnnotorius = () => {
       // console.log(snippet, transform);
       const [shape, geometry] = parseSelector(selection.target.selector);
       if (shape && geometry) {
-        const newFeatures = Object.fromEntries(matrix.map(x => [x.id, { ...x, note: '', value: false }]));
+        const newFeatures = Object.fromEntries(featuresList.map(x => [x.id, { ...x, note: '', value: false }]));
         Object.assign(selectedObject, {
           shape,
           geometry,
@@ -256,6 +256,20 @@ const initAnnotorius = () => {
     .on('changeSelected', function (selected: any, previous: any) {
       console.log('change selected', selected, previous);
     });
+};
+
+const selectObject = (oid: number) => {
+  const featuresFull = Object.fromEntries(
+    featuresList.map((x: any) => {
+      const prop = objectsMap[oid]?.features.find((y: any) => y.id === x.id) || {
+        note: '',
+        value: false,
+      };
+      return [x.id, { ...x, ...prop }];
+    })
+  );
+  Object.assign(selectedObject, objectsMap[oid], { features: featuresFull });
+  showObjectForm.value = true;
 };
 
 const parseSelector = (selectionObject: any) => {
@@ -299,15 +313,19 @@ const nest = (items: any, id = 0) =>
       return { ...x, ...(children?.length && { children }) };
     });
 
+const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
+
 // onBeforeMount(async () => {
 // });
 
-const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
+onBeforeUnmount(async () => {
+  anno.value.destroy();
+});
 
 onMounted(async () => {
   const fdata = await axios.get('/api/features');
-  Object.assign(matrix, fdata.data);
-  Object.assign(scheme, nest(fdata.data));
+  Object.assign(featuresList, fdata.data);
+  Object.assign(featuresTree, nest(fdata.data));
 
   initAnnotorius();
   if (id.value) {
@@ -318,13 +336,13 @@ onMounted(async () => {
     // console.log('values scheme', toRaw(formArray));
     // console.log(data.features);
 
-    Object.assign(features, Object.fromEntries(fdata.data.map((x: any) => [x.id, x])));
+    Object.assign(featuresMap, Object.fromEntries(fdata.data.map((x: any) => [x.id, x])));
 
     for (const unit of photo.value?.features) {
-      const rule = features[unit.id];
+      const rule = featuresMap[unit.id];
       const unitId = rule.type ? unit.id : rule.parent;
       const value = rule.type ? unit.value : unit.id;
-      values[unitId] = value;
+      valuesMap[unitId] = value;
     }
     // datum.country = data.country;
     // datum.src = data.src;
@@ -336,9 +354,10 @@ onMounted(async () => {
 
     const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
     attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
-    Object.assign(objects, Object.fromEntries(attachedData.data.map((x: any) => [x.id, x])));
+    Object.assign(objectsMap, Object.fromEntries(attachedData.data.map((x: any) => [x.id, x])));
     // console.log(objects);
-    if (requestedObjectId) {
+    if (requestedObjectId && objectsMap?.[requestedObjectId]) {
+      selectObject(requestedObjectId);
       anno.value.selectAnnotation(requestedObjectId);
     }
   }
@@ -348,6 +367,19 @@ const discardChanges = () => {
   anno.value.cancelSelected();
   Object.assign(selectedObject, { id: null, content: '' });
   showObjectForm.value = false;
+};
+
+const deleteObject = async () => {
+  // console.log('delete', selectedObject.id);
+  const { data } = await axios.delete('/api/object/' + selectedObject.id);
+  console.log('delete result', data);
+  if (data?.error) {
+    message.error('Object removal error!');
+  } else {
+    showObjectForm.value = false;
+    anno.value.removeAnnotation(selectedObject.id);
+    message.success(`Object ${selectedObject.id} was removed from the database`);
+  }
 };
 
 const saveObject = async () => {
@@ -360,12 +392,13 @@ const saveObject = async () => {
   const { data } = await axios.post('/api/object', { params: datum });
   if (data?.id) {
     if (selectedObject?.id) {
-      Object.assign(objects[selectedObject.id], datum);
+      Object.assign(objectsMap[selectedObject.id], datum);
     } else {
       const dataId = Number(data.id);
       selectedObject.id = dataId;
       datum.id = dataId;
-      objects.push(datum);
+      objectsMap[datum.id] = datum;
+
       anno.value.addAnnotation(
         buildWebAnno(data.id, datum.shape, datum.geometry, buildImagePath(photo.value.imagepath))
       );
@@ -391,8 +424,8 @@ const savePhotoAnnotation = async () => {
   // for (const [key, value] of Object.entries(values)) {
   //   console.log(`${key}: ${value}`);
   // }
-  const jsonFeatures = Object.entries(values).map(x =>
-    features[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }
+  const jsonFeatures = Object.entries(valuesMap).map(x =>
+    featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }
   );
   console.log(jsonFeatures);
   const params = {
