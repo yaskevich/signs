@@ -68,11 +68,14 @@ const databaseScheme = {
     features    JSON,
     renderedvia JSON`,
 
-  channels: `
-    id    SERIAL PRIMARY KEY,
-    name  TEXT,
-    tg_id INTEGER UNIQUE`
-
+  chats: `
+    id        SERIAL PRIMARY KEY,
+    tg_id     BIGINT unique,
+    title     TEXT,
+    username  TEXT,
+    firstname TEXT,
+    lastname  TEXT,
+    type      TEXT`
 };
 
 let tablesResult;
@@ -243,8 +246,8 @@ export default {
     const res = await pool.query(`SELECT * FROM messages WHERE tg_id < ${id} ORDER BY tg_id DESC LIMIT 1`);
     return res.rows.length ? res.rows[0] : {};
   },
-  async getUsers() {
-    const res = await pool.query('select * from users');
+  async getChats() {
+    const res = await pool.query('select * from chats');
     return res.rows;
   },
   async getObjects(params) {
