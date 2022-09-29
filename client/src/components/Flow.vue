@@ -1,7 +1,7 @@
 <template>
   <n-card>
     <template #header>
-      <n-spin :show="!isLoaded"> All annotations ({{ totalCount }}) </n-spin>
+      <n-spin :show="!isLoaded"> All objects ({{ totalCount }}) </n-spin>
     </template>
     <n-space vertical size="large" v-if="isLoaded">
       <n-pagination
@@ -11,23 +11,24 @@
         :item-count="totalCount"
         :page-sizes="paginationOptions"
         @update:page="changePage"
-        @update:page-size="changePageSize"
-      />
+        @update:page-size="changePageSize" />
       <div style="min-height: 400px">
         <n-space vertical size="large">
           <!-- <div v-for="(item, index) in items" :key="index" class="photo"> -->
           <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
             <template #header-extra>
-              <router-link :to="`/message/${item?.tg_id}`" class="tag-link"
-                >Go to {{ item?.tg_id }}</router-link
-              ></template
-            >
+              <router-link
+                :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }"
+                class="tag-link"
+                >Go to {{ item?.tg_id }}
+              </router-link>
+            </template>
             <n-space justify="space-between">
               <n-space vertical>
                 <n-space>
                   <template v-for="tag in item.features">
                     <n-button-group size="small" v-if="tag?.note">
-                      <n-button type="info" size="small">{{ features[tag.id]?.code?.toUpperCase() }}</n-button>
+                      <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
                       <n-tooltip trigger="hover">
                         <template #trigger>
                           <n-button size="small" color="#2080f0">
@@ -44,9 +45,9 @@
                         v-if="features[features[tag.id]?.parent]?.code === 'languages'"
                         color="#5a428d"
                         size="small"
-                        >{{ features[tag.id]?.code?.toUpperCase() }}</n-button
+                        >{{ features[tag.id]?.title }}</n-button
                       >
-                      <n-button v-else type="info" size="small">{{ features[tag.id]?.code?.toUpperCase() }}</n-button>
+                      <n-button v-else type="info" size="small">{{ features[tag.id]?.title }}</n-button>
                     </template>
                   </template>
                 </n-space>
@@ -63,7 +64,9 @@
                   </template>
                 </n-space>
               </n-space>
-              <img style="max-width: 300px" :src="'/api/media/fragments/' + item.id + '.png'" />
+              <router-link :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }">
+                <img style="max-width: 300px" :src="'/api/media/fragments/' + item.id + '.png'" />
+              </router-link>
             </n-space>
           </n-card>
         </n-space>
@@ -75,8 +78,7 @@
         :item-count="totalCount"
         :page-sizes="paginationOptions"
         @update:page="changePage"
-        @update:page-size="changePageSize"
-      />
+        @update:page-size="changePageSize" />
     </n-space>
   </n-card>
 </template>
@@ -111,7 +113,7 @@ const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
 
-  let { data } = await axios.get('/api/annotations', {
+  let { data } = await axios.get('/api/objects', {
     params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value },
   });
   Object.assign(items, data.selection);
