@@ -36,6 +36,7 @@ interface IAnnotation {
 }
 
 interface IMessage {
+  id: number;
   tg_id: number;
   orient: number;
   country: string;
@@ -68,4 +69,17 @@ interface IUser {
 
 interface IUsersDict {
   [id: string]: IUser;
+}
+
+interface IObject {
+  id: number;
+  data_id: number;
+  content: string;
+  tg_id?: number;
+  properties: Array<IFeature>;
+  features: Array<IFeature>;
+  geometry: string;
+  shape: string;
+  renderedvia: Object;
+  image?: string;
 }
