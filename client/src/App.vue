@@ -35,14 +35,14 @@ const renderIcon = (icon: Component) => {
 };
 
 const makeItem = (name: string, title: string, icon: Component) => ({
-  label: () => h(RouterLink, { to: { name: name } }, { default: () => title }),
+  label: () => h(RouterLink, { to: { name } }, { default: () => title }),
   key: name,
   icon: renderIcon(icon),
 });
 
 const menuOptions: MenuOption[] = reactive([
   makeItem('Home', 'Home', Home),
-  makeItem('TMessages', 'Messages', Faucet),
+  makeItem('TMessages', 'Input', Faucet),
   makeItem('Flow', 'Objects', ObjectGroupRegular),
   makeItem('Features', 'Features', Sitemap),
 ]);
@@ -68,7 +68,7 @@ onMounted(async () => {
     font-weight: bold;
     color: #2c3e50;
 
-    &.router-link-exact-active {
+    &.router-link-exact-active, &.router-link-active {
       color: #42b983;
     }
   }
