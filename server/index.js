@@ -3,9 +3,9 @@ import path, { dirname } from 'path';
 import compression from 'compression';
 import bodyParser from 'body-parser';
 import fs from 'fs';
-import session from 'cookie-session';
+import jwt from 'jsonwebtoken';
 import passport from 'passport';
-import passportLocal from 'passport-local';
+import passportJWT from 'passport-jwt';
 import history from 'connect-history-api-fallback';
 
 import dotenv from 'dotenv';
@@ -18,8 +18,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const __package = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
-const imagesDir = path.join(__dirname, 'media', 'downloads');
-const fragmentsDir = path.join(__dirname, 'media', 'fragments');
+const port = process.env.PORT || 8080;
+const secret = process.env.SECRET;
+const appName = __package?.name || String(port);
+const commit = process.env.COMMIT;
+const unix = process.env.COMMITUNIX;
+
+const mediaDir = path.join(__dirname, 'media');
+const imagesDir = path.join(mediaDir, 'downloads');
+const fragmentsDir = path.join(mediaDir, 'fragments');
+
+const createToken = (user) => jwt.sign({
+  iss: appName,
+  sub: user.id,
+  iat: new Date().getTime(),
+  exp: new Date().setDate(new Date().getDate() + 1),
+}, secret);
 
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
@@ -28,70 +42,26 @@ const nest = (items, id = 0) => items
     return { ...x, ...(children?.length && { children }) };
   });
 
-const users = [
+const strategy = new passportJWT.Strategy(
   {
-    id: 1,
-    name: 'Саша',
-    email: 'user@email.com',
-    password: 'password'
+    jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: secret,
   },
-  {
-    id: 2,
-    name: 'Женя',
-    email: 'user2@email.com',
-    password: 'password2'
-  }
-];
-
-function getUser(request) {
-  return users.find((user) => user.id === request.session.passport.user);
-}
-
-const app = express();
-const port = process.env.PORT || 8080;
-const LocalStrategy = passportLocal.Strategy;
-
-passport.use(
-  new LocalStrategy(
-    {
-      usernameField: 'email',
-      passwordField: 'password'
-    },
-
-    (username, password, done) => {
-      const user = users.find((x) => x.email === username && user.password === password);
-
-      if (user) {
-        done(null, user);
-      } else {
-        done(null, false, { message: 'Incorrect username or password' });
-      }
-    }
-  )
+  (jwtPayload, done) => db.getUserDataByID(jwtPayload.sub)
+    .then((user) => done(null, user))
+    .catch((err) => done(err)),
 );
 
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
+passport.use(strategy);
+const auth = passport.authenticate('jwt', { session: false });
+const app = express();
 
-passport.deserializeUser((id, done) => {
-  const user = users.find((x) => x.id === id);
-  done(null, user);
-});
-
-app.use('/api/media', express.static(path.join(__dirname, 'media')));
+app.use('/api/media', express.static(mediaDir));
 app.use(express.static('public'));
 
 app.use(compression());
-app.use(session({
-  secret: process.env.SESSION_SECRET || Math.random().toString(36).substring(2),
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: true }
-}));
-
+app.set('trust proxy', 1);
 app.use(passport.initialize());
-app.use(passport.session());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(history());
@@ -102,49 +72,38 @@ app.use(history());
 //   ]
 // }));
 
-app.post('/api/login', (req, res, next) => {
-  passport.authenticate('local', (err, user, info) => {
-    // console.log(user, info);
-    if (err) {
-      return next(err);
-    }
-
-    if (!user) {
-      return res.status(400).send([user, 'Cannot log in', info]);
-    }
-
-    req.login(user, (err) => {
-      // res.send("Logged in");
-      res.json({ user: getUser(req) });
-      if (err) {
-        console.log(err);
-      }
-    });
-  })(req, res, next);
+app.post('/api/user/login', async (req, res) => {
+  const userData = await db.getUserData(req.body.email, req.body.password);
+  if (userData && Object.keys(userData).length && !userData?.error) {
+    console.log(req.body.email, '<SUCCESS>');
+    const token = createToken(userData);
+    userData.token = token;
+    userData.server = __package.version;
+    userData.commit = commit;
+    userData.unix = unix;
+    res.json(userData);
+  } else {
+    console.log(`login attempt as [${req.body.email}]•[${req.body.password}]►${userData.error}◄`);
+    res.json(userData);
+  }
 });
 
-app.get('/api/logout', (req, res) => {
-  console.log('logging out');
-  req.logout();
-  // res.redirect('/login');
-  return res.send();
+app.post('/api/user/reg', async (req, res) => {
+  const userdata = req.body;
+  userdata.privs = 5; // default privileges
+  const result = await db.createUser(userdata, false);
+  res.json(result);
 });
 
-// app.get("/api/data/:id", async(req, res) =>  {
-// const id  = parseInt(req.params.id, 10);
-// console.log(`query for ${id}`);
-// const data  = id ? await db.getUnits1(id) : [];
-// return res.json(data);
-// });
-
-// app.get('/api/scheme', async (req, res) => {
-//   res.json(annotationScheme);
+// app.get('/api/logout', (req, res) => {
+//   console.log('logging out');
+//   req.logout();
+//   // res.redirect('/login');
+//   return res.send();
 // });
 
 app.get('/api/user/info', async (req, res) => {
-  res.json({
-    server: __package.version, commit: process.env.COMMIT, unix: process.env.COMMITUNIX,
-  });
+  res.json({ server: __package.version, commit, unix, });
 });
 
 app.get('/api/features', async (req, res) => {
@@ -156,8 +115,8 @@ app.get('/api/stats', async (req, res) => {
     db.getMessagesAnnotatedCount(),
     db.getPhotosCount(),
     db.getFeatures(),
-    db.getAnnotationsCount(),
-    db.getAnnotationsStats(),
+    db.getObjectsCount(),
+    db.getObjectsStats(),
     db.getPhotoStats(),
   ]);
   const stats = Object.fromEntries(astat.concat(pstat).map((x) => [x.fid, Number(x.count)]));
@@ -171,7 +130,7 @@ app.get('/api/messages', async (req, res) => {
   // console.log(req.query);
   const count = await db.getMessagesCount();
   const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
-  const usersList = await db.getUsers();
+  const usersList = await db.getChats();
   const usersDict = Object.fromEntries(usersList.map((x) => [x.tg_id, x]));
   return res.json({
     count,
@@ -181,9 +140,9 @@ app.get('/api/messages', async (req, res) => {
   });
 });
 
-app.get('/api/annotations', async (req, res) => res.json(await db.getAnnotations(req.query)));
+app.get('/api/objects', async (req, res) => res.json(await db.getObjects(req.query)));
 
-app.get('/api/attached', async (req, res) => res.json(await db.getAttachedAnnotations(req.query.id)));
+app.get('/api/attached', async (req, res) => res.json(await db.getAttachedObjects(req.query.id)));
 
 app.post('/api/meta', async (req, res) => res.json(await db.setPhotoMeta(req.body.params)));
 
@@ -198,17 +157,6 @@ app.get('/api/message', async (req, res) => res.json(await db.getMessage(Number(
 app.get('/api/next', async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
 app.get('/api/prev', async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
-
-const authMiddleware = (req, res, next) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).send('You are not authenticated');
-  }
-  return next();
-};
-
-app.get('/api/user', authMiddleware, (req, res) => {
-  res.send({ user: getUser(req) });
-});
 
 app.listen(port);
 console.log(`Backend is at port ${port}`);
