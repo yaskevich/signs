@@ -6,7 +6,7 @@
           <n-tooltip trigger="hover">
             <template #trigger>
               <n-h1 style="color: orangered">
-                {{ (datum.photos / ((datum?.messages?.images - datum?.messages?.dups) / 100)).toFixed(2) }} %
+                {{ Number((datum.photos / ((datum?.messages?.images - datum?.messages?.dups) / 100)).toFixed(2)) }} %
               </n-h1>
             </template>
             Annotated photos to all unique photos ratio
@@ -19,13 +19,13 @@
               <template v-for="item3 in item2?.children?.sort((a:any, b:any) => b.num - a.num)">
                 <template v-if="item3.type">
                   <n-space vertical>
-                    <n-text>{{ item2.title || item2.code }} / {{ item3.title || item3.code }}</n-text>
+                    <FeatureItem :item="item3"></FeatureItem>
                     <n-space
                       justify="space-between"
-                      v-for="item4 in item3.children.sort((a:any, b:any) => b.num - a.num)"
-                    >
+                      v-for="item4 in item3.children.sort((a:any, b:any) => b.num - a.num)">
                       <template v-if="item4?.num">
-                        <span>{{ item4.title || item4.code.toUpperCase() }}</span> <span>{{ item4?.num || 0 }}</span>
+                        <FeatureItem :item="item4"></FeatureItem>
+                        <span>{{ item4?.num || 0 }}</span>
                       </template>
                     </n-space>
                   </n-space>
@@ -33,7 +33,8 @@
                 <template v-else>
                   <n-space justify="space-between">
                     <template v-if="item3?.num">
-                      <span>{{ item3.title || item3.code.toUpperCase() }}</span> <span>{{ item3?.num || 0 }}</span>
+                      <FeatureItem :item="item3"></FeatureItem>
+                      <span>{{ item3?.num || 0 }}</span>
                     </template>
                   </n-space>
                 </template>
@@ -41,10 +42,10 @@
             </div>
             <!-- <n-divider></n-divider> -->
           </div>
-          <n-h3>Messages</n-h3>
+          <n-h3>Input</n-h3>
           <n-space vertical>
             <n-space justify="space-between">
-              <span>Total</span> <span> {{ datum?.messages?.all }} </span>
+              <span>Total number of items</span> <span> {{ datum?.messages?.all }} </span>
             </n-space>
             <n-space justify="space-between">
               <span>...with photos</span>
@@ -91,6 +92,7 @@
 import { ref, reactive, onBeforeMount } from 'vue';
 import axios from 'axios';
 import project from '../../package.json';
+import FeatureItem from './FeatureItem.vue';
 
 const isLoaded = ref(false);
 const datum = reactive({} as IStats);
