@@ -75,7 +75,10 @@ const databaseScheme = {
     username  TEXT,
     firstname TEXT,
     lastname  TEXT,
-    type      TEXT`
+    type      TEXT`,
+
+  settings: `
+    registration_open boolean default true`,
 };
 
 let tablesResult;
@@ -96,9 +99,9 @@ const prepareTable = async (args) => {
     try {
       await pool.query(`CREATE TABLE IF NOT EXISTS ${tableName} (${args[1]})`);
 
-      // if (tableName === 'settings') {
-      //   await pool.query('INSERT INTO settings DEFAULT VALUES');
-      // }
+      if (tableName === 'settings') {
+        await pool.query('INSERT INTO settings DEFAULT VALUES');
+      }
     } catch (createError) {
       console.error(createError);
       console.error(`Issue with table '${tableName}'!`);
@@ -379,10 +382,42 @@ export default {
     }
     return data;
   },
+  async getUserDataByID(id) {
+    const sql = 'UPDATE users SET requested = NOW() WHERE id = $1'; // to log activity
+    await pool.query(sql, [id]);
+    const result = await pool.query('SELECT * from users WHERE id = $1 AND activated = TRUE', [id]);
+    return result?.rows?.[0];
+  },
+  async getUserData(email, pwd) {
+    if (!email) { return { error: 'email' }; }
+    if (!pwd) { return { error: 'password' }; }
+
+    // console.log("email/pwd", email, pwd);
+    const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (res.rows.length) {
+      const data = res.rows[0];
+      // console.log("userdata", data);
+      // console.log("pass/hash", pwd, data._passhash);
+      if (data.activated) {
+        const result = await bcrypt.compare(pwd, data._passhash);
+        Reflect.deleteProperty(data, '_passhash');
+        // console.log("pass/hash result", result);
+        return result ? data : { error: 'password' };
+      }
+      return { error: 'user status' };
+    }
+    return { error: 'email' };
+  },
   async createUser(formData, status = false) {
     console.log('create user', formData);
     const data = formData;
     let isActivated = status;
+    const settings = await pool.query('SELECT * FROM settings');
+
+    if (!settings.rows.shift()?.registration_open) {
+      return { error: 'registration is closed' };
+    }
+
     const usersData = await pool.query('SELECT * FROM users');
     if (usersData.rows.length) {
       if (usersData.rows.filter((x) => x.email === data.email).length) {
@@ -408,5 +443,17 @@ export default {
       return { message: pwd };
     }
     return { error: 'user' };
+  },
+  async getSettings() {
+    let data = [];
+    const sql = 'SELECT * FROM settings';
+
+    try {
+      const result = await pool.query(sql);
+      data = result?.rows?.[0];
+    } catch (err) {
+      console.error(err);
+    }
+    return data;
   },
 };
