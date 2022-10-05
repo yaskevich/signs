@@ -9,15 +9,13 @@
           @update:page="onPageNumberChange"
           @update:page-size="onPageBatchChange"
           :item-count="totalCount"
-          show-size-picker
-        ></n-pagination>
+          show-size-picker></n-pagination>
       </n-space>
 
       <n-card
         v-for="(value, key) in messagesPage"
         :key="key"
-        :style="value.annotated ? 'background-color:#dff6dd' : ''"
-      >
+        :style="value.annotated ? 'background-color:#dff6dd' : ''">
         <template #header>
           <n-space>
             <n-tag>{{ value['tg_id'] }}</n-tag>
@@ -76,7 +74,11 @@
           <n-gi :span="4">
             <div style="text-align: right">
               <router-link :to="'/message/' + value.tg_id">
-                <img :src="'/api/media/thumbnails/' + value.imagepath" v-if="value.imagepath" class="image-navi" />
+                <img
+                  :src="'/api/media/thumbnails/' + value.imagepath + '?jwt=' + store?.state?.token"
+                  @contextmenu.prevent="onRightClick"
+                  v-if="value.imagepath"
+                  class="image-navi" />
               </router-link>
             </div>
           </n-gi>
@@ -90,8 +92,7 @@
           @update:page="onPageNumberChange"
           @update:page-size="onPageBatchChange"
           :item-count="totalCount"
-          show-size-picker
-        ></n-pagination>
+          show-size-picker></n-pagination>
       </n-space>
     </n-space>
   </div>
@@ -102,7 +103,7 @@
 import { reactive, ref, onBeforeMount } from 'vue';
 import router from '../router';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import store from '../store';
 
 const isLoaded = ref(false);
 const messagesPage = ref<Array<IMessage>>([]);
@@ -125,11 +126,16 @@ if (batchIn) {
 
 const getPages = async () => {
   const offset = pageSize.value * (currentPage.value - 1);
-  const { data } = await axios.get('/api/messages', { params: { off: offset, batch: pageSize.value } });
+  // const { data } = await axios.get('/api/messages', { params: { off: offset, batch: pageSize.value } });
+  const data = await store.get('messages', null, { off: offset, batch: pageSize.value });
   messagesPage.value = data.data;
   // console.log(data.data);
   router.replace(`/messages/${pageSize.value}/${currentPage.value || ''}`);
   return data;
+};
+
+const onRightClick = () => {
+  console.log('right click');
 };
 
 onBeforeMount(async () => {
