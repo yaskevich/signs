@@ -61,10 +61,18 @@ interface IMessage {
 
 interface IUser {
   id: number;
-  username: string | null;
-  firstname: string | null;
-  lastname: string | null;
-  tg_id: number;
+  username: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  sex: number;
+  server: string;
+  commit: string;
+  unix: number;
+  privs: number;
+  activated: boolean;
+  requested: Date;
+  text_id: number;
 }
 
 interface IUsersDict {
@@ -82,4 +90,14 @@ interface IObject {
   shape: string;
   renderedvia: Object;
   image?: string;
+}
+
+interface IState {
+  token?: string;
+  error?: string;
+  user?: IUser;
+}
+
+interface ISettings {
+  registration_open: boolean;
 }
