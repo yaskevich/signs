@@ -1,7 +1,7 @@
 <template>
   <n-space vertical>
     <n-space justify="center">
-      <img ref="imgRef" :src="imgSrc" style="max-width: 100%" />
+      <img ref="imgRef" :src="imgSrc" style="max-width: 100%" @contextmenu.prevent="onRightClick" />
     </n-space>
 
     <n-space justify="space-around" size="small">
@@ -143,7 +143,7 @@
 import { ref, reactive, onBeforeMount, onMounted, onBeforeUnmount, toRaw } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '../router';
-import axios from 'axios';
+import store from '../store';
 import { useMessage } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
@@ -305,6 +305,10 @@ const buildWebAnno = (aId: number, shape: string, geometry: string, path: string
   },
 });
 
+const onRightClick = () => {
+  console.log('right click');
+};
+
 const nest = (items: any, id = 0) =>
   items
     .filter((x: any) => x.parent === id)
@@ -323,20 +327,20 @@ onBeforeUnmount(async () => {
 });
 
 onMounted(async () => {
-  const fdata = await axios.get('/api/features');
-  Object.assign(featuresList, fdata.data);
-  Object.assign(featuresTree, nest(fdata.data));
+  const fdata = await store.get('features');
+  Object.assign(featuresList, fdata);
+  Object.assign(featuresTree, nest(fdata));
 
   initAnnotorius();
   if (id.value) {
-    let { data } = await axios.get('/api/message', { params: { id: id.value } });
+    let data = await store.get('message', null, { id: id.value });
     const imagepath = buildImagePath(data.imagepath);
-    imgSrc.value = imagepath;
+    imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
     photo.value = data;
     // console.log('values scheme', toRaw(formArray));
     // console.log(data.features);
 
-    Object.assign(featuresMap, Object.fromEntries(fdata.data.map((x: any) => [x.id, x])));
+    Object.assign(featuresMap, Object.fromEntries(fdata.map((x: any) => [x.id, x])));
 
     for (const unit of photo.value?.features) {
       const rule = featuresMap[unit.id];
@@ -352,9 +356,9 @@ onMounted(async () => {
     //   orientProp.value = data.orient;
     // }
 
-    const attachedData = await axios.get('/api/attached', { params: { id: id.value } });
-    attachedData.data.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
-    Object.assign(objectsMap, Object.fromEntries(attachedData.data.map((x: any) => [x.id, x])));
+    const attachedData = await store.get('attached', null, { id: id.value });
+    attachedData.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
+    Object.assign(objectsMap, Object.fromEntries(attachedData.map((x: any) => [x.id, x])));
     // console.log(objects);
     if (requestedObjectId && objectsMap?.[requestedObjectId]) {
       selectObject(requestedObjectId);
@@ -371,7 +375,7 @@ const discardChanges = () => {
 
 const deleteObject = async () => {
   // console.log('delete', selectedObject.id);
-  const { data } = await axios.delete('/api/object/' + selectedObject.id);
+  const { data } = await store.deleteById('object/', selectedObject.id);
   console.log('delete result', data);
   if (data?.error) {
     message.error('Object removal error!');
@@ -389,7 +393,8 @@ const saveObject = async () => {
   console.log(newFeatures);
   const datum = { ...toRaw(selectedObject), features: newFeatures };
 
-  const { data } = await axios.post('/api/object', { params: datum });
+  const data = await store.post('object', { params: datum });
+
   if (data?.id) {
     if (selectedObject?.id) {
       Object.assign(objectsMap[selectedObject.id], datum);
@@ -432,7 +437,8 @@ const savePhotoAnnotation = async () => {
     features: jsonFeatures,
     tg_id: id.value,
   };
-  const { data } = await axios.post('/api/meta', { params });
+
+  const data = await store.post('meta', { params });
   if (data?.tg_id == id.value) {
     message.success('The photo data were saved.');
   } else {
