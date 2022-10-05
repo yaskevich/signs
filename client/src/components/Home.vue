@@ -59,24 +59,29 @@
           </n-space>
           <!-- <n-divider></n-divider> -->
           <n-card>
-            <n-h5>Platform {{ info?.unix ? ' • ' + new Date(info.unix * 1000).toLocaleDateString() : '' }}</n-h5>
+            <n-h5
+              >Platform
+              {{
+                store?.state?.user?.unix ? ' • ' + new Date(store?.state?.user.unix * 1000).toLocaleDateString() : ''
+              }}</n-h5
+            >
             <n-space vertical>
               <n-space justify="space-between">
                 <span>Client</span> <span> {{ project.version }} </span>
               </n-space>
               <n-space justify="space-between">
                 <span>Server</span>
-                <span>{{ info.server }}</span>
+                <span>{{ store?.state?.user?.server }}</span>
               </n-space>
               <n-space justify="space-between">
                 <span>Commit</span>
                 <n-button
                   text
                   tag="a"
-                  :href="'https' + project?.repository?.url?.slice(3, -4) + '/commit/' + info.commit"
+                  :href="'https' + project?.repository?.url?.slice(3, -4) + '/commit/' + store?.state?.user?.commit"
                   target="_blank"
                   type="primary"
-                  >{{ info.commit }}</n-button
+                  >{{ store?.state?.user?.commit }}</n-button
                 >
               </n-space>
             </n-space>
@@ -93,18 +98,14 @@ import { ref, reactive, onBeforeMount } from 'vue';
 import axios from 'axios';
 import project from '../../package.json';
 import FeatureItem from './FeatureItem.vue';
+import store from '../store';
 
 const isLoaded = ref(false);
 const datum = reactive({} as IStats);
-const info = ref();
 
 onBeforeMount(async () => {
-  const { data } = await axios.get('/api/stats');
+  const data = await store.get('stats');
   Object.assign(datum, data);
-
-  const infodata = await axios.get('/api/user/info');
-  info.value = infodata.data;
-  // console.log('stats', data);
   isLoaded.value = true;
 });
 </script>
