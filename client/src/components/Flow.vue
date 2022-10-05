@@ -65,7 +65,10 @@
                 </n-space>
               </n-space>
               <router-link :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }">
-                <img style="max-width: 300px" :src="'/api/media/fragments/' + item.id + '.png'" />
+                <img
+                  style="max-width: 300px"
+                  :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
+                  @contextmenu.prevent="onRightClick" />
               </router-link>
             </n-space>
           </n-card>
@@ -84,10 +87,10 @@
 </template>
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
-import axios from 'axios';
 import { ArrowDown, ArrowUp, InfoCircle, Square } from '@vicons/fa';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
+import store from '../store';
 
 const page = ref(1);
 const pageSize = ref(50);
@@ -95,7 +98,6 @@ const totalCount = ref(0);
 const isLoaded = ref(false);
 const items = reactive<Array<IAnnotation>>([]);
 const features = reactive({} as keyable);
-const countries = reactive({} as keyable);
 const paginationOptions = [10, 50, 100, 250, 500, 1000];
 
 const vuerouter = useRoute();
@@ -113,15 +115,16 @@ const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
 
-  let { data } = await axios.get('/api/objects', {
-    params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value },
-  });
+  // let { data } = await axios.get('/api/objects', {
+  //   params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value },
+  // });
+
+  let data = await store.get('objects', null, { offset: (page.value - 1) * pageSize.value, limit: pageSize.value });
+
   Object.assign(items, data.selection);
-
   totalCount.value = Number(data.count);
-
-  ({ data } = await axios.get('/api/features'));
-  const featuresData = Object.fromEntries(data.map((x: any) => [x.id, x]));
+  const fdata = await store.get('features');
+  const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, x]));
   Object.assign(features, featuresData);
 
   isLoaded.value = true;
@@ -142,6 +145,10 @@ const changePageSize = async (i: number) => {
   pageSize.value = i;
   page.value = 1;
   updateURL();
+};
+
+const onRightClick = () => {
+  console.log('right click');
 };
 
 onBeforeMount(async () => {
