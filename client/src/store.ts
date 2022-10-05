@@ -38,7 +38,7 @@ const logoutUser = () => {
   router.replace('/login');
 };
 
-const get = async (route: string, id: string = '', data: Object = {}): Promise<any> => {
+const get = async (route: string, id: string | null = '', data: Object = {}): Promise<any> => {
   if (state.token) {
     try {
       // console.log("data", data);
@@ -75,7 +75,7 @@ const post = async (table: string, data: Object): Promise<any> => {
       // console.log(`POST ${table}`);
       const response = await axios.post('/api/' + table, data, config);
       // console.log("store:response", response.data);
-      return response;
+      return response.data;
     } catch (error) {
       console.log('Cannot get', error);
       return error;
@@ -110,12 +110,9 @@ const getUnauthorized = async (table: string, data?: Object): Promise<any> => {
 const getUser = async () => {
   if (state.token) {
     try {
-      ``;
-      // console.log("token", state.token);
       const config = { headers: { Authorization: 'Bearer ' + state.token } };
       const response = await axios.get('/api/user/info', config);
       state.user = response.data;
-      // console.log(state.user);
     } catch (error: any | AxiosError) {
       console.log('Cannot get user', error);
       if (error.response?.status === 401) {
@@ -124,10 +121,12 @@ const getUser = async () => {
       }
       return error;
     }
+  } else {
+    console.log('No token');
   }
 };
 
-const deleteById = async (table: string, id: string): Promise<any> => {
+const deleteById = async (table: string, id: string | number): Promise<any> => {
   if (state.token) {
     try {
       const config = { headers: { Authorization: 'Bearer ' + state.token }, params: {} };
@@ -135,7 +134,7 @@ const deleteById = async (table: string, id: string): Promise<any> => {
       // console.log("delete query", table, id);
       const response = await axios.delete('/api/' + table + '/' + id, config);
       // console.log(response.data);
-      return response;
+      return response.data;
     } catch (error) {
       console.log('Cannot delete', error);
       return error;
