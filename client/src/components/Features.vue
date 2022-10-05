@@ -1,6 +1,7 @@
 <template>
-  <n-card :bordered="false" style="max-width: 400px; margin: auto">
+  <n-card title="Features" :bordered="false" style="max-width: 600px; margin: auto">
     <n-tree
+      v-if="isLoaded"
       block-line
       :render-label="renderOption"
       :data="options"
@@ -8,8 +9,7 @@
       :selectable="false"
       :cancelable="false"
       :default-expanded-keys="[1, 2, 4, 5, 6, 50, 51]"
-      @update:selected-keys="handleSelect"
-    />
+      @update:selected-keys="handleSelect" />
   </n-card>
   <n-modal
     v-model:show="showModal"
@@ -18,8 +18,7 @@
     preset="card"
     title="Edit the feature"
     size="huge"
-    :segmented="{ content: 'soft', footer: 'soft' }"
-  >
+    :segmented="{ content: 'soft', footer: 'soft' }">
     <n-form>
       <n-form-item label="Code" feedback="For internal use. Numbers and English letters only">
         <n-input v-model:value="feature.code" clearable placeholder="..." :allow-input="onlyAllowedInput" />
@@ -44,9 +43,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onBeforeMount, h } from 'vue';
-import axios from 'axios';
 import { NButton } from 'naive-ui';
+import store from '../store';
+import { useMessage } from 'naive-ui';
 
+const message = useMessage();
 const isLoaded = ref(false);
 const showModal = ref(false);
 const feature = ref<IFeature>({ title: '', code: '', comment: '' } as IFeature);
@@ -79,7 +80,7 @@ const saveFeature = async () => {
   if (feature?.value?.ref) {
     const refOption = feature.value.ref;
     delete feature.value.ref;
-    const { data } = await axios.post('/api/feature', {
+    const data = await store.post('feature', {
       params: {
         id: feature.value.id,
         code: feature.value.code,
@@ -93,9 +94,9 @@ const saveFeature = async () => {
       refOption.title = feature.value.title;
       refOption.code = feature.value.code;
       refOption.comment = feature.value.comment;
-      // message.success('The data were saved.');
+      message.success('The data were saved.');
     } else {
-      // message.error('The data were not saved!');
+      message.error('The data were not saved!');
     }
   }
 };
@@ -109,9 +110,8 @@ const nest = (items: any, id = 0) =>
     });
 
 onBeforeMount(async () => {
-  const { data } = await axios.get('/api/features');
-  // console.log('nest', nest(data));
-  Object.assign(options, nest(data));
+  const fdata = await store.get('features');
+  Object.assign(options, nest(fdata));
   isLoaded.value = true;
 });
 </script>
