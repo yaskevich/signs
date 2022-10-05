@@ -37,7 +37,11 @@ const nest = (items, id = 0) => items
 
 const strategy = new passportJWT.Strategy(
   {
-    jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
+    // jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
+    jwtFromRequest: passportJWT.ExtractJwt.fromExtractors([
+      passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
+      passportJWT.ExtractJwt.fromUrlQueryParameter('jwt')
+    ]),
     secretOrKey: secret,
   },
   (jwtPayload, done) => db.getUserDataByID(jwtPayload.sub)
