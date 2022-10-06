@@ -21,51 +21,19 @@ counter = 0
 # f = open("debug.txt", "w", encoding='utf-8')
 # print(api_id, api_hash)
 
-database_dict = {
-    "messages":
-        """CREATE TABLE IF NOT EXISTS messages (
-                id SERIAL PRIMARY KEY,	
-                data json,	
-                created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                imagepath text,
-                tg_id integer unique,
-                annotations json,
-                orient integer,
-                country text,
-                url text,
-                src text
-        )""",
-    "users":
-        """CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,	
-                username text,	
-                firstname text,
-                lastname text,
-                tg_id BIGINT unique
-        )""",
-    "channels":
-        """CREATE TABLE IF NOT EXISTS channels (
-                id SERIAL PRIMARY KEY,	
-                name text,        
-                tg_id integer unique
-        )""",
-}
-
 conn = psycopg2.connect(dbname=db_name, user=db_user, password=db_pass, host='localhost')
 cursor = conn.cursor()
+
+db_tables = ['chats', 'messages']
 
 cursor.execute("SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' GROUP BY table_name")
 res = cursor.fetchall()
 if res:
     tables = [x[0] for x in res]
-    diff = set(database_dict.keys()).difference(set(tables))
+    diff = set(db_tables).difference(set(tables))
     if(len(diff)):
-        for table in diff:
-            print("init table:", table)
-            # cursor.execute(database_dict[table])
-            # cursor.execute("ALTER TABLE %s OWNER TO %s", (table, db_user))
-            # conn.commit()
-            
+        print('Not all tables are present in the database!')
+        exit()
 
 with TelegramClient('session_name', api_id, api_hash) as client:
     # for dialog in client.iter_dialogs():
@@ -78,7 +46,7 @@ with TelegramClient('session_name', api_id, api_hash) as client:
     for person in client.get_participants(int(group_id)):
         who = person.to_dict()
         # print(who["id"], who["first_name"], who["last_name"], who["username"])
-        cursor.execute("INSERT INTO users(username, firstname, lastname, tg_id) VALUES (%s, %s, %s, %s) ON CONFLICT ON CONSTRAINT users_tg_id_key DO NOTHING",
+        cursor.execute("INSERT INTO chats(type, username, firstname, lastname, tg_id) VALUES ('user', %s, %s, %s, %s) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING",
         (who["username"], who["first_name"], who["last_name"], who["id"]))
     conn.commit()
 
