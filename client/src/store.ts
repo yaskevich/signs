@@ -143,6 +143,14 @@ const deleteById = async (table: string, id: string | number): Promise<any> => {
   console.log('No token. Fail.');
 };
 
+const nest = (items: any, id = 0) =>
+  items
+    .filter((x: any) => x.parent === id)
+    .map((x: any) => {
+      const children = nest(items, x.id);
+      return { ...x, ...(children?.length && { children }) };
+    });
+
 export default {
   state,
   getFile,
@@ -155,4 +163,5 @@ export default {
   logoutUser,
   version: project?.version,
   git: 'https' + project?.repository?.url?.slice(3, -4),
+  nest,
 };
