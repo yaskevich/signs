@@ -30,7 +30,6 @@ const databaseQuery = `SELECT table_name FROM information_schema.columns
 const databaseScheme = {
   users: `
     id        SERIAL PRIMARY KEY,
-    tg_id     BIGINT UNIQUE,
     username  TEXT NOT NULL,
     firstname TEXT NOT NULL,
     lastname  TEXT NOT NULL,
@@ -256,10 +255,18 @@ export default {
   async getObjects(params) {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
+    const features = params?.features;
+    let featuresCondition = '';
+
+    if (features?.length) {
+      featuresCondition = ` WHERE ${features.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+    }
+
     // console.log('offset/limit', offset, limit);
-    const count = await pool.query('select count(*) from objects');
+    const count = await pool.query(`select count(*) from objects as ann ${featuresCondition}`);
     // const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
-    const res = await pool.query('select ann.id, ann.content, ann.tg_id, ann.features, messages.features as properties from objects as ann left join messages on ann.tg_id = messages.tg_id ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2', [offset, limit]);
+    const sql = `select ann.id, ann.content, ann.tg_id, ann.features, messages.features as properties from objects as ann inner join messages on ann.tg_id = messages.tg_id  ${featuresCondition} ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2`;
+    const res = await pool.query(sql, [offset, limit]);
     return {
       count: count?.rows?.shift().count, selection: res.rows, offset, limit
     };
