@@ -1,14 +1,39 @@
 <template>
   <n-card>
     <template #header>
-      <n-spin :show="!isLoaded"> All objects ({{ totalCount }}) </n-spin>
+      <n-spin :show="!isLoaded"> {{ formatHeader() }}</n-spin>
+    </template>
+    <template #header-extra>
+      <n-button @click="showPanel = !showPanel">
+        <template #icon>
+          <n-icon :component="showPanel ? Plus : Minus" />
+        </template>
+      </n-button>
     </template>
     <n-space vertical size="large" v-if="isLoaded">
+      <n-card embedded v-show="showPanel">
+        <n-space vertical>
+          <template v-for="feat in options?.[1]?.children">
+            <n-space>
+              <n-tag type="info">{{ feat.title }}</n-tag>
+              <n-tag
+                @click="updateSelection"
+                v-model:checked="features[item.id].checked"
+                checkable
+                v-for="item in feat?.children">
+                {{ item?.title }}
+              </n-tag>
+            </n-space>
+          </template>
+          <n-button color="#2080f0" @click="selectObjects"> Select </n-button>
+        </n-space>
+      </n-card>
+
       <n-pagination
         v-model:page="page"
         v-model:page-size="pageSize"
         show-size-picker
-        :item-count="totalCount"
+        :item-count="currentCount"
         :page-sizes="paginationOptions"
         @update:page="changePage"
         @update:page-size="changePageSize" />
@@ -78,7 +103,7 @@
         v-model:page="page"
         v-model:page-size="pageSize"
         show-size-picker
-        :item-count="totalCount"
+        :item-count="currentCount"
         :page-sizes="paginationOptions"
         @update:page="changePage"
         @update:page-size="changePageSize" />
@@ -87,7 +112,7 @@
 </template>
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
-import { ArrowDown, ArrowUp, InfoCircle, Square } from '@vicons/fa';
+import { ArrowDown, ArrowUp, InfoCircle, Square, Plus, Minus } from '@vicons/fa';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
@@ -95,10 +120,15 @@ import store from '../store';
 const page = ref(1);
 const pageSize = ref(50);
 const totalCount = ref(0);
+const selectedCount = ref(0);
+const currentCount = ref(0);
+const isSelected = ref(false);
 const isLoaded = ref(false);
-const items = reactive<Array<IAnnotation>>([]);
+const items = ref<Array<IAnnotation>>([]);
 const features = reactive({} as keyable);
 const paginationOptions = [10, 50, 100, 250, 500, 1000];
+const options = reactive([] as Array<IFeature>);
+const showPanel = ref(false);
 
 const vuerouter = useRoute();
 const pageIn = Number(vuerouter.params.page);
@@ -111,22 +141,29 @@ if (batchIn) {
   pageSize.value = batchIn;
 }
 
+const updateSelection = () => {
+  store.state.selection.objects = Object.values(features)
+    .filter((x: IFeature) => Boolean(x?.checked))
+    .map((x: IFeature) => x.id);
+};
+
 const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
 
-  // let { data } = await axios.get('/api/objects', {
-  //   params: { offset: (page.value - 1) * pageSize.value, limit: pageSize.value },
-  // });
+  let data = await store.get('objects', null, {
+    offset: (page.value - 1) * pageSize.value,
+    limit: pageSize.value,
+    features: store.state.selection.objects,
+  });
 
-  let data = await store.get('objects', null, { offset: (page.value - 1) * pageSize.value, limit: pageSize.value });
+  items.value = data.selection;
+  console.log('count', data.count);
 
-  Object.assign(items, data.selection);
-  totalCount.value = Number(data.count);
-  const fdata = await store.get('features');
-  const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, x]));
-  Object.assign(features, featuresData);
-
+  totalCount.value = Number(data.count.ttl);
+  selectedCount.value = Number(data.count?.sel || 0);
+  isSelected.value = 'sel' in data.count;
+  currentCount.value = isSelected.value ? selectedCount.value : totalCount.value;
   isLoaded.value = true;
 };
 
@@ -151,10 +188,29 @@ const onRightClick = () => {
   console.log('right click');
 };
 
+const selectObjects = async () => {
+  page.value = 1;
+  await updatePage();
+};
+
+const formatHeader = () => {
+  return isSelected.value
+    ? `Selected objects – ${selectedCount.value} (${totalCount.value})`
+    : `All objects – ${totalCount.value}`;
+};
+
 onBeforeMount(async () => {
   console.log('mount');
+  const fdata = await store.get('features');
+  const featuresData = Object.fromEntries(
+    fdata.map((x: any) => [x.id, { ...x, checked: store.state.selection.objects.includes(x.id) }])
+  );
+
+  Object.assign(features, featuresData);
   updateURL();
   await updatePage();
+  // const fdata = await store.get('features');
+  Object.assign(options, store.nest(fdata));
 });
 
 onBeforeRouteUpdate(async (to, from) => {
