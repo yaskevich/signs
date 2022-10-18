@@ -7,6 +7,10 @@ const state = reactive<IState>({
   token: localStorage.getItem('token') || '',
   user: {} as IUser,
   error: '',
+  selection: {
+    photos: [],
+    objects: [],
+  },
 });
 
 const getFile = async (route: string, id: string): Promise<any> => {
