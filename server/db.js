@@ -262,13 +262,13 @@ export default {
       featuresCondition = ` WHERE ${features.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
     }
 
-    // console.log('offset/limit', offset, limit);
-    const count = await pool.query(`select count(*) from objects as ann ${featuresCondition}`);
+    const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann`;
+    const count = await pool.query(countQuery);
     // const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
     const sql = `select ann.id, ann.content, ann.tg_id, ann.features, messages.features as properties from objects as ann inner join messages on ann.tg_id = messages.tg_id  ${featuresCondition} ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2`;
     const res = await pool.query(sql, [offset, limit]);
     return {
-      count: count?.rows?.shift().count, selection: res.rows, offset, limit
+      count: count?.rows?.shift(), selection: res.rows, offset, limit
     };
   },
   async getAttachedObjects(tgId) {
