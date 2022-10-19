@@ -25,7 +25,41 @@
               </n-tag>
             </n-space>
           </template>
-          <n-button color="#2080f0" @click="selectObjects"> Select </n-button>
+          <template v-for="feat in options?.[0]?.children">
+            <n-space v-if="feat.type !== 'text'">
+              <n-tag type="info">{{ feat.title }}</n-tag>
+              <template v-if="feat?.type === 'single'">
+                <n-select
+                  size="small"
+                  :options="feat?.children"
+                  label-field="title"
+                  value-field="id"
+                  :placeholder="'Select ' + feat?.title"
+                  filterable
+                  v-model:value="properties[feat.id]" />
+                <n-button size="small" @click="properties[feat.id] = null">Clear</n-button>
+              </template>
+              <template v-else v-for="item in feat?.children">
+                <n-tag
+                  @click="updateSelection"
+                  v-model:checked="properties[item.id]"
+                  :checkable="item.type !== 'single'">
+                  {{ item?.title }}
+                </n-tag>
+                <n-select
+                  size="small"
+                  v-if="item?.type === 'single'"
+                  :options="item?.children"
+                  label-field="title"
+                  value-field="id"
+                  :placeholder="'Select ' + item?.title"
+                  filterable
+                  v-model:value="properties[feat.id]" />
+                <n-button size="small" @click="properties[feat.id] = null">Clear</n-button>
+              </template>
+            </n-space>
+          </template>
+          <n-button type="success" @click="selectObjects"> Select </n-button>
         </n-space>
       </n-card>
 
@@ -126,6 +160,7 @@ const isSelected = ref(false);
 const isLoaded = ref(false);
 const items = ref<Array<IAnnotation>>([]);
 const features = reactive({} as keyable);
+const properties = store.state.selection.photos;
 const paginationOptions = [10, 50, 100, 250, 500, 1000];
 const options = reactive([] as Array<IFeature>);
 const showPanel = ref(false);
@@ -154,11 +189,12 @@ const updatePage = async () => {
   let data = await store.get('objects', null, {
     offset: (page.value - 1) * pageSize.value,
     limit: pageSize.value,
-    features: store.state.selection.objects,
+    objects: store.state.selection.objects,
+    photos: Object.values(store.state.selection.photos)?.filter(Boolean),
   });
 
   items.value = data.selection;
-  console.log('count', data.count);
+  // console.log('count', data.count);
 
   totalCount.value = Number(data.count.ttl);
   selectedCount.value = Number(data.count?.sel || 0);
