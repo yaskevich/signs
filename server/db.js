@@ -255,17 +255,39 @@ export default {
   async getObjects(params) {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
-    const features = params?.features;
+    const objectFeatures = params?.objects;
+    const photoFeatures = params?.photos;
+    const sqlJoin = 'INNER JOIN messages ON ann.data_id = messages.id';
+
     let featuresCondition = '';
 
-    if (features?.length) {
-      featuresCondition = ` WHERE ${features.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+    if (objectFeatures?.length) {
+      featuresCondition = `${objectFeatures.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
     }
 
-    const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann`;
+    if (photoFeatures?.length) {
+      if (featuresCondition) {
+        featuresCondition += ' AND ';
+      }
+      featuresCondition += `${photoFeatures.map((x) => `jsonb_path_exists(messages.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+    }
+
+    if (featuresCondition) {
+      featuresCondition = `WHERE ${featuresCondition}`;
+    }
+
+    const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${photoFeatures?.length ? sqlJoin : ''}`;
     const count = await pool.query(countQuery);
-    // const res = await pool.query('select tg_id, country, orient, annotations from messages where length (annotations::text) > 2 ORDER by tg_id OFFSET $1 LIMIT $2', [offset, limit]);
-    const sql = `select ann.id, ann.content, ann.tg_id, ann.features, messages.features as properties from objects as ann inner join messages on ann.tg_id = messages.tg_id  ${featuresCondition} ORDER by ann.id, ann.tg_id OFFSET $1 LIMIT $2`;
+
+    const sql = `
+      SELECT ann.id, ann.content, ann.tg_id, ann.features, messages.features AS properties
+      FROM objects AS ann
+      ${sqlJoin}
+      ${featuresCondition}
+      ORDER BY ann.id, ann.tg_id
+      OFFSET $1 LIMIT $2`;
+
+    // console.log(sql);
     const res = await pool.query(sql, [offset, limit]);
     return {
       count: count?.rows?.shift(), selection: res.rows, offset, limit
