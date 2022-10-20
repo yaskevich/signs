@@ -49,6 +49,15 @@ const strategy = new passportJWT.Strategy(
     .catch((err) => done(err)),
 );
 
+const issueToken = (user) => jwt.sign({
+  iss: appName,
+  sub: user.id,
+  iat: new Date().getTime(),
+  exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 1)
+  // iat: Math.floor(Date.now() / 1000),
+  // exp: new Date().setDate(new Date().getDate() + 1),
+}, secret);
+
 passport.use(strategy);
 const auth = passport.authenticate('jwt', { session: false });
 const app = express();
@@ -74,14 +83,8 @@ app.post('/api/user/login', async (req, res) => {
   const userData = await db.getUserData(req.body.email, req.body.password);
   if (userData && Object.keys(userData).length && !userData?.error) {
     console.log(req.body.email, '<SUCCESS>');
-    const token = jwt.sign({
-      iss: appName,
-      sub: userData.id,
-      iat: new Date().getTime(),
-      exp: new Date().setDate(new Date().getDate() + 1),
-    }, secret);
     res.json({
-      ...userData, token, server: __package.version, commit, unix
+      ...userData, token: issueToken(userData), server: __package.version, commit, unix
     });
   } else {
     console.log(`login attempt as [${req.body.email}]•[${req.body.password}]►${userData.error}◄`);
@@ -104,8 +107,17 @@ app.post('/api/user/reg', async (req, res) => {
 // });
 
 app.get('/api/user/info', auth, async (req, res) => {
+  // let exp;
+  // const header = req?.headers?.authorization;
+  // if (header) {
+  //   const [code, token] = header.trim().split(' ');
+  //   if (code === 'Bearer' && token) {
+  //     const decoded = jwt.verify(token, secret);
+  //     exp = decoded.exp;
+  //   }
+  // }
   res.json({
-    ...req.user, server: __package.version, commit, unix,
+    ...req.user, server: __package.version, commit, unix, token: issueToken(req.user),
   });
 });
 
