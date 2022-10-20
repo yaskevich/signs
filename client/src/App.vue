@@ -55,7 +55,7 @@ const vuerouter = useRoute();
 const activeKey = ref<string | null>(null); // vuerouter?.name||'Home'
 const loggedIn = computed(() => store?.state?.token?.length);
 const settings = ref<ISettings>();
-const username = ref(String(store?.state?.user?.username || ''));
+const menuOptions = ref<MenuOption[]>();
 
 const renderIcon = (icon: Component) => {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -73,13 +73,13 @@ const processMenu = (key: string, item: MenuOption) => {
   }
 };
 
-const menuOptions: MenuOption[] = reactive([
+const makeMenu = () => [
   makeItem('Home', 'Home', Home),
   makeItem('TMessages', 'Input', Faucet),
   makeItem('Flow', 'Objects', ObjectGroupRegular),
   makeItem('Features', 'Features', Sitemap),
   {
-    label: username,
+    label: store?.state?.user?.username,
     key: 'username',
     disabled: false,
     icon: renderIcon(User),
@@ -92,13 +92,13 @@ const menuOptions: MenuOption[] = reactive([
       },
     ],
   },
-]);
+];
 
 onMounted(async () => {
   await store.getUser();
   if (store?.state?.user?.username) {
+    menuOptions.value = makeMenu();
     activeKey.value = String(vuerouter.name);
-    username.value = String(store?.state?.user?.username);
   } else {
     const { data } = await store.getUnauthorized('settings');
     settings.value = data;
