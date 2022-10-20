@@ -22,6 +22,7 @@ interface IFeature {
   comment: string;
   children: Array<IFeature>;
   ref?: IFeature;
+  checked?: boolean;
 }
 
 interface IAnnotation {
@@ -73,6 +74,7 @@ interface IUser {
   activated: boolean;
   requested: Date;
   text_id: number;
+  token?: string;
 }
 
 interface IUsersDict {
@@ -96,6 +98,10 @@ interface IState {
   token?: string;
   error?: string;
   user?: IUser;
+  selection: {
+    photos: keyable;
+    objects: keyable;
+  };
 }
 
 interface ISettings {
