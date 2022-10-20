@@ -1,5 +1,5 @@
 <template>
-  <n-card title="Features" :bordered="false" style="max-width: 600px; margin: auto">
+  <n-card title="Annotation Scheme" :bordered="false" style="max-width: 600px; margin: auto">
     <n-tree
       v-if="isLoaded"
       block-line

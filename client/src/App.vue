@@ -77,7 +77,7 @@ const makeMenu = () => [
   makeItem('Home', 'Home', Home),
   makeItem('TMessages', 'Input', Faucet),
   makeItem('Flow', 'Objects', ObjectGroupRegular),
-  makeItem('Features', 'Features', Sitemap),
+  makeItem('Scheme', 'Scheme', Sitemap),
   {
     label: store?.state?.user?.username,
     key: 'username',
