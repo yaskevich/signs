@@ -8,8 +8,8 @@ const state = reactive<IState>({
   user: {} as IUser,
   error: '',
   selection: {
-    photos: [],
-    objects: [],
+    photos: {},
+    objects: {},
   },
 });
 
@@ -39,7 +39,7 @@ const logoutUser = () => {
   state.token = '';
   state.user = {} as IUser;
   localStorage.removeItem('token');
-  router.replace('/login');
+  // router.replace('/login');
 };
 
 const get = async (route: string, id: string | null = '', data: Object = {}): Promise<any> => {
@@ -92,7 +92,7 @@ const postUnauthorized = async (table: string, data: Object): Promise<any> => {
   try {
     // console.log(`POST ${table}`);
     const response = await axios.post('/api/' + table, data);
-    console.log('post [NO AUTH]', table, response.data);
+    // console.log('post [NO AUTH]', table, response.data);
     return response;
   } catch (error) {
     console.log('Cannot get', error);
@@ -103,7 +103,7 @@ const postUnauthorized = async (table: string, data: Object): Promise<any> => {
 const getUnauthorized = async (table: string, data?: Object): Promise<any> => {
   try {
     const response = await axios.get('/api/' + table, data);
-    console.log('get [NO AUTH]', table, response.data);
+    // console.log('get [NO AUTH]', table, response.data);
     return response;
   } catch (error) {
     console.log('Cannot get', error);
@@ -111,12 +111,21 @@ const getUnauthorized = async (table: string, data?: Object): Promise<any> => {
   }
 };
 
+const setUser = (data: IUser) => {
+  if (data?.token) {
+    localStorage.setItem('token', data.token);
+    state.token = data.token;
+  }
+  state.user = { ...state.user, ...data };
+};
+
 const getUser = async () => {
   if (state.token) {
     try {
       const config = { headers: { Authorization: 'Bearer ' + state.token } };
       const response = await axios.get('/api/user/info', config);
-      state.user = response.data;
+      // state.user = response.data;
+      setUser(response.data);
     } catch (error: any | AxiosError) {
       console.log('Cannot get user', error);
       if (error.response?.status === 401) {
@@ -168,4 +177,5 @@ export default {
   version: project?.version,
   git: 'https' + project?.repository?.url?.slice(3, -4),
   nest,
+  setUser,
 };
