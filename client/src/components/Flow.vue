@@ -159,7 +159,7 @@ const currentCount = ref(0);
 const isSelected = ref(false);
 const isLoaded = ref(false);
 const items = ref<Array<IAnnotation>>([]);
-const features = reactive({} as keyable);
+const features = store.state.selection.objects;
 const properties = store.state.selection.photos;
 const paginationOptions = [10, 50, 100, 250, 500, 1000];
 const options = reactive([] as Array<IFeature>);
@@ -177,9 +177,7 @@ if (batchIn) {
 }
 
 const updateSelection = () => {
-  store.state.selection.objects = Object.values(features)
-    .filter((x: IFeature) => Boolean(x?.checked))
-    .map((x: IFeature) => x.id);
+  console.log('click');
 };
 
 const updatePage = async () => {
@@ -189,7 +187,9 @@ const updatePage = async () => {
   let data = await store.get('objects', null, {
     offset: (page.value - 1) * pageSize.value,
     limit: pageSize.value,
-    objects: store.state.selection.objects,
+    objects: Object.values(store.state.selection.objects)
+      .filter((x: IFeature) => Boolean(x?.checked))
+      .map((x: IFeature) => x.id),
     photos: Object.values(store.state.selection.photos)?.filter(Boolean),
   });
 
@@ -231,18 +231,21 @@ const selectObjects = async () => {
 
 const formatHeader = () => {
   return isSelected.value
-    ? `Selected objects – ${selectedCount.value} (${totalCount.value})`
+    ? `Selected objects – ${selectedCount.value} (${totalCount.value}) • ${Number(
+        (selectedCount.value / (totalCount.value / 100)).toFixed(2)
+      )}%`
     : `All objects – ${totalCount.value}`;
 };
 
 onBeforeMount(async () => {
   console.log('mount');
   const fdata = await store.get('features');
-  const featuresData = Object.fromEntries(
-    fdata.map((x: any) => [x.id, { ...x, checked: store.state.selection.objects.includes(x.id) }])
-  );
 
-  Object.assign(features, featuresData);
+  if (!Object.keys(store.state.selection.objects)?.length) {
+    const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, { ...x, checked: false }]));
+    Object.assign(store.state.selection.objects, featuresData);
+  }
+
   updateURL();
   await updatePage();
   // const fdata = await store.get('features');
