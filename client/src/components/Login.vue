@@ -8,7 +8,12 @@
         </n-form-item>
 
         <n-form-item path="password" label="Password">
-          <n-input v-model:value="formValue.password" type="password" @keydown.enter.prevent autocomplete="on" show-password-on="click"/>
+          <n-input
+            v-model:value="formValue.password"
+            type="password"
+            @keydown.enter.prevent
+            autocomplete="on"
+            show-password-on="click" />
         </n-form-item>
 
         <n-form-item>
@@ -24,7 +29,6 @@
 </template>
 
 <script setup lang="ts">
-
 import { ref, reactive } from 'vue';
 import router from '../router';
 import store from '../store';
@@ -40,13 +44,11 @@ const handleValidateClick = async (e: MouseEvent) => {
     const { data } = await store.postUnauthorized('user/login', formValue);
     // console.log("login result", data);
     if (data?.error) {
-      console.error("error", data)
+      console.error('error', data);
       Object.assign(error, data);
     } else {
-      store.state.token = data.token;
-      localStorage.setItem('token', data.token);
-      store.state.user = { ...store.state.user, ...data };
-      router.push('/')
+      store.setUser(data);
+      // router.push('/');
     }
   }
 
@@ -54,5 +56,4 @@ const handleValidateClick = async (e: MouseEvent) => {
   // message.success('Valid');
   // message.error('Invalid');
 };
-
 </script>
