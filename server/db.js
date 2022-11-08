@@ -11,6 +11,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config();
 
+sharp.cache(false);
+
 const saltRounds = 8;
 const passOptions = {
   length: 18,
@@ -403,8 +405,13 @@ export default {
       // console.log(res);
       const pathToFragment = path.join(fragmentsDir, `${id}-original.png`);
       const pathToThumbnail = path.join(fragmentsDir, `${id}.png`);
-      fs.unlinkSync(pathToFragment);
-      fs.unlinkSync(pathToThumbnail);
+
+      if (fs.existsSync(pathToFragment)) {
+        fs.unlinkSync(pathToFragment);
+      }
+      if (fs.existsSync(pathToThumbnail)) {
+        fs.unlinkSync(pathToThumbnail);
+      }
     } catch (error) {
       data = { error };
       console.error(error);
