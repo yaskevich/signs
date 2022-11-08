@@ -240,6 +240,7 @@ const initAnnotorius = () => {
       if (shape && geometry) {
         const newFeatures = Object.fromEntries(featuresList.map(x => [x.id, { ...x, note: '', value: false }]));
         Object.assign(selectedObject, {
+          id: null,
           shape,
           geometry,
           content: '',
@@ -375,7 +376,7 @@ const discardChanges = () => {
 
 const deleteObject = async () => {
   // console.log('delete', selectedObject.id);
-  const { data } = await store.deleteById('object/', selectedObject.id);
+  const { data } = await store.deleteById('object', selectedObject.id);
   console.log('delete result', data);
   if (data?.error) {
     message.error('Object removal error!');
@@ -392,7 +393,7 @@ const saveObject = async () => {
     .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
   console.log(newFeatures);
   const datum = { ...toRaw(selectedObject), features: newFeatures };
-
+  // console.log('save', datum);
   const data = await store.post('object', { params: datum });
 
   if (data?.id) {
