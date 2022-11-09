@@ -75,29 +75,31 @@
               type="text"
               :placeholder="item?.title"
               v-model:value="valuesMap[item.id]" />
-
-            <n-select
-              v-if="item?.type === 'single'"
-              :options="item?.children"
-              label-field="title"
-              value-field="id"
-              filterable
-              :placeholder="'Select ' + item?.title"
-              v-model:value="valuesMap[item.id]" />
-
+            <n-input-group v-if="item?.type === 'single'">
+              <n-select
+                :options="item?.children"
+                label-field="title"
+                value-field="id"
+                filterable
+                :placeholder="'Select ' + item?.title"
+                v-model:value="valuesMap[item.id]" />
+              <n-button secondary type="warning" @click="valuesMap[item.id] = null">Clear</n-button>
+            </n-input-group>
             <template v-else>
               <template v-for="value in item?.children">
                 <template v-if="value?.children?.length">
                   <n-space justify="space-between">
                     <n-tag size="large">{{ value?.title }}</n-tag>
-                    <n-select
-                      v-if="value?.type === 'single'"
-                      :options="value?.children"
-                      label-field="title"
-                      value-field="id"
-                      :placeholder="'Select ' + value?.title"
-                      filterable
-                      v-model:value="valuesMap[value.id]" />
+                    <n-input-group v-if="value?.type === 'single'">
+                      <n-select
+                        :options="value?.children"
+                        label-field="title"
+                        value-field="id"
+                        placeholder="Choose option"
+                        filterable
+                        v-model:value="valuesMap[value.id]" />
+                      <n-button secondary type="warning" @click="valuesMap[value.id] = null">Clear</n-button>
+                    </n-input-group>
                   </n-space>
                 </template>
               </template>
@@ -340,9 +342,8 @@ onMounted(async () => {
     photo.value = data;
     // console.log('values scheme', toRaw(formArray));
     // console.log(data.features);
-
     Object.assign(featuresMap, Object.fromEntries(fdata.map((x: any) => [x.id, x])));
-
+    // console.log(photo.value?.features);
     for (const unit of photo.value?.features) {
       const rule = featuresMap[unit.id];
       const unitId = rule.type ? unit.id : rule.parent;
@@ -430,9 +431,11 @@ const savePhotoAnnotation = async () => {
   // for (const [key, value] of Object.entries(values)) {
   //   console.log(`${key}: ${value}`);
   // }
-  const jsonFeatures = Object.entries(valuesMap).map(x =>
-    featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }
-  );
+  // console.log(valuesMap);
+
+  const jsonFeatures = Object.entries(valuesMap)
+    .filter(x => x[1])
+    .map(x => (featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }));
   console.log(jsonFeatures);
   const params = {
     features: jsonFeatures,
