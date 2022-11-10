@@ -418,6 +418,78 @@ export default {
     }
     return data;
   },
+  async changeActivationStatus(userId, currentUser, status) {
+    console.log('activation request:', userId, 'by', currentUser.id);
+    let data = {};
+    if (userId && currentUser.privs === 1) {
+      try {
+        const sql = 'UPDATE users SET activated = $2 WHERE id = $1 RETURNING id';
+        const result = await pool.query(sql, [userId, status]);
+        data = result?.rows?.[0];
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return data;
+  },
+  async elevateUser(userId, currentUser) {
+    console.log('privileges elevation request for', userId, 'by', currentUser.id, currentUser.privs === 1);
+    let data = {};
+    if (userId && currentUser.privs === 1) {
+      try {
+        const sql = 'UPDATE users SET privs = 1 WHERE id = $1 RETURNING id';
+        const result = await pool.query(sql, [userId]);
+        data = result?.rows?.[0];
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return data;
+  },
+  async updateUser(currentUser, props) {
+    let data = {};
+    const userId = Number(props?.id);
+    if (userId && (currentUser.privs < 3 || currentUser.id === userId)) {
+      const sql = 'UPDATE users SET username = LOWER($2), firstname = INITCAP($3), lastname = INITCAP($4), email = LOWER($5) WHERE id = $1 RETURNING id';
+      const values = [userId, props.username, props.firstname, props.lastname, props.email];
+      try {
+        const usersData = await pool.query('SELECT * FROM users where id <> $1', [userId]);
+        if (usersData.rows.filter((x) => x.email === props.email).length) {
+          data = { error: 'email not unique' };
+        } else if (usersData.rows.filter((x) => x.username === props.username).length) {
+          console.log('username');
+          data = { error: 'username not unique' };
+        } else {
+          const result = await pool.query(sql, values);
+          data = result?.rows?.[0];
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return data;
+  },
+  async getUsers(id) {
+    let sql = 'SELECT id, username, firstname, lastname, email, privs, activated, requested from users';
+    let data = [];
+    const values = [];
+
+    if (id) {
+      sql += ' WHERE id = $1';
+      values.push(id);
+    } else {
+      sql += ' ORDER BY requested DESC';
+    }
+
+    try {
+      const result = await pool.query(sql, values);
+      data = result?.rows;
+    } catch (err) {
+      console.error(err);
+    }
+
+    return data;
+  },
   async getUserDataByID(id) {
     const sql = 'UPDATE users SET requested = NOW() WHERE id = $1'; // to log activity
     await pool.query(sql, [id]);
