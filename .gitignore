@@ -10,3 +10,4 @@ node_modules
 /client/dist
 /client/dev-dist
 client/components.d.ts
+client/auto-imports.d.ts
