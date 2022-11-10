@@ -6,7 +6,7 @@
     <template #header-extra>
       <n-button @click="showPanel = !showPanel">
         <template #icon>
-          <n-icon :component="showPanel ? Plus : Minus" />
+          <n-icon :component="showPanel ? PlusOutlined : MinusOutlined" />
         </template>
       </n-button>
     </template>
@@ -92,7 +92,7 @@
                         <template #trigger>
                           <n-button size="small" color="#2080f0">
                             <template #icon>
-                              <n-icon :component="InfoCircle" />
+                              <n-icon :component="InfoOutlined" />
                             </template>
                           </n-button>
                         </template>
@@ -115,7 +115,7 @@
                     <template v-if="!features[tag?.id]?.type">
                       <n-button :type="tag.id === 52 ? 'secondary' : 'primary'" v-if="features[tag.id]?.parent === 51">
                         <template #icon>
-                          <n-icon :component="Square" color="red" />
+                          <n-icon :component="SquareRound" color="red" />
                         </template>
                       </n-button>
                       <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button>
@@ -146,7 +146,7 @@
 </template>
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
-import { ArrowDown, ArrowUp, InfoCircle, Square, Plus, Minus } from '@vicons/fa';
+import { InfoOutlined, SquareRound, PlusOutlined, MinusOutlined } from '@vicons/material';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
