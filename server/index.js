@@ -173,5 +173,24 @@ app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(
 
 app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
 
+app.get('/api/users', auth, async (req, res) => {
+  const users = await db.getUsers(req.query?.id);
+  res.json(users);
+});
+
+app.post('/api/user/activate', auth, async (req, res) => {
+  const result = await db.changeActivationStatus(req.body?.id, req.user, Boolean(req.body?.status));
+  res.json(result);
+});
+
+app.post('/api/user/elevate', auth, async (req, res) => {
+  const result = await db.elevateUser(req.body?.id, req.user);
+  res.json(result);
+});
+
+app.post('/api/user/update', auth, async (req, res) => {
+  res.json(await db.updateUser(req.user, req.body));
+});
+
 app.listen(port);
 console.log(`Backend is at port ${port}`);
