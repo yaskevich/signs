@@ -12,7 +12,7 @@
           <n-space justify="center">
             <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
               <template #icon>
-                <n-icon :component="Camera" />
+                <n-icon :component="CameraAltFilled" />
               </template>
               2020–2022 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
             </n-button>
@@ -42,7 +42,30 @@
   </n-message-provider>
 </template>
 <script setup lang="ts">
-import { ThumbsUpRegular, Camera, Bars, Faucet, ObjectGroupRegular, Sitemap, Home, User, SignInAlt } from '@vicons/fa';
+// import { Faucet, ObjectGroupRegular } from '@vicons/fa';
+import {
+  SelectAllOutlined,
+  AccountTreeOutlined,
+  HomeOutlined,
+  CommentOutlined,
+  TextSnippetOutlined,
+  SettingsOutlined,
+  PersonOutlined,
+  PermMediaOutlined,
+  AssignmentOutlined,
+  LabelOutlined,
+  BackupOutlined,
+  HistoryOutlined,
+  PersonSearchOutlined,
+  LogOutOutlined,
+  EditNoteOutlined,
+  MenuBookOutlined,
+  ReceiptLongOutlined,
+  FormatPaintOutlined,
+  WebOutlined,
+  CameraAltFilled,
+  CloudDownloadOutlined,
+} from '@vicons/material';
 import router from './router';
 import { RouterLink, useRoute } from 'vue-router';
 import { h, Component, ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue';
@@ -67,28 +90,44 @@ const makeItem = (name: string, title: string, icon: Component) => ({
   icon: renderIcon(icon),
 });
 
-const processMenu = (key: string, item: MenuOption) => {
+const processMenu = async (key: string, item: MenuOption) => {
   if (key === 'logout') {
     store.logoutUser();
+  } else if (key === 'profile') {
+    router.push(`/user/${store?.state?.user?.id}`);
   }
 };
 
 const makeMenu = () => [
-  makeItem('Home', 'Home', Home),
-  makeItem('TMessages', 'Input', Faucet),
-  makeItem('Flow', 'Objects', ObjectGroupRegular),
-  makeItem('Scheme', 'Scheme', Sitemap),
+  makeItem('Home', 'Home', HomeOutlined),
+  makeItem('TMessages', 'Input', CloudDownloadOutlined),
+  makeItem('Flow', 'Objects', SelectAllOutlined),
+  {
+    label: 'Management',
+    key: 'management',
+    icon: renderIcon(SettingsOutlined),
+    children: [
+      makeItem('Scheme', 'Scheme', AccountTreeOutlined),
+      makeItem('Users', 'Users', PersonSearchOutlined),
+    ],
+  },
   {
     label: store?.state?.user?.username,
     key: 'username',
     disabled: false,
-    icon: renderIcon(User),
+    icon: renderIcon(PersonOutlined),
     children: [
       {
         label: 'Log out',
         key: 'logout',
         disabled: false,
-        icon: renderIcon(SignInAlt),
+        icon: renderIcon(LogOutOutlined),
+      },
+      {
+        label: 'Edit profile',
+        key: 'profile',
+        disabled: false,
+        icon: renderIcon(EditNoteOutlined),
       },
     ],
   },
@@ -119,7 +158,6 @@ onMounted(async () => {
   text-align: center;
 
   a {
-    font-weight: bold;
     color: #2c3e50;
 
     &.router-link-exact-active,
@@ -138,6 +176,14 @@ onMounted(async () => {
   min-height: 97vh;
   max-width: 100vh;
   /* max-width: 800px; */
+  margin: auto;
+}
+.left {
+  text-align: left;
+}
+
+.minimal {
+  max-width: 600px;
   margin: auto;
 }
 </style>
