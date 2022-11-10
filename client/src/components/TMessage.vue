@@ -8,7 +8,7 @@
       <!-- <n-button @click="getNext(true)">Previous</n-button> -->
       <n-button @click="getNext(true)" :disabled="!photo?.prev" size="small">
         <template #icon>
-          <n-icon :component="ArrowLeft" />
+          <n-icon :component="ArrowBackOutlined" />
         </template>
       </n-button>
       <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool" size="small">
@@ -17,7 +17,7 @@
       <!-- <n-button @click="getNext()">Next</n-button> -->
       <n-button @click="getNext()" :disabled="!photo?.next" size="small">
         <template #icon>
-          <n-icon :component="ArrowRight" />
+          <n-icon :component="ArrowForwardOutlined" />
         </template>
       </n-button>
     </n-space>
@@ -150,7 +150,7 @@ import { useMessage } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
-import { ArrowLeft, ArrowRight } from '@vicons/fa';
+import { ArrowBackOutlined, ArrowForwardOutlined } from '@vicons/material';
 
 const toolsOptions = [
   { title: 'Rectangle', type: 'rect' },
