@@ -12,15 +12,15 @@ interface IStats {
 }
 
 interface IFeature {
-  id: number;
+  id?: number;
   code: string;
-  value: boolean | string | number;
+  value?: boolean | string | number;
   title: string;
-  note: string;
+  note?: string;
   parent: number;
-  type: string;
+  type: string | null;
   comment: string;
-  children: Array<IFeature>;
+  children?: Array<IFeature>;
   ref?: IFeature;
   checked?: boolean;
 }
