@@ -232,14 +232,23 @@ export default {
   async updateFeature(params) {
     let data = {};
     // console.log(params);
-    if (params.id && params.code) {
+    if (params.code) {
       const { code } = params;
       const title = params.title || params.code;
       const comment = params.comment || '';
-      // console.log("save to DB");
-      const res = await pool.query('UPDATE features SET code = $1, title = $2, comment = $3 WHERE id = $4 RETURNING id', [code, title, comment, Number(params.id)]);
-      data = res.rows?.[0];
+      const type = params.type || null;
+      const { parent } = params;
+
+      if (params.id) {
+        // console.log("save to DB");
+        const res = await pool.query('UPDATE features SET code = $1, title = $2, comment = $3. type = $4, parent = $5 WHERE id = $6 RETURNING id', [code, title, comment, type, parent, Number(params.id)]);
+        data = res.rows?.[0];
+      } else {
+        const res = await pool.query('INSERT INTO features (code, title, comment, type, parent) VALUES($1, $2, $3, $4, $5) RETURNING id', [code, title, comment, type, parent]);
+        data = res.rows?.[0];
+      }
     }
+
     return data;
   },
   async getNext(id) {
