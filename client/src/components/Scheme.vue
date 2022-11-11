@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onBeforeMount, h } from 'vue';
-import { NButton } from 'naive-ui';
+import { NButton, NTag, NSpace } from 'naive-ui';
 import store from '../store';
 import { useMessage } from 'naive-ui';
 
@@ -64,19 +64,40 @@ const handleSelect = (inputFeature: IFeature) => {
 
 const renderOption = (e: any) => {
   //   console.log(e);
-  return h(
-    NButton,
-    {
-      size: 'small',
-      onClick: () => handleSelect(e.option),
-    },
-    { default: () => (e.option.title || e.option.code) + (e.option.type ? ' (' + e.option.type + ')' : '') }
-  );
+  return h(NSpace, null, {
+    default: () => [
+      h(
+        NTag,
+        {
+          size: 'medium',
+          type: 'info',
+        },
+        { default: () => (e.option.title || e.option.code) + (e.option.type ? ' (' + e.option.type + ')' : '') }
+      ),
+      h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' }),
+      e?.option?.children || e?.option?.type !== 'text'
+        ? h(
+            NButton,
+            { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
+            { default: () => 'Add item' }
+          )
+        : null,
+    ],
+  });
+};
+
+const addItem = (inputFeature: IFeature) => {
+  if (inputFeature?.id) {
+    feature.value = { code: '', comment: '', title: '', type: null, parent: inputFeature.id };
+    feature.value.ref = inputFeature;
+    showModal.value = true;
+  }
 };
 
 const saveFeature = async () => {
   showModal.value = false;
-  // console.log(feature?.value?.id);
+  // console.log('feature', feature?.value);
+
   if (feature?.value?.ref) {
     const refOption = feature.value.ref;
     delete feature.value.ref;
@@ -86,15 +107,23 @@ const saveFeature = async () => {
         code: feature.value.code,
         title: feature.value.title,
         comment: feature.value.comment,
+        type: feature.value.type,
+        parent: feature.value.parent,
       },
     });
-    // console.log(data);
 
     if (data?.id == feature.value.id) {
+      refOption.id = feature.value.id;
       refOption.title = feature.value.title;
       refOption.code = feature.value.code;
       refOption.comment = feature.value.comment;
+      refOption.parent = feature.value.parent;
       message.success('The data were saved.');
+    } else if (!feature?.value?.id) {
+      refOption?.children
+        ? refOption?.children.push({ ...feature.value })
+        : (refOption.children = [{ ...feature.value }]);
+      message.success('New item was added.');
     } else {
       message.error('The data were not saved!');
     }
