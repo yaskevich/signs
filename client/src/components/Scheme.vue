@@ -1,5 +1,5 @@
 <template>
-  <n-card title="Annotation Scheme" :bordered="false" style="max-width: 600px; margin: auto">
+  <n-card title="Annotation Scheme" :bordered="false" class="minimal">
     <n-tree
       v-if="isLoaded"
       block-line
@@ -8,7 +8,7 @@
       key-field="id"
       :selectable="false"
       :cancelable="false"
-      :default-expanded-keys="[1, 2, 4, 5, 6, 50, 51]"
+      :default-expanded-keys="[1, 2, 4, 5, 6, 50, 51, 61]"
       @update:selected-keys="handleSelect" />
   </n-card>
   <n-modal
@@ -20,6 +20,14 @@
     size="huge"
     :segmented="{ content: 'soft', footer: 'soft' }">
     <n-form>
+      <n-text strong v-if="Boolean(feature?.id)"
+        >Type: {{ (itemTypes.find(x => x.value === feature.type) || itemTypes[0])?.label }}</n-text
+      >
+
+      <n-form-item label="Type" feedback="Cannot be changed if it is set" v-else>
+        <n-select v-model:value="feature.type" :options="itemTypes" />
+      </n-form-item>
+
       <n-form-item label="Code" feedback="For internal use. Numbers and English letters only">
         <n-input v-model:value="feature.code" clearable placeholder="..." :allow-input="onlyAllowedInput" />
       </n-form-item>
@@ -43,15 +51,44 @@
 
 <script setup lang="ts">
 import { ref, reactive, onBeforeMount, h } from 'vue';
-import { NButton, NTag, NSpace } from 'naive-ui';
+import { NButton, NTag, NSpace, NIcon } from 'naive-ui';
 import store from '../store';
 import { useMessage } from 'naive-ui';
+import {
+  PanToolAltFilled,
+  PanToolFilled,
+  TextSnippetFilled,
+  TopicFilled,
+  SquareRound,
+  CheckBoxFilled,
+  CheckFilled,
+  FolderFilled,
+} from '@vicons/material';
 
 const message = useMessage();
 const isLoaded = ref(false);
 const showModal = ref(false);
 const feature = ref<IFeature>({ title: '', code: '', comment: '' } as IFeature);
 const options = reactive([] as Array<IFeature>);
+
+const itemTypes = [
+  {
+    label: 'Generic Item',
+    value: '',
+  },
+  {
+    label: 'Generic Category',
+    value: 'multi',
+  },
+  {
+    label: 'Single Choice Category',
+    value: 'single',
+  },
+  {
+    label: 'Text Item',
+    value: 'text',
+  },
+];
 
 const onlyAllowedInput = (value: string) => !value || /^[a-z0-9]+$/.test(value);
 
@@ -62,6 +99,22 @@ const handleSelect = (inputFeature: IFeature) => {
   showModal.value = true;
 };
 
+const chooseIcon = (item: IFeature) => {
+  if (!item.parent) {
+    return FolderFilled;
+  }
+  if (item.type === 'text') {
+    return TextSnippetFilled;
+  }
+  if (item.type === 'single') {
+    return PanToolAltFilled;
+  }
+  if (item.type === 'multi') {
+    return TopicFilled;
+  }
+  return CheckFilled;
+};
+
 const renderOption = (e: any) => {
   //   console.log(e);
   return h(NSpace, null, {
@@ -70,12 +123,15 @@ const renderOption = (e: any) => {
         NTag,
         {
           size: 'medium',
-          type: 'info',
+          type: 'success',
         },
-        { default: () => (e.option.title || e.option.code) + (e.option.type ? ' (' + e.option.type + ')' : '') }
+        {
+          default: () => e.option.title || e.option.code,
+          icon: () => h(NIcon, {}, { default: () => h(chooseIcon(e.option)) }),
+        }
       ),
       h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' }),
-      e?.option?.children || e?.option?.type !== 'text'
+      ['single', 'multi'].includes(e?.option?.type)
         ? h(
             NButton,
             { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
@@ -88,7 +144,7 @@ const renderOption = (e: any) => {
 
 const addItem = (inputFeature: IFeature) => {
   if (inputFeature?.id) {
-    feature.value = { code: '', comment: '', title: '', type: null, parent: inputFeature.id };
+    feature.value = { code: '', comment: '', title: '', type: '', parent: inputFeature.id } as IFeature;
     feature.value.ref = inputFeature;
     showModal.value = true;
   }
