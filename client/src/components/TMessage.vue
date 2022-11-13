@@ -37,20 +37,34 @@
         <div v-for="item in featuresTree.find(x => x.code === 'objects')?.children">
           <n-space justify="start">
             <n-tag type="info">{{ item.title }}</n-tag>
-            <template v-for="subitem in item?.children">
-              <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{ subitem.title }}</n-checkbox>
-              <n-input
-                autosize
-                v-if="selectedObject.features[subitem.id]?.value"
-                v-model:value="selectedObject.features[subitem.id].note"
-                type="text"
-                size="tiny"
-                placeholder="Note..."
-                style="margin-left: -15px; min-width: 60px" />
-              <!-- <n-switch>
+            <n-input-group v-if="item?.type === 'single'">
+              <n-select
+                size="small"
+                :options="item?.children"
+                label-field="title"
+                value-field="id"
+                filterable
+                :placeholder="'Select ' + item?.title"
+                v-model:value="objectValues[item.id]" />
+              <n-button size="small" secondary type="warning" @click="objectValues[item.id] = null">Clear</n-button>
+            </n-input-group>
+
+            <template v-else>
+              <template v-for="subitem in item?.children">
+                <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{ subitem.title }}</n-checkbox>
+                <n-input
+                  autosize
+                  v-if="selectedObject.features[subitem.id]?.value"
+                  v-model:value="selectedObject.features[subitem.id].note"
+                  type="text"
+                  size="tiny"
+                  placeholder="Note..."
+                  style="margin-left: -15px; min-width: 60px" />
+                <!-- <n-switch>
                 <template #checked> {{ subitem.title }} </template>
                 <template #unchecked> {{ subitem.title }} </template>
               </n-switch> -->
+              </template>
             </template>
           </n-space>
         </div>
@@ -173,6 +187,7 @@ const valuesMap = reactive({} as keyable);
 const objectsMap = reactive({} as keyable);
 const selectedObject = reactive({} as IObject);
 const showObjectForm = ref(false);
+const objectValues = reactive({} as keyable);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -271,7 +286,15 @@ const selectObject = (oid: number) => {
       return [x.id, { ...x, ...prop }];
     })
   );
+
   Object.assign(selectedObject, objectsMap[oid], { features: featuresFull });
+
+  const singleIds = objectsMap[oid]?.features
+    .filter((x: any) => featuresMap[featuresMap[x?.id].parent].type === 'single')
+    .map((x: any) => ({ [featuresMap[x?.id].parent]: x?.id }));
+
+  Object.assign(objectValues, ...singleIds);
+
   showObjectForm.value = true;
 };
 
@@ -388,13 +411,24 @@ const deleteObject = async () => {
   }
 };
 
+const checkSingleChoice = (fid: number, fvalue: boolean) => {
+  const singleId = objectValues[featuresMap[fid]?.parent];
+  if (singleId !== undefined) {
+    return singleId ? (singleId === fid ? true : false) : false;
+  }
+  return fvalue;
+};
+
 const saveObject = async () => {
+  // console.log('n-select', objectValues);
+
   const newFeatures = Object.values(selectedObject.features)
+    .map(x => ({ ...x, value: checkSingleChoice(x.id, Boolean(x?.value)) }))
     .filter((x: IFeature) => x.value)
     .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
-  console.log(newFeatures);
+  // console.log('to save', newFeatures);
   const datum = { ...toRaw(selectedObject), features: newFeatures };
-  // console.log('save', datum);
+  console.log('save', datum);
   const data = await store.post('object', { params: datum });
 
   if (data?.id) {
