@@ -12,7 +12,7 @@ interface IStats {
 }
 
 interface IFeature {
-  id?: number;
+  id: number;
   code: string;
   value?: boolean | string | number;
   title: string;
