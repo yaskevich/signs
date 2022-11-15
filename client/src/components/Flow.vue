@@ -4,6 +4,7 @@
       <n-spin :show="!isLoaded"> {{ formatHeader() }}</n-spin>
     </template>
     <template #header-extra>
+      <n-checkbox v-model:checked="store.state.selection.mode"> Text only </n-checkbox>
       <n-button @click="showPanel = !showPanel">
         <template #icon>
           <n-icon :component="showPanel ? PlusOutlined : MinusOutlined" />
@@ -74,63 +75,77 @@
       <div style="min-height: 400px">
         <n-space vertical size="large">
           <!-- <div v-for="(item, index) in items" :key="index" class="photo"> -->
-          <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
-            <template #header-extra>
+          <template v-if="store.state.selection.mode">
+            <template v-for="(item, index) in items" :key="index">
               <router-link
+                style="text-decoration: none"
+                v-if="item?.content"
                 :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }"
-                class="tag-link"
-                >Go to {{ item?.tg_id }}
+                >{{ item.content }}
               </router-link>
             </template>
-            <n-space justify="space-between">
-              <n-space vertical>
-                <n-space>
-                  <template v-for="tag in item.features">
-                    <n-button-group size="small" v-if="tag?.note">
-                      <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
-                      <n-tooltip trigger="hover">
-                        <template #trigger>
-                          <n-button size="small" color="#2080f0">
-                            <template #icon>
-                              <n-icon :component="InfoOutlined" />
-                            </template>
-                          </n-button>
-                        </template>
-                        {{ tag.note }}
-                      </n-tooltip>
-                    </n-button-group>
-                    <template v-else>
-                      <n-button
-                        v-if="features[features[tag.id]?.parent]?.code === 'languages'"
-                        color="#5a428d"
-                        size="small"
-                        >{{ features[tag.id]?.title }}</n-button
-                      >
-                      <n-button v-else type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+          </template>
+          <template v-else>
+            <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
+              <template #header-extra>
+                <router-link
+                  :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }"
+                  class="tag-link"
+                  >Go to {{ item?.tg_id }}
+                </router-link>
+              </template>
+              <n-space justify="space-between">
+                <n-space vertical>
+                  <n-space>
+                    <template v-for="tag in item.features">
+                      <n-button-group size="small" v-if="tag?.note">
+                        <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                        <n-tooltip trigger="hover">
+                          <template #trigger>
+                            <n-button size="small" color="#2080f0">
+                              <template #icon>
+                                <n-icon :component="InfoOutlined" />
+                              </template>
+                            </n-button>
+                          </template>
+                          {{ tag.note }}
+                        </n-tooltip>
+                      </n-button-group>
+                      <template v-else>
+                        <n-button
+                          v-if="features[features[tag.id]?.parent]?.code === 'languages'"
+                          color="#5a428d"
+                          size="small"
+                          >{{ features[tag.id]?.title }}</n-button
+                        >
+                        <n-button v-else type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                      </template>
                     </template>
-                  </template>
-                </n-space>
-                <n-space justify="start">
-                  <template v-for="tag in item.properties">
-                    <template v-if="!features[tag?.id]?.type">
-                      <n-button :type="tag.id === 52 ? 'secondary' : 'primary'" v-if="features[tag.id]?.parent === 51">
-                        <template #icon>
-                          <n-icon :component="SquareRound" color="red" />
-                        </template>
-                      </n-button>
-                      <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button>
+                  </n-space>
+                  <n-space justify="start">
+                    <template v-for="tag in item.properties">
+                      <template v-if="!features[tag?.id]?.type">
+                        <n-button
+                          :type="tag.id === 52 ? 'secondary' : 'primary'"
+                          v-if="features[tag.id]?.parent === 51">
+                          <template #icon>
+                            <n-icon :component="SquareRound" color="red" />
+                          </template>
+                        </n-button>
+                        <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button>
+                      </template>
                     </template>
-                  </template>
+                  </n-space>
                 </n-space>
+                <router-link :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }">
+                  <img
+                    style="max-width: 300px"
+                    :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
+                    @contextmenu.prevent="onRightClick" />
+                </router-link>
               </n-space>
-              <router-link :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }">
-                <img
-                  style="max-width: 300px"
-                  :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
-                  @contextmenu.prevent="onRightClick" />
-              </router-link>
-            </n-space>
-          </n-card>
+            </n-card>
+          </template>
         </n-space>
       </div>
       <n-pagination
@@ -161,10 +176,9 @@ const isLoaded = ref(false);
 const items = ref<Array<IAnnotation>>([]);
 const features = store.state.selection.objects;
 const properties = store.state.selection.photos;
-const paginationOptions = [10, 50, 100, 250, 500, 1000];
+const paginationOptions = [10, 50, 100, 250, 500, 1000, 5000];
 const options = reactive([] as Array<IFeature>);
 const showPanel = ref(false);
-
 const vuerouter = useRoute();
 const pageIn = Number(vuerouter.params.page);
 if (pageIn) {
