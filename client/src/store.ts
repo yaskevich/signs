@@ -10,6 +10,7 @@ const state = reactive<IState>({
   selection: {
     photos: {},
     objects: {},
+    mode: false,
   },
 });
 
