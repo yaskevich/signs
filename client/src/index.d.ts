@@ -101,6 +101,7 @@ interface IState {
   selection: {
     photos: keyable;
     objects: keyable;
+    mode: boolean;
   };
 }
 
