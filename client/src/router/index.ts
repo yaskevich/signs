@@ -6,12 +6,18 @@ import Flow from '../components/Flow.vue';
 import Scheme from '../components/Scheme.vue';
 import User from '../components/User.vue';
 import Users from '../components/Users.vue';
+import Upload from '../components/Upload.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
     component: Home,
+  },
+  {
+    path: '/upload',
+    name: 'Upload',
+    component: Upload,
   },
   {
     path: '/scheme',
