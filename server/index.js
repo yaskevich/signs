@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import passportJWT from 'passport-jwt';
 import history from 'connect-history-api-fallback';
+import fileUpload from 'express-fileupload';
 
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -23,10 +24,12 @@ const secret = process.env.SECRET;
 const appName = __package?.name || String(port);
 const commit = process.env.COMMIT;
 const unix = process.env.COMMITUNIX;
+const imageFileLimit = Number(process.env.IMGLIMIT) || 1024 * 1024; // 1 MB
 
 const mediaDir = path.join(__dirname, 'media');
 const imagesDir = path.join(mediaDir, 'downloads');
 const fragmentsDir = path.join(mediaDir, 'fragments');
+const uploadsDir = path.join(mediaDir, 'uploads');
 
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
@@ -62,6 +65,7 @@ passport.use(strategy);
 const auth = passport.authenticate('jwt', { session: false });
 const app = express();
 
+app.use(fileUpload({ limits: { fileSize: imageFileLimit }, abortOnLimit: true, defParamCharset: 'utf8' }));
 app.use('/api/media', [auth, express.static(mediaDir)]);
 app.use(express.static('public'));
 
@@ -190,6 +194,49 @@ app.post('/api/user/elevate', auth, async (req, res) => {
 
 app.post('/api/user/update', auth, async (req, res) => {
   res.json(await db.updateUser(req.user, req.body));
+});
+
+app.post('/api/upload', auth, async (req, res) => {
+  let status = 200;
+  let fileName = '';
+  let id;
+
+  if (Object.keys(req.files).length) {
+    // console.log(Object.keys(req.files.file));
+    const img = req.files.file;
+    const ext = img.mimetype.split('/').pop();
+    const fileTitle = path.parse(img.name).name;
+    const fileSize = img.size;
+    // console.log("img:", img.md5, title, ext);
+    // fs.mkdirSync(currentDir, { recursive: true });
+    fileName = `${img.md5}.${ext}`;
+    const filePath = path.join(uploadsDir, fileName);
+    if (['image/jpeg', 'image/png'].includes(img.mimetype)) {
+      if (fs.existsSync(filePath)) {
+        console.log('Uploaded file already exists');
+        status = 409;
+      } else {
+        try {
+          await img.mv(filePath);
+        } catch (error) {
+          console.log(error);
+          status = 500;
+        }
+        id = await db.addImage(req.user.id, filePath, fileName, fileTitle, fileSize);
+        if (!id) {
+          status = 500;
+        }
+      }
+    } else {
+      console.log('Wrong file type');
+      status = 415;
+    }
+  } else {
+    console.log('No files were uploaded');
+    status = 400;
+  }
+
+  res.status(status).json({ id, file: fileName });
 });
 
 app.listen(port);
