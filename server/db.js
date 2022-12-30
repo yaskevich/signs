@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
+import exif from 'exif-reader';
 import bcrypt from 'bcrypt';
 import passGen from 'generate-password';
 import dotenv from 'dotenv';
@@ -23,6 +24,12 @@ const passOptions = {
   symbols: false,
 };
 
+const thumbnailSettings = {
+  //   width: 650,
+  height: 128,
+  fit: 'inside',
+};
+
 const { Pool } = pg;
 const pool = new Pool();
 
@@ -31,7 +38,7 @@ const databaseQuery = `SELECT table_name FROM information_schema.columns
 
 const databaseScheme = {
   users: `
-    id        SERIAL PRIMARY KEY,
+    id        INT GENERATED ALWAYS AS IDENTITY,
     username  TEXT NOT NULL,
     firstname TEXT NOT NULL,
     lastname  TEXT NOT NULL,
@@ -44,7 +51,7 @@ const databaseScheme = {
     requested TIMESTAMP WITH TIME ZONE`,
 
   features: `
-    id      SERIAL PRIMARY KEY,
+    id      INT GENERATED ALWAYS AS IDENTITY,
     parent  INTEGER,
     code    TEXT,
     title   TEXT,
@@ -52,15 +59,16 @@ const databaseScheme = {
     comment TEXT`,
 
   messages: `
-    id         SERIAL PRIMARY KEY,
+    id         INT GENERATED ALWAYS AS IDENTITY,
     tg_id      INTEGER,
     imagepath  TEXT,
     data       JSON,
     features   JSON,
-    created    TIMESTAMP WITH TIME ZONE`,
+    created    TIMESTAMP WITH TIME ZONE,
+    location   POINT`,
 
   objects: `
-    id          SERIAL PRIMARY KEY,
+    id          INT GENERATED ALWAYS AS IDENTITY,
     tg_id       INTEGER,
     data_id     INTEGER,
     shape       TEXT,
@@ -70,7 +78,7 @@ const databaseScheme = {
     renderedvia JSON`,
 
   chats: `
-    id        SERIAL PRIMARY KEY,
+    id        INT GENERATED ALWAYS AS IDENTITY,
     tg_id     BIGINT unique,
     title     TEXT,
     username  TEXT,
@@ -156,13 +164,8 @@ const clipShape = async (id, shape, geometry, imageFile, imageDir, fragmentsDir)
       if (buf) {
         const pathToFragment = path.join(fragmentsDir, `${id}-original.png`);
         fs.writeFileSync(pathToFragment, buf);
-        const constraints = {
-          //   width: 650,
-          height: 128,
-          fit: 'inside',
-        };
         const pathToThumbnail = path.join(fragmentsDir, `${id}.png`);
-        await sharp(pathToFragment).resize(constraints).toFile(pathToThumbnail);
+        await sharp(pathToFragment).resize(thumbnailSettings).toFile(pathToThumbnail);
       }
     } catch (error) {
       console.log(id, 'Image error!', imageFile);
