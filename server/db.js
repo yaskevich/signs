@@ -207,9 +207,9 @@ export default {
     return res.rows;
   },
   async getMessage(id) {
-    const res = await pool.query('select * from messages where imagepath <> \'\' AND tg_id = $1', [id]);
-    const nextMsg = await pool.query('SELECT tg_id as next FROM messages where imagepath <> \'\' AND tg_id > $1 ORDER BY tg_id ASC LIMIT 1', [id]);
-    const prevMsg = await pool.query('SELECT  tg_id as prev FROM messages where imagepath <> \'\' AND tg_id < $1 ORDER BY tg_id DESC LIMIT 1', [id]);
+    const res = await pool.query('select * from messages where imagepath <> \'\' AND id = $1', [id]);
+    const nextMsg = await pool.query('SELECT id as next FROM messages where imagepath <> \'\' AND id > $1 ORDER BY id ASC LIMIT 1', [id]);
+    const prevMsg = await pool.query('SELECT id as prev FROM messages where imagepath <> \'\' AND id < $1 ORDER BY id DESC LIMIT 1', [id]);
     // console.log('next', nextMsg.rows.shift());
     return { ...res.rows.shift(), ...nextMsg.rows.shift(), ...prevMsg.rows.shift() };
   },
@@ -576,4 +576,42 @@ export default {
     }
     return data;
   },
+  async addImage(userId, filePath, thumbsPath, fileName, fileTitle, fileSize) {
+    const toDec = (dms, dir) => dms.map((x, i) => x / (60 ** i)).reduce((x, i) => x + i) * (dir > 'O' ? -1 : 1); // S and W > N and E
+
+    console.log('here', userId, filePath, fileName, fileTitle, fileSize);
+    let id;
+    try {
+      let loc;
+      const meta = await sharp(filePath).metadata();
+      const exifBuf = meta.exif;
+      const exifData = exifBuf ? exif(exifBuf) : {};
+      const data = { user: userId, title: fileTitle, meta: exifData };
+      // console.log('image meta', data);
+      const gps = data?.meta?.gps;
+      console.log(data?.meta);
+
+      if (gps) {
+        const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
+        const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
+        console.log(lat, lng);
+        loc = `(${lat}, ${lng})`;
+        console.log(loc);
+      }
+
+      const result = await pool.query('INSERT INTO messages (imagepath, data, location) VALUES($1, $2, $3) RETURNING id', [fileName, JSON.stringify(data), loc]);
+      id = result?.rows?.shift()?.id;
+
+      await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
+    } catch (error) {
+      console.log(error);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      if (fs.existsSync(thumbsPath)) {
+        fs.unlinkSync(thumbsPath);
+      }
+    }
+    return id;
+  }
 };
