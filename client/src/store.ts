@@ -165,6 +165,8 @@ const nest = (items: any, id = 0) =>
       return { ...x, ...(children?.length && { children }) };
     });
 
+const convertArrayToObject = (arr: any) => Object.assign({}, ...arr.map((x: any) => ({ [x.id]: x })));
+
 export default {
   state,
   getFile,
@@ -179,4 +181,5 @@ export default {
   git: 'https' + project?.repository?.url?.slice(3, -4),
   nest,
   setUser,
+  convertArrayToObject,
 };
