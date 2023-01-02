@@ -203,7 +203,7 @@ export default {
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, anns.count as annotated from messages LEFT JOIN (SELECT objects.tg_id, count(objects.tg_id) FROM objects GROUP BY objects.tg_id) as anns ON messages.tg_id = anns.tg_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, anns.count as annotated from messages LEFT JOIN (SELECT objects.tg_id, count(objects.tg_id) FROM objects GROUP BY objects.tg_id) as anns ON messages.tg_id = anns.tg_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -589,16 +589,16 @@ export default {
       const data = { user: userId, title: fileTitle, meta: exifData };
       // console.log('image meta', data);
       const gps = data?.meta?.gps;
-      console.log(data?.meta);
+      console.log('meta', data?.meta);
 
       if (gps) {
         const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
         const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
         console.log(lat, lng);
         loc = `(${lat}, ${lng})`;
-        console.log(loc);
+        console.log('loc', loc);
       }
-
+      // https://nominatim.openstreetmap.org/reverse?lat=53.880222&lon=27.599704742&format=json&accept-language=en-us&addressdetails=1
       const result = await pool.query('INSERT INTO messages (imagepath, data, location) VALUES($1, $2, $3) RETURNING id', [fileName, JSON.stringify(data), loc]);
       id = result?.rows?.shift()?.id;
 
@@ -613,5 +613,28 @@ export default {
       }
     }
     return id;
+  },
+  async removeImage(user, params, imagesDir, thumbsDir) {
+    let data = {};
+    try {
+      const result = await pool.query('SELECT imagepath FROM messages WHERE id = $1', [params.id]);
+      const img = result?.rows?.[0]?.imagepath;
+      const imagePath = path.join(imagesDir, img);
+      const thumbPath = path.join(thumbsDir, img);
+
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+      if (fs.existsSync(thumbPath)) {
+        fs.unlinkSync(thumbPath);
+      }
+      const result2 = await pool.query('DELETE FROM messages WHERE id = $1', [params.id]);
+      console.log(result2);
+      data = { id: img };
+    } catch (error) {
+      console.log(error);
+      data = { msg: `Error removing file (ID ${params?.id})` };
+    }
+    return data;
   }
 };
