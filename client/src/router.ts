@@ -1,38 +1,43 @@
 import { createRouter, createWebHistory, RouteRecordRaw, RouterScrollBehavior } from 'vue-router';
-import Home from '../components/Home.vue';
-import TMessages from '../components/TMessages.vue';
-import TMessage from '../components/TMessage.vue';
-import Flow from '../components/Flow.vue';
-import Scheme from '../components/Scheme.vue';
-import User from '../components/User.vue';
-import Users from '../components/Users.vue';
-import Upload from '../components/Upload.vue';
+// import Home from '../components/Home.vue';
+// import TMessages from '../components/TMessages.vue';
+// import TMessage from '../components/TMessage.vue';
+// import Flow from '../components/Flow.vue';
+// import Scheme from '../components/Scheme.vue';
+// import User from '../components/User.vue';
+// import Users from '../components/Users.vue';
+// import Upload from '../components/Upload.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    // component: Home,
+    component: () => import('./components/Home.vue'),
   },
   {
     path: '/upload',
     name: 'Upload',
-    component: Upload,
+    // component: Upload,
+    component: () => import('./components/Upload.vue'),
   },
   {
     path: '/scheme',
     name: 'Scheme',
-    component: Scheme,
+    // component: Scheme,
+    component: () => import('./components/Scheme.vue'),
   },
   {
     path: '/users',
     name: 'Users',
-    component: Users,
+    // component: Users,
+    component: () => import('./components/Users.vue'),
   },
   {
     path: '/user/:id?',
     name: 'User',
-    component: User,
+    // component: User,
+    component: () => import('./components/User.vue'),
   },
   // {
   //   path: '/messages',
@@ -42,25 +47,25 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/messages/:batch?/:page?',
     name: 'TMessages',
-    component: TMessages,
+    // component: TMessages,
+    component: () => import('./components/TMessages.vue'),
   },
   {
     path: '/message/:id?',
     name: 'TMessage',
-    component: TMessage,
+    // component: TMessage,
+    component: () => import('./components/TMessage.vue'),
   },
   {
     path: '/flow/:batch?/:page?',
     name: 'Flow',
-    component: Flow,
+    // component: Flow,
+    component: () => import('./components/Flow.vue'),
   },
   {
     path: '/about',
     name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../components/About.vue'),
+    component: () => import('./components/About.vue'),
   },
 ];
 
