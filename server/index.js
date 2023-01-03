@@ -29,7 +29,7 @@ const imageFileLimit = Number(process.env.IMGLIMIT) || 1024 * 1024; // 1 MB
 const mediaDir = path.join(__dirname, 'media');
 const imagesDir = path.join(mediaDir, 'downloads');
 const fragmentsDir = path.join(mediaDir, 'fragments');
-const uploadsDir = path.join(mediaDir, 'uploads');
+const thumbsDir = path.join(mediaDir, 'thumbnails');
 
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
@@ -200,20 +200,23 @@ app.post('/api/upload', auth, async (req, res) => {
   let status = 200;
   let fileName = '';
   let id;
-
+  // console.log('body', req.body);
   if (Object.keys(req.files).length) {
-    // console.log(Object.keys(req.files.file));
+    console.log(Object.keys(req.files.file));
     const img = req.files.file;
-    const ext = img.mimetype.split('/').pop();
     const fileTitle = path.parse(img.name).name;
     const fileSize = img.size;
-    // console.log("img:", img.md5, title, ext);
-    // fs.mkdirSync(currentDir, { recursive: true });
-    fileName = `${img.md5}.${ext}`;
-    const filePath = path.join(uploadsDir, fileName);
+
     if (['image/jpeg', 'image/png'].includes(img.mimetype)) {
+      const ext = { 'image/jpeg': 'jpg', 'image/png': 'png' }[img.mimetype];
+      // console.log("img:", img.md5, title, ext);
+      // fs.mkdirSync(currentDir, { recursive: true });
+      fileName = `${img.md5}.${ext}`;
+      const filePath = path.join(imagesDir, fileName);
+      const thumbsPath = path.join(thumbsDir, fileName);
+
       if (fs.existsSync(filePath)) {
-        console.log('Uploaded file already exists');
+        console.log('Uploaded file already exists', fileName);
         status = 409;
       } else {
         try {
@@ -222,7 +225,7 @@ app.post('/api/upload', auth, async (req, res) => {
           console.log(error);
           status = 500;
         }
-        id = await db.addImage(req.user.id, filePath, fileName, fileTitle, fileSize);
+        id = await db.addImage(req.user.id, filePath, thumbsPath, fileName, fileTitle, fileSize);
         if (!id) {
           status = 500;
         }
@@ -237,6 +240,10 @@ app.post('/api/upload', auth, async (req, res) => {
   }
 
   res.status(status).json({ id, file: fileName });
+});
+
+app.post('/api/unload', auth, async (req, res) => {
+  res.json(await db.removeImage(req.user.id, req.body, imagesDir, thumbsDir));
 });
 
 app.listen(port);
