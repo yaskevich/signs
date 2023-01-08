@@ -89,7 +89,7 @@ const databaseScheme = {
   settings: `
     registration_open BOOLEAN default true,
     registration_code TEXT,
-    telegram_api_id TEXT,
+    telegram_api_id INTEGER,
     telegram_api_hash TEXT,
     telegram_session TEXT,
     telegram_id TEXT,
@@ -464,6 +464,19 @@ export default {
     }
     return data;
   },
+  async resetPassword(currentUser, id) {
+    if (currentUser.privs === 1) {
+      try {
+        const pwd = passGen.generate(passOptions);
+        const hash = await bcrypt.hash(pwd, saltRounds);
+        await pool.query('UPDATE users SET _passhash = $2 WHERE id = $1', [id, hash]);
+        return { message: pwd, id };
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    return { error: 'Operation is allowed only for administrators' };
+  },
   async updateUser(currentUser, props) {
     let data = {};
     const userId = Number(props?.id);
@@ -536,11 +549,13 @@ export default {
   },
   async createUser(formData, status = false) {
     console.log('create user', formData);
+
     const data = formData;
     let isActivated = status;
-    const settings = await pool.query('SELECT * FROM settings');
+    const settingsResult = await pool.query('SELECT * FROM settings');
+    const settings = settingsResult.rows.shift();
 
-    if (!settings.rows.shift()?.registration_open) {
+    if (!settings?.registration_open) {
       return { error: 'registration is closed' };
     }
 
@@ -559,10 +574,16 @@ export default {
       isActivated = true;
       console.log('create admin');
     }
+
+    if (settings?.registration_code?.length && formData?.note?.includes(settings.registration_code)) {
+      console.log('activated via pass code');
+      isActivated = true;
+    }
+
     const pwd = passGen.generate(passOptions);
-    console.log('make hash');
+    // console.log('make hash');
     const hash = await bcrypt.hash(pwd, saltRounds);
-    console.log('ready');
+    // console.log('ready');
     // console.log(pwd, hash);
     const result = await pool.query('INSERT INTO users (requested, username, firstname, lastname, email, sex, privs, _passhash, activated) VALUES(NOW(), LOWER($1), INITCAP($2), INITCAP($3), LOWER($4), $5, $6, $7, $8) RETURNING id', [data.username, data.firstname, data.lastname, data.email, data.sex, data.privs, hash, isActivated]);
     if (result.rows.length === 1) {
@@ -644,5 +665,15 @@ export default {
   },
   async addTelegramChat(type, tgId, username, firstname, lastname) {
     await pool.query('INSERT INTO chats(type, tg_id, username, firstname, lastname) VALUES ($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING RETURNING id', [type, tgId, username, firstname, lastname]);
+  },
+  async updateSettings(params) {
+    const columns = databaseScheme.settings.split(',').map((x) => x.trim().split(' ').shift());
+    const query = Object.fromEntries(
+      Object.entries(params).filter(([key]) => columns.includes(key))
+    );
+    // console.log('settings', query);
+    const sql = `UPDATE settings SET ${Object.keys(query).map((x, i) => `${x} = $${i + 1}`)}`;
+    const result = await pool.query(sql, Object.values(query));
+    return result?.rowCount;
   },
 };
