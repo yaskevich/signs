@@ -17,24 +17,31 @@
       <n-form-item label="Last Name" path="lastname">
         <n-input v-model:value="user.lastname" />
       </n-form-item>
-      <n-space v-if="store?.state?.user?.privs === 1">
-        <template v-if="user.activated">
-          <n-alert
-            v-if="String(store?.state?.user?.id) === id"
-            title="Disabling your own account is not allowed"
-            type="warning"
-            >Ask other administrators to deactivate your account if you do not need it anymore</n-alert
-          >
-          <n-button v-else type="error" @click="changeActivationStatus(false)">Deactivate</n-button>
-          <n-button v-if="user.activated && user.privs > 1" type="warning" @click="requestElevation"
-            >Make administrator</n-button
-          >
+      <n-space>
+        <template v-if="store?.state?.user?.privs === 1">
+          <template v-if="user.activated">
+            <n-alert
+              v-if="String(store?.state?.user?.id) === id"
+              title="Disabling your own account is not allowed"
+              type="warning"
+              >Ask other administrators to deactivate your account if you do not need it anymore</n-alert
+            >
+            <n-button v-else type="error" @click="changeActivationStatus(false)">Deactivate</n-button>
+            <n-button v-if="user.activated && user.privs > 1" type="warning" @click="requestElevation"
+              >Make administrator</n-button
+            >
+          </template>
+          <template v-else>
+            <n-button type="success" @click="changeActivationStatus(true)">Activate</n-button>
+          </template>
+          <n-button type="error" @click="resetPassword">Reset password</n-button>
+          <n-button type="info" @click="saveUser">Save</n-button>
         </template>
         <template v-else>
-          <n-button type="success" @click="changeActivationStatus(true)">Activate</n-button>
+          <n-button v-if="store?.state?.user?.id === user?.id" type="info" @click="saveUser">Save</n-button>
         </template>
-        <n-button type="info" @click="saveUser">Save</n-button>
       </n-space>
+      <div style="font-family: monospace; font-size: 1.7rem; margin-top: 2rem">{{ datum?.message }}</div>
     </n-form>
   </n-card>
 </template>
@@ -45,22 +52,13 @@ import { useRoute } from 'vue-router';
 import { FormInst, FormItemRule, FormValidationError, useMessage } from 'naive-ui';
 import store from '../store';
 
-interface IUser {
-  id?: number;
-  username: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  privs: number;
-  activated: boolean;
-}
-
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const vuerouter = useRoute();
 const id = ref(String(vuerouter.params.id));
 const isLoaded = ref(false);
 const user = reactive({} as IUser);
+const datum = reactive({ message: '' });
 
 const rules = {
   username: {
@@ -124,9 +122,18 @@ const saveUser = async (e: MouseEvent) => {
   }
 };
 
+const resetPassword = async () => {
+  const data = await store.post('user/reset', user);
+  Object.assign(datum, data);
+  if (!data?.id) {
+    message.error(data?.error ? data.error : 'unknown error');
+  }
+};
+
 onBeforeMount(async () => {
   if (id.value) {
     const data = await store.get('users', id.value);
+    // console.log('user', data?.[0]);
     Object.assign(user, data.shift());
   } else {
     console.log('add new');
