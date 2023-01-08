@@ -12,6 +12,7 @@ import fileUpload from 'express-fileupload';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import db from './db.js';
+import tg from './connectors/telegram.js';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const __package = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
+// environment variables
 const port = process.env.PORT || 8080;
 const secret = process.env.SECRET;
 const appName = __package?.name || String(port);
@@ -61,6 +63,9 @@ const issueToken = (user) => jwt.sign({
   // exp: new Date().setDate(new Date().getDate() + 1),
 }, secret);
 
+// Telegram sync job → START
+// await tg.sync();
+// Telegram sync job → END
 passport.use(strategy);
 const auth = passport.authenticate('jwt', { session: false });
 const app = express();
@@ -99,8 +104,7 @@ app.post('/api/user/login', async (req, res) => {
 app.post('/api/user/reg', async (req, res) => {
   const userdata = req.body;
   userdata.privs = 5; // default privileges
-  const result = await db.createUser(userdata, false);
-  res.json(result);
+  res.json(await db.createUser(userdata, false));
 });
 
 // app.get('/api/logout', (req, res) => {
@@ -123,6 +127,22 @@ app.get('/api/user/info', auth, async (req, res) => {
   res.json({
     ...req.user, server: __package.version, commit, unix, token: issueToken(req.user),
   });
+});
+
+app.post('/api/user/activate', auth, async (req, res) => {
+  res.json(await db.changeActivationStatus(req.body?.id, req.user, Boolean(req.body?.status)));
+});
+
+app.post('/api/user/elevate', auth, async (req, res) => {
+  res.json(await db.elevateUser(req.body?.id, req.user));
+});
+
+app.post('/api/user/update', auth, async (req, res) => {
+  res.json(await db.updateUser(req.user, req.body));
+});
+
+app.post('/api/user/reset', auth, async (req, res) => {
+  res.json(await db.resetPassword(req.user, req.body?.id));
 });
 
 app.get('/api/features', auth, async (req, res) => {
@@ -182,20 +202,6 @@ app.get('/api/users', auth, async (req, res) => {
   res.json(users);
 });
 
-app.post('/api/user/activate', auth, async (req, res) => {
-  const result = await db.changeActivationStatus(req.body?.id, req.user, Boolean(req.body?.status));
-  res.json(result);
-});
-
-app.post('/api/user/elevate', auth, async (req, res) => {
-  const result = await db.elevateUser(req.body?.id, req.user);
-  res.json(result);
-});
-
-app.post('/api/user/update', auth, async (req, res) => {
-  res.json(await db.updateUser(req.user, req.body));
-});
-
 app.post('/api/upload', auth, async (req, res) => {
   let status = 200;
   let fileName = '';
@@ -244,6 +250,10 @@ app.post('/api/upload', auth, async (req, res) => {
 
 app.post('/api/unload', auth, async (req, res) => {
   res.json(await db.removeImage(req.user.id, req.body, imagesDir, thumbsDir));
+});
+
+app.post('/api/settings', auth, async (req, res) => {
+  res.json(await db.updateSettings(req.body));
 });
 
 app.listen(port);
