@@ -6,15 +6,27 @@
     <n-space vertical size="large">
       <n-grid cols="2 s:3 m:3 l:3 xl:3" x-gap="12" responsive="screen" v-for="item in users" :key="item.id">
         <n-gi>
-          <n-tag :type="item.activated ? 'success' : 'warning'">
-            {{ item.firstname }} {{ item.lastname }}
-            <template #icon>
-              <n-icon
-                :component="
-                  item.activated ? (item.privs > 1 ? CheckCircleRound : SecurityFilled) : RadioButtonUncheckedFilled
-                " />
-            </template>
-          </n-tag>
+          <n-button-group size="small">
+            <n-tag :type="item.activated ? 'success' : 'warning'">
+              {{ item.firstname }} {{ item.lastname }}
+              <template #icon>
+                <n-icon
+                  :component="
+                    item.activated ? (item.privs > 1 ? CheckCircleRound : SecurityFilled) : RadioButtonUncheckedFilled
+                  " />
+              </template>
+            </n-tag>
+            <n-tooltip trigger="hover" v-if="item?.note">
+              <template #trigger>
+                <n-tag type="default">
+                  <template #icon>
+                    <n-icon :component="InfoOutlined" />
+                  </template>
+                </n-tag>
+              </template>
+              {{ item.note }}
+            </n-tooltip>
+          </n-button-group>
         </n-gi>
         <n-gi>
           <n-tooltip trigger="hover" placement="right">
@@ -38,7 +50,7 @@
 import store from '../store';
 import router from '../router';
 import { ref, reactive, onBeforeMount, h } from 'vue';
-import { CheckCircleRound, SecurityFilled, RadioButtonUncheckedFilled } from '@vicons/material';
+import { CheckCircleRound, SecurityFilled, RadioButtonUncheckedFilled, InfoOutlined } from '@vicons/material';
 import { NAlert, useMessage } from 'naive-ui';
 import type { MessageRenderMessage } from 'naive-ui';
 
@@ -61,17 +73,6 @@ const renderMessage: MessageRenderMessage = props => {
     }
   );
 };
-
-interface IUser {
-  id?: number;
-  username: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  privs: number;
-  activated: boolean;
-  requested: Date;
-}
 
 const message = useMessage();
 const users: Array<IUser> = reactive([] as Array<IUser>);
