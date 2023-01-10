@@ -335,14 +335,6 @@ const onRightClick = () => {
   console.log('right click');
 };
 
-const nest = (items: any, id = 0) =>
-  items
-    .filter((x: any) => x.parent === id)
-    .map((x: any) => {
-      const children = nest(items, x.id);
-      return { ...x, ...(children?.length && { children }) };
-    });
-
 const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
 
 // onBeforeMount(async () => {
@@ -355,11 +347,13 @@ onBeforeUnmount(async () => {
 onMounted(async () => {
   const fdata = await store.get('features');
   Object.assign(featuresList, fdata);
-  Object.assign(featuresTree, nest(fdata));
+  Object.assign(featuresTree, store.nest(fdata));
 
   initAnnotorius();
   if (id.value) {
     let data = await store.get('message', null, { id: id.value });
+    console.log('photo data', data);
+
     const imagepath = buildImagePath(data.imagepath);
     imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
     photo.value = data;
