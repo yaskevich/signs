@@ -65,6 +65,9 @@ import {
   WebOutlined,
   CameraAltFilled,
   CloudDownloadOutlined,
+  CloudUploadOutlined,
+  ListAltOutlined,
+  InputOutlined,
 } from '@vicons/material';
 import router from './router';
 import { RouterLink, useRoute } from 'vue-router';
@@ -100,15 +103,17 @@ const processMenu = async (key: string, item: MenuOption) => {
 
 const makeMenu = () => [
   makeItem('Home', 'Home', HomeOutlined),
-  makeItem('TMessages', 'Input', CloudDownloadOutlined),
+  makeItem('TMessages', 'Input', InputOutlined),
   makeItem('Flow', 'Objects', SelectAllOutlined),
   {
     label: 'Management',
     key: 'management',
     icon: renderIcon(SettingsOutlined),
     children: [
+      makeItem('Upload', 'Upload', CloudUploadOutlined),
       makeItem('Scheme', 'Scheme', AccountTreeOutlined),
       makeItem('Users', 'Users', PersonSearchOutlined),
+      makeItem('Settings', 'Settings', ListAltOutlined),
     ],
   },
   {
