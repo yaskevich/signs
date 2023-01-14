@@ -45,19 +45,19 @@ const routes: Array<RouteRecordRaw> = [
   //   component: Messages
   // },
   {
-    path: '/messages/:batch?/:page?',
+    path: '/data/:batch?/:page?',
     name: 'TMessages',
     // component: TMessages,
     component: () => import('./components/TMessages.vue'),
   },
   {
-    path: '/message/:id?',
-    name: 'TMessage',
+    path: '/datum/:id/:object?',
+    name: 'Toolset',
     // component: TMessage,
-    component: () => import('./components/TMessage.vue'),
+    component: () => import('./components/Toolset.vue'),
   },
   {
-    path: '/flow/:batch?/:page?',
+    path: '/objects/:batch?/:page?',
     name: 'Flow',
     // component: Flow,
     component: () => import('./components/Flow.vue'),
