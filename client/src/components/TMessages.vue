@@ -4,6 +4,7 @@
       <n-space justify="center">
         <n-pagination
           :page-sizes="pageOptions"
+          :page-slot="5"
           v-model:page="currentPage"
           v-model:page-size="pageSize"
           @update:page="onPageNumberChange"
@@ -11,8 +12,7 @@
           :item-count="totalCount"
           show-size-picker></n-pagination>
       </n-space>
-
-      <n-card v-for="(msg, key) in messagesPage" :key="key" :style="msg.annotated ? 'background-color:#dff6dd' : ''">
+      <n-card v-for="(msg, key) in messagesPage" :key="key" :style="msg?.annotated ? 'background-color:#dff6dd' : ''">
         <template #header>
           <n-space>
             <n-tooltip trigger="hover">
@@ -21,7 +21,7 @@
                   <template #icon>
                     <n-icon :component="NumbersOutlined" />
                   </template>
-                  {{ msg.id }}
+                  {{ msg?.id }}
                 </n-tag>
               </template>
               Source: <span v-if="msg?.['tg_id']">Telegram, {{ msg?.['tg_id'] }} </span>
@@ -34,9 +34,8 @@
                   <template #icon>
                     <n-icon :component="PersonOutlineFilled" />
                   </template>
-
                   <template v-if="msg?.['tg_id']">
-                    {{ tgUsers?.[msg.data?.from_id?.user_id]?.['firstname'] || '•' }}
+                    {{ tgUsers?.[msg?.data?.from_id?.user_id]?.['firstname'] || '•' }}
                   </template>
                   <template v-else>
                     {{ users?.[msg?.data?.user]?.username }}
@@ -55,79 +54,92 @@
                     {{ msg?.data.meta?.gps ? 'GPS' : '' }}
                     {{ msg?.data.meta?.exif ? 'EXIF' : '' }}
                   </template>
-                  <template #icon v-if="msg.imagepath">
+                  <template #icon v-if="msg?.imagepath">
                     <n-icon :component="ImageOutlined" />
                   </template>
                 </n-tag>
               </template>
               Data Type
             </n-tooltip>
-
             <n-tooltip trigger="hover" v-if="msg?.data?.views">
               <template #trigger>
-                <n-tag type="info"> {{ msg.data['views'] }}</n-tag>
+                <n-tag type="info">
+                  <template #icon>
+                    <n-icon :component="RemoveRedEyeOutlined" />
+                  </template>
+                  {{ msg?.data['views'] }}</n-tag
+                >
               </template>
               Views
             </n-tooltip>
-
-            <!-- <n-tooltip trigger="hover" v-if="value.annotated">
-              <template #trigger>
-                <n-tag>   {{ '📃'.repeat(Number(value.annotated)) }}</n-tag>
-              </template>
-              Annotation added
-            </n-tooltip> -->
           </n-space>
         </template>
         <template #header-extra>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-tag>
-                <template v-if="msg?.['tg_id']">
-                  <template v-if="msg?.data?.fwd_from">
-                    {{ msg.data.fwd_from.date.slice(0, -6) }}
+          <n-space>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button size="small" quaternary icon-placement="right" @click="showJSON(msg)">
+                  <template #icon>
+                    <n-icon :component="DataObjectOutlined" />
+                  </template>
+                </n-button>
+              </template>
+              Data JSON
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-tag>
+                  <template #icon>
+                    <n-icon :component="CalendarMonthOutlined" />
+                  </template>
+                  <template v-if="msg?.['tg_id']">
+                    <template v-if="msg?.data?.fwd_from">
+                      {{ msg?.data?.fwd_from?.date?.slice(0, -6) }}
+                    </template>
+                    <template v-else>
+                      {{ msg?.data?.date?.slice(0, -6) }}
+                    </template>
                   </template>
                   <template v-else>
-                    {{ msg?.data?.date?.slice(0, -6) }}
+                    {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
                   </template>
-                </template>
-                <template v-else>
-                  {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
-                </template>
-              </n-tag>
-            </template>
-            Timestamp
-            <template v-if="msg?.['tg_id']">
-              <div v-if="msg?.data?.fwd_from">FWD: {{ msg.data.fwd_from.date.slice(0, -6) }}</div>
-              <div>MSG: {{ msg?.data?.date?.slice(0, -6) }}</div>
-            </template>
-            <div v-if="msg?.data?.meta?.image?.ModifyDate">EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}</div>
-            <div>DB: {{ extractDate(msg?.created) }}</div>
-          </n-tooltip>
+                </n-tag>
+              </template>
+              Timestamp
+              <template v-if="msg?.['tg_id']">
+                <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
+                <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
+              </template>
+              <div v-if="msg?.data?.meta?.image?.ModifyDate">
+                EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}
+              </div>
+              <div>DB: {{ extractDate(msg?.created) }}</div>
+            </n-tooltip>
+          </n-space>
         </template>
         <n-grid :cols="12">
           <n-gi :span="8">
             <n-space vertical>
-              <p v-if="msg?.data?.grouped_id">
-                <span style="font-weight: bold">Group</span>: {{ msg.data['grouped_id'] }}
-              </p>
-              <p v-if="msg?.data?.fwd_from">
-                <span style="font-weight: bold">Fwd</span>: {{ msg.data.fwd_from.from_id?.channel_id }}/{{
+              <n-space v-if="msg?.data?.grouped_id">
+                <span style="font-weight: bold">Group</span> {{ msg.data['grouped_id'] }}
+              </n-space>
+              <n-space v-if="msg?.data?.fwd_from">
+                <span style="font-weight: bold">Fwd</span> {{ msg.data.fwd_from.from_id?.channel_id }}/{{
                   msg.data.fwd_from?.channel_post
                 }}
-              </p>
-              <p v-if="msg?.annotated">
+              </n-space>
+              <template v-if="msg?.annotated">
                 {{ '📃'.repeat(Number(msg.annotated)) }}
-              </p>
+              </template>
               <div v-if="msg?.data?.message">
-                <div style="border: 1px dashed gray; padding: 5px">
-                  <span v-html="msg.data.message?.split('\n').join('<br/>')"></span>
-                </div>
+                <!-- <div style="border: 1px dashed gray; padding: 5px"> -->
+                <span v-html="msg.data.message?.split('\n').join('<br/>')"></span>
+                <!-- </div> -->
               </div>
-
               <div v-if="msg?.data?.title">
-                <div style="border: 1px dashed gray; padding: 5px">
-                  {{ msg.data.title }}
-                </div>
+                <!-- <div style="border: 1px dashed gray; padding: 5px"> -->
+                {{ msg.data.title }}
+                <!-- </div> -->
               </div>
               <n-popconfirm @positive-click="removeImage(msg)" v-if="!msg?.['tg_id']">
                 <template #trigger>
@@ -142,11 +154,11 @@
           </n-gi>
           <n-gi :span="4">
             <div style="text-align: right">
-              <router-link :to="'/message/' + msg.id">
+              <router-link :to="'/datum/' + msg?.id">
                 <img
                   :src="'/api/media/thumbnails/' + msg.imagepath + '?jwt=' + store?.state?.token"
                   @contextmenu.prevent="onRightClick"
-                  v-if="msg.imagepath"
+                  v-if="msg?.imagepath"
                   class="image-navi" />
               </router-link>
             </div>
@@ -155,6 +167,7 @@
       </n-card>
       <n-space justify="center">
         <n-pagination
+          :page-slot="5"
           :page-sizes="pageOptions"
           v-model:page="currentPage"
           v-model:page-size="pageSize"
@@ -166,13 +179,28 @@
     </n-space>
   </div>
   <div v-else style="text-align: center">...loading</div>
+  <n-modal v-model:show="showModal" style="max-width: 600px">
+    <div>
+      <!-- <n-button @click="showModal = false">edqw</n-button> -->
+      <!-- <n-card style="width: 600px" :bordered="false" size="huge" role="dialog" aria-modal="true"> -->
+      <json-viewer :value="dataObject"></json-viewer>
+      <!-- </n-card> -->
+    </div>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, onBeforeMount } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import store from '../store';
-import { ImageOutlined, NumbersOutlined, PersonOutlineFilled } from '@vicons/material';
+import {
+  ImageOutlined,
+  NumbersOutlined,
+  PersonOutlineFilled,
+  CalendarMonthOutlined,
+  RemoveRedEyeOutlined,
+  DataObjectOutlined,
+} from '@vicons/material';
 import { useMessage } from 'naive-ui';
 
 const router = useRouter();
@@ -185,6 +213,8 @@ const currentPage = ref(1);
 const pageSize = ref(25);
 const totalCount = ref(0);
 const users = reactive({} as IUsersDict);
+const showModal = ref(false);
+const dataObject = ref({});
 
 const removeImage = async (info: IMessage) => {
   if (info?.id) {
@@ -250,21 +280,36 @@ const getPages = async () => {
   const data = await store.get('messages', null, { off: offset, batch: pageSize.value });
   messagesPage.value = data.data;
   // console.log(data.data);
-  router.replace(`/messages/${pageSize.value}/${currentPage.value || ''}`);
+  console.log('get data');
+  // router.push(`/data/${pageSize.value}/${currentPage.value || ''}`);
   return data;
 };
+
+onBeforeRouteUpdate(async (to, from) => {
+  console.log('update route', from.fullPath, '→', to.fullPath);
+
+  if (from?.params?.page) {
+    await getPages();
+  }
+  if (to?.params?.page) {
+    currentPage.value = Number(to.params.page);
+    pageSize.value = Number(to.params.batch);
+  }
+});
 
 const onRightClick = () => {
   console.log('right click');
 };
 
 onBeforeMount(async () => {
+  console.log('mount');
   const datum = await getPages();
   totalCount.value = Number(datum.count);
   tgUsers.value = datum.users;
   const data = await store.get('users');
   Object.assign(users, store.convertArrayToObject(data));
   isLoaded.value = true;
+  router.replace(`/data/${pageSize.value}/${currentPage.value || ''}`);
 });
 
 const onPageBatchChange = async (i: number) => {
@@ -272,19 +317,26 @@ const onPageBatchChange = async (i: number) => {
   // console.log(pageSize.value, i, currentPage.value);
   pageSize.value = i;
   currentPage.value = 1;
-  await getPages();
+  // await getPages();
+  router.push(`/data/${pageSize.value}/${currentPage.value || ''}`);
 };
 
 const onPageNumberChange = async (i: number) => {
   // console.log("request to change to page", i);
   // console.log(pageSize.value, currentPage.value);
-  currentPage.value = i;
-  await getPages();
+  // await getPages();
+  router.push(`/data/${pageSize.value}/${currentPage.value || ''}`);
 };
 
 // const goToMessage = (id) => {
 //   router.push('/message/' + id);
 // }
+
+const showJSON = (msg: IMessage) => {
+  // console.log(msg.data);
+  dataObject.value = msg.data;
+  showModal.value = true;
+};
 </script>
 
 <style>
