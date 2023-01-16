@@ -63,15 +63,17 @@
           <n-button type="success" @click="selectObjects"> Select </n-button>
         </n-space>
       </n-card>
-
-      <n-pagination
-        v-model:page="page"
-        v-model:page-size="pageSize"
-        show-size-picker
-        :item-count="currentCount"
-        :page-sizes="paginationOptions"
-        @update:page="changePage"
-        @update:page-size="changePageSize" />
+      <n-space justify="center">
+        <n-pagination
+          v-model:page="page"
+          v-model:page-size="pageSize"
+          show-size-picker
+          :page-slot="5"
+          :item-count="currentCount"
+          :page-sizes="paginationOptions"
+          @update:page="changePage"
+          @update:page-size="changePageSize" />
+      </n-space>
       <div style="min-height: 400px">
         <n-space vertical size="large">
           <!-- <div v-for="(item, index) in items" :key="index" class="photo"> -->
@@ -80,7 +82,7 @@
               <router-link
                 style="text-decoration: none"
                 v-if="item?.content"
-                :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }"
+                :to="{ name: 'Toolset', params: { id: item?.data_id }, query: { object: item?.id } }"
                 >{{ item.content }}
               </router-link>
             </template>
@@ -89,9 +91,9 @@
             <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
               <template #header-extra>
                 <router-link
-                  :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }"
+                  :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }"
                   class="tag-link"
-                  >Go to {{ item?.tg_id }}
+                  >Go to {{ item?.data_id }}
                 </router-link>
               </template>
               <n-space justify="space-between">
@@ -137,7 +139,7 @@
                     </template>
                   </n-space>
                 </n-space>
-                <router-link :to="{ name: 'TMessage', params: { id: item?.tg_id }, query: { object: item?.id } }">
+                <router-link :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }">
                   <img
                     style="max-width: 300px"
                     :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
@@ -148,14 +150,17 @@
           </template>
         </n-space>
       </div>
-      <n-pagination
-        v-model:page="page"
-        v-model:page-size="pageSize"
-        show-size-picker
-        :item-count="currentCount"
-        :page-sizes="paginationOptions"
-        @update:page="changePage"
-        @update:page-size="changePageSize" />
+      <n-space justify="center">
+        <n-pagination
+          v-model:page="page"
+          v-model:page-size="pageSize"
+          show-size-picker
+          :page-slot="5"
+          :item-count="currentCount"
+          :page-sizes="paginationOptions"
+          @update:page="changePage"
+          @update:page-size="changePageSize" />
+      </n-space>
     </n-space>
   </n-card>
 </template>
@@ -218,12 +223,12 @@ const updatePage = async () => {
 };
 
 const updateURL = () => {
-  router.push(`/flow/${pageSize.value}/${page.value || ''}`);
+  console.log('update URL');
+  router.push(`/objects/${pageSize.value}/${page.value || ''}`);
 };
 
 const changePage = async (i: number) => {
   console.log('change page', page.value, i);
-  router.push(`/flow/${pageSize.value}/${page.value || ''}`);
   updateURL();
 };
 
@@ -254,24 +259,27 @@ const formatHeader = () => {
 onBeforeMount(async () => {
   console.log('mount');
   const fdata = await store.get('features');
-
   if (!Object.keys(store.state.selection.objects)?.length) {
     const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, { ...x, checked: false }]));
     Object.assign(store.state.selection.objects, featuresData);
   }
-
-  updateURL();
-  await updatePage();
-  // const fdata = await store.get('features');
   Object.assign(options, store.nest(fdata));
+  await updatePage();
+  router.replace(`/objects/${pageSize.value}/${page.value || ''}`);
 });
 
 onBeforeRouteUpdate(async (to, from) => {
-  // console.log('route', to.params, from.params);
-  console.log('route update');
-  page.value = Number(to.params.page);
-  pageSize.value = Number(to.params.batch);
-  // await updatePage();
+  console.log('update route', from.fullPath, '→', to.fullPath);
+
+  if (to?.params?.page) {
+    // console.log('-> update params');
+    page.value = Number(to.params.page);
+    pageSize.value = Number(to.params.batch);
+  }
+  if (from?.params?.page) {
+    // console.log('-> call update');
+    await updatePage();
+  }
 });
 </script>
 
