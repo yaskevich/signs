@@ -45,6 +45,7 @@ const databaseScheme = {
     email     TEXT NOT NULL,
     sex       INTEGER NOT NULL,
     privs     INTEGER NOT NULL,
+    note      TEXT,
     prefs     JSON,
     _passhash TEXT NOT NULL,
     activated BOOLEAN NOT NULL DEFAULT FALSE,
@@ -205,11 +206,11 @@ export default {
     return res.rows[0].count;
   },
   async getMessagesAnnotatedCount() {
-    const res = await pool.query('select count(distinct(tg_id)) from objects where tg_id is not null');
+    const res = await pool.query('select count(distinct(data_id)) from objects where data_id is not null');
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, anns.count as annotated from messages LEFT JOIN (SELECT objects.tg_id, count(objects.tg_id) FROM objects GROUP BY objects.tg_id) as anns ON messages.tg_id = anns.tg_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -300,11 +301,11 @@ export default {
     const count = await pool.query(countQuery);
 
     const sql = `
-      SELECT ann.id, ann.content, ann.tg_id, ann.features, messages.features AS properties
+      SELECT ann.id, ann.data_id, ann.content, ann.source_id, ann.features, messages.features AS properties
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
-      ORDER BY ann.id, ann.tg_id
+      ORDER BY ann.id, ann.source_id
       OFFSET $1 LIMIT $2`;
 
     // console.log(sql);
@@ -313,11 +314,11 @@ export default {
       count: count?.rows?.shift(), selection: res.rows, offset, limit
     };
   },
-  async getAttachedObjects(tgId) {
+  async getAttachedObjects(id) {
     let data = [];
-    const id = Number(tgId);
+    const dataId = Number(id);
     if (id) {
-      const res = await pool.query('select * from objects where tg_id =$1', [id]);
+      const res = await pool.query('select * from objects where data_id = $1', [dataId]);
       data = res.rows;
     }
     return data;
@@ -500,8 +501,8 @@ export default {
     }
     return data;
   },
-  async getUsers(id) {
-    let sql = 'SELECT id, username, firstname, lastname, email, privs, activated, requested from users';
+  async getUsers(user, id) {
+    let sql = `SELECT id, username, firstname, lastname, email, privs, activated, requested ${user.privs === 1 ? ', note' : ''} from users`;
     let data = [];
     const values = [];
 
@@ -548,8 +549,7 @@ export default {
     return { error: 'email' };
   },
   async createUser(formData, status = false) {
-    console.log('create user', formData);
-
+    // console.log('create user', formData);
     const data = formData;
     let isActivated = status;
     const settingsResult = await pool.query('SELECT * FROM settings');
@@ -574,8 +574,9 @@ export default {
       isActivated = true;
       console.log('create admin');
     }
+    const note = formData?.note || '';
 
-    if (settings?.registration_code?.length && formData?.note?.includes(settings.registration_code)) {
+    if (settings?.registration_code?.length && note.includes(settings.registration_code)) {
       console.log('activated via pass code');
       isActivated = true;
     }
@@ -585,7 +586,7 @@ export default {
     const hash = await bcrypt.hash(pwd, saltRounds);
     // console.log('ready');
     // console.log(pwd, hash);
-    const result = await pool.query('INSERT INTO users (requested, username, firstname, lastname, email, sex, privs, _passhash, activated) VALUES(NOW(), LOWER($1), INITCAP($2), INITCAP($3), LOWER($4), $5, $6, $7, $8) RETURNING id', [data.username, data.firstname, data.lastname, data.email, data.sex, data.privs, hash, isActivated]);
+    const result = await pool.query('INSERT INTO users (requested, username, firstname, lastname, email, sex, privs, _passhash, activated, note) VALUES(NOW(), LOWER($1), INITCAP($2), INITCAP($3), LOWER($4), $5, $6, $7, $8, $9) RETURNING id', [data.username, data.firstname, data.lastname, data.email, data.sex, data.privs, hash, isActivated, note]);
     if (result.rows.length === 1) {
       return { message: pwd };
     }
