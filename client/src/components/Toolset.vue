@@ -174,7 +174,7 @@ const toolsOptions = [
 const message = useMessage();
 const vuerouter = useRoute();
 const id = ref(Number(vuerouter.params.id));
-const requestedObjectId = Number(vuerouter.query?.object);
+const requestedObjectId = Number(vuerouter.params.object);
 const photo = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
@@ -212,6 +212,7 @@ const initAnnotorius = () => {
       // if (selectedObject?.id) {
       //   showObjectForm.value = true;
       // }
+      router.push(`/datum/${id.value}/${annotation.id}`);
     })
     .on('deleteAnnotation', function (annotation: any) {
       if (showObjectForm.value === true) {
@@ -390,6 +391,7 @@ const discardChanges = () => {
   anno.value.cancelSelected();
   Object.assign(selectedObject, { id: null, content: '' });
   showObjectForm.value = false;
+  router.push(`/datum/${id.value}`);
 };
 
 const deleteObject = async () => {
@@ -533,7 +535,7 @@ const getNext = (isReversed?: boolean) => {
   const newId = photo.value?.[isReversed ? 'prev' : 'next'];
   if (newId) {
     // console.log(`GO TO: /message/${newId}`);
-    router.push(`/message/${newId}`);
+    router.push(`/datum/${newId}`);
   }
 };
 
