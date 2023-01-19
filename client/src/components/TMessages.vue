@@ -19,12 +19,27 @@
               <template #trigger>
                 <n-tag>
                   <template #icon>
-                    <n-icon :component="NumbersOutlined" />
+                    <n-icon
+                      :component="
+                        msg?.imagepath
+                          ? msg?.['tg_id']
+                            ? FilePresentOutlined
+                            : UploadFileOutlined
+                          : msg?.data['_'] === 'Message'
+                          ? MessageOutlined
+                          : ElectricalServicesOutlined
+                      " />
                   </template>
                   {{ msg?.id }}
                 </n-tag>
               </template>
-              Source: <span v-if="msg?.['tg_id']">Telegram, {{ msg?.['tg_id'] }} </span>
+              Data Type:
+              <template v-if="msg?.['tg_id']">
+                {{ msg?.data['_'] }}
+              </template>
+              <template v-else> File </template>
+              <br />
+              Source: <span v-if="msg?.['tg_id']">Telegram #{{ msg?.['tg_id'] }} </span>
               <span v-else>Direct upload</span>
             </n-tooltip>
 
@@ -44,23 +59,40 @@
               </template>
               User: {{ msg?.['tg_id'] ? 'Telegram' : 'System' }}
             </n-tooltip>
-            <n-tooltip trigger="hover">
+
+            <n-tooltip trigger="hover" v-if="msg?.data.meta?.exif">
               <template #trigger>
-                <n-tag>
-                  <template v-if="msg?.['tg_id']">
-                    {{ msg?.data['_'] }}
-                  </template>
-                  <template v-else>
-                    {{ msg?.data.meta?.gps ? 'GPS' : '' }}
-                    {{ msg?.data.meta?.exif ? 'EXIF' : '' }}
-                  </template>
-                  <template #icon v-if="msg?.imagepath">
-                    <n-icon :component="ImageOutlined" />
+                <n-tag :color="{ textColor: 'pink' }">
+                  <template #icon>
+                    <n-icon :component="ImageSearchOutlined" />
                   </template>
                 </n-tag>
               </template>
-              Data Type
+              EXIF
             </n-tooltip>
+
+            <n-tooltip trigger="hover" v-if="msg?.data.meta?.gps">
+              <template #trigger>
+                <n-tag :color="{ textColor: 'pink' }">
+                  <template #icon>
+                    <n-icon :component="GpsFixedOutlined" />
+                  </template>
+                </n-tag>
+              </template>
+              GPS
+            </n-tooltip>
+
+            <n-tooltip trigger="hover" v-if="msg?.data?.geo">
+              <template #trigger>
+                <n-tag :color="{ textColor: 'pink' }">
+                  <template #icon>
+                    <n-icon :component="MapsHomeWorkOutlined" />
+                  </template>
+                </n-tag>
+              </template>
+              {{ msg?.geonote }}
+            </n-tooltip>
+
             <n-tooltip trigger="hover" v-if="msg?.data?.views">
               <template #trigger>
                 <n-tag type="info">
@@ -72,10 +104,7 @@
               </template>
               Views
             </n-tooltip>
-          </n-space>
-        </template>
-        <template #header-extra>
-          <n-space>
+
             <n-tooltip trigger="hover">
               <template #trigger>
                 <n-button size="small" quaternary icon-placement="right" @click="showJSON(msg)">
@@ -86,36 +115,36 @@
               </template>
               Data JSON
             </n-tooltip>
-            <n-tooltip trigger="hover">
-              <template #trigger>
-                <n-tag>
-                  <template #icon>
-                    <n-icon :component="CalendarMonthOutlined" />
-                  </template>
-                  <template v-if="msg?.['tg_id']">
-                    <template v-if="msg?.data?.fwd_from">
-                      {{ msg?.data?.fwd_from?.date?.slice(0, -6) }}
-                    </template>
-                    <template v-else>
-                      {{ msg?.data?.date?.slice(0, -6) }}
-                    </template>
+          </n-space>
+        </template>
+        <template #header-extra>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-tag>
+                <template #icon>
+                  <n-icon :component="CalendarMonthOutlined" />
+                </template>
+                <template v-if="msg?.['tg_id']">
+                  <template v-if="msg?.data?.fwd_from">
+                    {{ msg?.data?.fwd_from?.date?.slice(0, -6) }}
                   </template>
                   <template v-else>
-                    {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
+                    {{ msg?.data?.date?.slice(0, -6) }}
                   </template>
-                </n-tag>
-              </template>
-              Timestamp
-              <template v-if="msg?.['tg_id']">
-                <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
-                <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
-              </template>
-              <div v-if="msg?.data?.meta?.image?.ModifyDate">
-                EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}
-              </div>
-              <div>DB: {{ extractDate(msg?.created) }}</div>
-            </n-tooltip>
-          </n-space>
+                </template>
+                <template v-else>
+                  {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
+                </template>
+              </n-tag>
+            </template>
+            Timestamp
+            <template v-if="msg?.['tg_id']">
+              <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
+              <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
+            </template>
+            <div v-if="msg?.data?.meta?.image?.ModifyDate">EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}</div>
+            <div>DB: {{ extractDate(msg?.created) }}</div>
+          </n-tooltip>
         </template>
         <n-grid :cols="12">
           <n-gi :span="8">
@@ -128,9 +157,16 @@
                   msg.data.fwd_from?.channel_post
                 }}
               </n-space>
-              <template v-if="msg?.annotated">
-                {{ '📃'.repeat(Number(msg.annotated)) }}
-              </template>
+
+              <n-space v-if="msg?.annotated">
+                <n-tooltip trigger="hover" v-for="nmbr in Number(msg.annotated)">
+                  <template #trigger>
+                    <n-icon :component="TextsmsOutlined" color="darkred" :size="24" />
+                  </template>
+                  Annotation #{{ nmbr }}
+                </n-tooltip>
+              </n-space>
+
               <div v-if="msg?.data?.message">
                 <!-- <div style="border: 1px dashed gray; padding: 5px"> -->
                 <span v-html="msg.data.message?.split('\n').join('<br/>')"></span>
@@ -195,11 +231,20 @@ import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import store from '../store';
 import {
   ImageOutlined,
+  FilePresentOutlined,
   NumbersOutlined,
   PersonOutlineFilled,
   CalendarMonthOutlined,
   RemoveRedEyeOutlined,
   DataObjectOutlined,
+  MapsHomeWorkOutlined,
+  GpsFixedOutlined,
+  ImageSearchOutlined,
+  UploadFileOutlined,
+  AttachFileOutlined,
+  ElectricalServicesOutlined,
+  TextsmsOutlined,
+  MessageOutlined,
 } from '@vicons/material';
 import { useMessage } from 'naive-ui';
 
@@ -280,20 +325,21 @@ const getPages = async () => {
   const data = await store.get('messages', null, { off: offset, batch: pageSize.value });
   messagesPage.value = data.data;
   // console.log(data.data);
-  console.log('get data');
+  // console.log('get data');
   // router.push(`/data/${pageSize.value}/${currentPage.value || ''}`);
   return data;
 };
 
 onBeforeRouteUpdate(async (to, from) => {
   console.log('update route', from.fullPath, '→', to.fullPath);
-
-  if (from?.params?.page) {
-    await getPages();
-  }
   if (to?.params?.page) {
+    // console.log('-> update params');
     currentPage.value = Number(to.params.page);
     pageSize.value = Number(to.params.batch);
+  }
+  if (from?.params?.page) {
+    // console.log('-> call update');
+    await getPages();
   }
 });
 
