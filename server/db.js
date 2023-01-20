@@ -7,6 +7,7 @@ import exif from 'exif-reader';
 import bcrypt from 'bcrypt';
 import passGen from 'generate-password';
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,8 @@ const databaseScheme = {
     data       JSON,
     features   JSON,
     created    TIMESTAMP WITH TIME ZONE,
-    location   POINT`,
+    location   POINT,
+    geonote    TEXT`,
 
   objects: `
     id          INT GENERATED ALWAYS AS IDENTITY,
@@ -210,7 +212,7 @@ export default {
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -610,6 +612,7 @@ export default {
     let id;
     try {
       let loc;
+      let geonote = null;
       const meta = await sharp(filePath).metadata();
       const exifBuf = meta.exif;
       const exifData = exifBuf ? exif(exifBuf) : {};
@@ -622,12 +625,18 @@ export default {
       if (gps) {
         const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
         const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
-        console.log(lat, lng);
+        // console.log(lat, lng);
         loc = `(${lat}, ${lng})`;
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en-us&addressdetails=1`);
+        const geo = await response.json();
         // console.log('loc', loc);
+        if (geo?.place_id) {
+          data.geo = geo;
+          geonote = geo.display_name;
+        }
+        // console.log(geo);
       }
-      // https://nominatim.openstreetmap.org/reverse?lat=53.880222&lon=27.599704742&format=json&accept-language=en-us&addressdetails=1
-      const result = await pool.query('INSERT INTO messages (imagepath, data, location) VALUES($1, $2, $3) RETURNING id', [fileName, JSON.stringify(data), loc]);
+      const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote) VALUES($1, $2, $3, $4) RETURNING id', [fileName, JSON.stringify(data), loc, geonote]);
       id = result?.rows?.shift()?.id;
 
       await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
