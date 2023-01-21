@@ -86,8 +86,6 @@ app.use(history());
 //   ]
 // }));
 
-app.get('/api/settings', async (req, res) => res.json(await db.getSettings()));
-
 app.post('/api/user/login', async (req, res) => {
   const userData = await db.getUserData(req.body.email, req.body.password);
   if (userData && Object.keys(userData).length && !userData?.error) {
@@ -170,7 +168,7 @@ app.get('/api/messages', auth, async (req, res) => {
   const count = await db.getMessagesCount();
   const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
   const usersList = await db.getChats();
-  const usersDict = Object.fromEntries(usersList.map((x) => [x.tg_id, x]));
+  const usersDict = Object.fromEntries(usersList.map((x) => [x.eid, x]));
   return res.json({
     count,
     data,
@@ -193,12 +191,12 @@ app.delete('/api/object/:id', auth, async (req, res) => res.json(await db.delete
 
 app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
-app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
+// app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
-app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
+// app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
 
 app.get('/api/users', auth, async (req, res) => {
-  const users = await db.getUsers(req.query?.id);
+  const users = await db.getUsers(req.user, req.query?.id);
   res.json(users);
 });
 
@@ -208,7 +206,7 @@ app.post('/api/upload', auth, async (req, res) => {
   let id;
   // console.log('body', req.body);
   if (Object.keys(req.files).length) {
-    console.log(Object.keys(req.files.file));
+    // console.log(Object.keys(req.files.file));
     const img = req.files.file;
     const fileTitle = path.parse(img.name).name;
     const fileSize = img.size;
@@ -255,6 +253,15 @@ app.post('/api/unload', auth, async (req, res) => {
 app.post('/api/settings', auth, async (req, res) => {
   res.json(await db.updateSettings(req.body));
 });
+
+app.get('/api/access', async (req, res) => {
+  const result = await db.getSettings();
+  res.json({ access: result.registration_open });
+});
+
+app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings()));
+
+app.get('/api/chats', auth, async (req, res) => { res.json(await db.getChats()); });
 
 app.listen(port);
 console.log(`Backend is at port ${port}`);
