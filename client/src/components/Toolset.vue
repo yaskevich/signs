@@ -120,7 +120,10 @@
             </template>
           </n-form-item-gi>
         </n-grid>
-
+        <n-form-item label="Geospatial note">
+          <!-- <n-button type="info"> Map </n-button> -->
+          <n-input type="textarea" placeholder="Location description" v-model:value="photo.geonote" autosize />
+        </n-form-item>
         <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <n-form-item-gi label="Country">
             <n-select
@@ -263,7 +266,7 @@ const initAnnotorius = () => {
           geometry,
           content: '',
           features: newFeatures,
-          tg_id: photo.value.tg_id,
+          eid: photo.value.eid,
           data_id: photo.value.id,
           image: photo.value.imagepath,
         });
@@ -469,11 +472,12 @@ const savePhotoAnnotation = async () => {
   console.log(jsonFeatures);
   const params = {
     features: jsonFeatures,
-    tg_id: id.value,
+    id: id.value,
+    geonote: photo.value.geonote,
   };
 
   const data = await store.post('meta', { params });
-  if (data?.tg_id == id.value) {
+  if (data?.id == id.value) {
     message.success('The photo data were saved.');
   } else {
     message.error('The photo data were not saved!');
@@ -481,7 +485,7 @@ const savePhotoAnnotation = async () => {
 
   // errorMessages.value = [];
   // params.orient = orientProp.value;
-  // params.tg_id = id.value;
+  // params.eid = id.value;
   // params.annotations = anno.value.getAnnotations();
   // console.log('data to save', params);
   // if (!params.country) {
@@ -522,7 +526,7 @@ const savePhotoAnnotation = async () => {
   //   console.log(`not saved – errors: ${errorMessages.value.length}`);
   // } else {
   // const { data } = await axios.post('/api/meta', { params });
-  // if (data?.tg_id == id.value) {
+  // if (data?.eid == id.value) {
   //   message.success('The data were saved.');
   // } else {
   //   message.error('The data were not saved!');
