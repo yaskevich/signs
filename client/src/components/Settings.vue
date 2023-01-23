@@ -8,7 +8,7 @@
         <template #unchecked> Closed </template>
       </n-switch>
 
-      Code
+      Activation Code
       <n-input
         v-model:value="settings.registration_code"
         type="text"
@@ -31,16 +31,43 @@
       <n-button type="success" @click="saveSettings"> Save </n-button>
     </n-space>
     {{ settings }}
+
+    <n-space v-for="item in chats" justify="space-between">
+      <n-tooltip trigger="hover">
+        <template #trigger>
+          <n-tag type="success">
+            <template #icon>
+              <n-icon :component="TelegramOutlined" />
+            </template>
+            {{ item.eid }}
+          </n-tag>
+        </template>
+        Telegram ID
+      </n-tooltip>
+      <n-tooltip trigger="hover">
+        <template #trigger>
+          <n-tag type="success">
+            <template #icon>
+              <n-icon :component="PersonOutlineFilled" />
+            </template>
+            {{ item?.firstname }} {{ item?.lastname }} {{ item?.title }}
+          </n-tag>
+        </template>
+        {{ item?.src }} {{ item.type }}
+      </n-tooltip>
+    </n-space>
   </n-card>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onBeforeMount } from 'vue';
 import store from '../store';
+import { TelegramOutlined, PersonOutlineFilled } from '@vicons/material';
 import { useMessage } from 'naive-ui';
 const message = useMessage();
 const settings = ref();
 const isLoaded = ref(false);
+const chats = ref([] as Array<IChat>);
 
 const saveSettings = async () => {
   const data = await store.post('settings', {
@@ -50,8 +77,10 @@ const saveSettings = async () => {
 };
 
 onBeforeMount(async () => {
-  const { data } = await store.getUnauthorized('settings');
+  const data = await store.get('settings');
   settings.value = data;
   isLoaded.value = true;
+  const chatsList = await store.get('chats');
+  chats.value = chatsList;
 });
 </script>
