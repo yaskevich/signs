@@ -62,7 +62,7 @@ const databaseScheme = {
 
   messages: `
     id         INT GENERATED ALWAYS AS IDENTITY,
-    tg_id      INTEGER,
+    eid        INTEGER,
     imagepath  TEXT,
     data       JSON,
     features   JSON,
@@ -72,7 +72,7 @@ const databaseScheme = {
 
   objects: `
     id          INT GENERATED ALWAYS AS IDENTITY,
-    tg_id       INTEGER,
+    eid         BIGINT,
     data_id     INTEGER,
     shape       TEXT,
     geometry    TEXT,
@@ -82,12 +82,14 @@ const databaseScheme = {
 
   chats: `
     id        INT GENERATED ALWAYS AS IDENTITY,
-    tg_id     BIGINT unique,
+    eid       BIGINT unique,
     title     TEXT,
     username  TEXT,
     firstname TEXT,
     lastname  TEXT,
-    type      TEXT`,
+    type      TEXT,
+    src       TEXT NOT NULL`,
+  // change chats_tg_id_key constraint -> eid and src
 
   settings: `
     registration_open BOOLEAN default true,
@@ -212,7 +214,7 @@ export default {
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
-    const res = await pool.query(`select messages.id, messages.tg_id, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -225,9 +227,9 @@ export default {
   async updateMessage(params) {
     let data = {};
 
-    if (params.orient && params.country && params.tg_id) {
+    if (params.orient && params.country && params.eid) {
       // console.log("save to DB");
-      const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4 WHERE tg_id = $5 RETURNING tg_id', [Number(params.orient), params.country, params.url, params.src, params.tg_id]);
+      const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4 WHERE eid = $5 RETURNING eid', [Number(params.orient), params.country, params.url, params.src, params.eid]);
       data = res.rows?.[0];
     }
 
@@ -235,10 +237,9 @@ export default {
   },
   async setPhotoMeta(datum) {
     let data = {};
-
-    const res = await pool.query('UPDATE messages SET features = $1 WHERE tg_id = $2 RETURNING tg_id', [JSON.stringify(datum.features), datum.tg_id]);
+    // console.log(datum);
+    const res = await pool.query('UPDATE messages SET features = $2, geonote = $3 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote]);
     data = res.rows?.[0];
-
     return data;
   },
   async updateFeature(params) {
@@ -263,14 +264,14 @@ export default {
 
     return data;
   },
-  async getNext(id) {
-    const res = await pool.query(`SELECT * FROM messages WHERE tg_id > ${id} ORDER BY tg_id ASC LIMIT 1`);
-    return res.rows.length ? res.rows[0] : {};
-  },
-  async getPrev(id) {
-    const res = await pool.query(`SELECT * FROM messages WHERE tg_id < ${id} ORDER BY tg_id DESC LIMIT 1`);
-    return res.rows.length ? res.rows[0] : {};
-  },
+  // async getNext(id) {
+  //   const res = await pool.query(`SELECT * FROM messages WHERE eid > ${id} ORDER BY eid ASC LIMIT 1`);
+  //   return res.rows.length ? res.rows[0] : {};
+  // },
+  // async getPrev(id) {
+  //   const res = await pool.query(`SELECT * FROM messages WHERE eid < ${id} ORDER BY eid DESC LIMIT 1`);
+  //   return res.rows.length ? res.rows[0] : {};
+  // },
   async getChats() {
     const res = await pool.query('select * from chats');
     return res.rows;
@@ -303,11 +304,11 @@ export default {
     const count = await pool.query(countQuery);
 
     const sql = `
-      SELECT ann.id, ann.data_id, ann.content, ann.source_id, ann.features, messages.features AS properties
+      SELECT ann.id, ann.data_id, ann.content, ann.eid, ann.features, messages.features AS properties
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
-      ORDER BY ann.id, ann.source_id
+      ORDER BY ann.id, ann.eid
       OFFSET $1 LIMIT $2`;
 
     // console.log(sql);
@@ -346,7 +347,7 @@ export default {
     return res.rows;
   },
   async getAllMessages(off, batch) {
-    const res = await pool.query(`select id, tg_id, data::jsonb - 'media' as data, imagepath, annotations from messages order by tg_id OFFSET ${off} LIMIT ${batch}`);
+    const res = await pool.query(`select id, eid, data::jsonb - 'media' as data, imagepath, annotations from messages order by id OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async importAnnotations(data) {
@@ -361,7 +362,7 @@ export default {
       /* eslint-disable-next-line no-restricted-syntax */
       for (const item of data) {
         /* eslint-disable no-await-in-loop */
-        const result = await client.query('INSERT INTO objects (content, features, uuid, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id', [item.content, JSON.stringify(item.features), item.uuid, item.tg_id, item.data_id, item.shape, item.geometry]);
+        const result = await client.query('INSERT INTO objects (content, features, uuid, eid, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id', [item.content, JSON.stringify(item.features), item.uuid, item.eid, item.data_id, item.shape, item.geometry]);
         const id = result?.rows?.shift()?.id;
         if (id) {
           // console.log(id);
@@ -405,7 +406,7 @@ export default {
         const res = await pool.query('UPDATE objects SET features = $2, content =$3, shape =$4, geometry = $5 WHERE id = $1 RETURNING id', [id, JSON.stringify(params.features), params.content, params.shape, params.geometry]);
         data = res.rows?.[0];
       } else {
-        const res = await pool.query('INSERT INTO objects (features, content, tg_id, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [JSON.stringify(params.features), params.content, params.tg_id, params.data_id, params.shape, params.geometry]);
+        const res = await pool.query('INSERT INTO objects (features, content, eid, data_id, shape, geometry) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [JSON.stringify(params.features), params.content, params.eid, params.data_id, params.shape, params.geometry]);
         data = res.rows?.[0];
         id = data?.id;
       }
@@ -674,7 +675,7 @@ export default {
     return data;
   },
   async addTelegramChat(type, tgId, username, firstname, lastname) {
-    await pool.query('INSERT INTO chats(type, tg_id, username, firstname, lastname) VALUES ($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING RETURNING id', [type, tgId, username, firstname, lastname]);
+    await pool.query('INSERT INTO chats(type, eid, username, firstname, lastname) VALUES ($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING RETURNING id', [type, tgId, username, firstname, lastname]);
   },
   async updateSettings(params) {
     const columns = databaseScheme.settings.split(',').map((x) => x.trim().split(' ').shift());
