@@ -6,7 +6,7 @@
           <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" @update:value="processMenu" />
         </n-layout-header>
         <n-layout-content style="max-width: 900px; min-height: 500px; margin: auto">
-          <router-view :key="$route.fullPath" />
+          <router-view />
         </n-layout-content>
         <n-layout-footer style="margin: 1rem; padding: 1rem">
           <n-space justify="center">
@@ -14,7 +14,7 @@
               <template #icon>
                 <n-icon :component="CameraAltFilled" />
               </template>
-              2020–2022 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
+              2020–2023 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
             </n-button>
           </n-space>
         </n-layout-footer>
@@ -32,7 +32,7 @@
           <Login />
         </n-tab-pane>
         <n-tab-pane name="signup" tab="Register">
-          <Register v-if="settings?.registration_open" />
+          <Register v-if="access" />
           <n-h2 v-else>
             <n-text type="warning">Registration is closed.</n-text>
           </n-h2>
@@ -80,7 +80,7 @@ import Register from './components/Register.vue';
 const vuerouter = useRoute();
 const activeKey = ref<string | null>(null); // vuerouter?.name||'Home'
 const loggedIn = computed(() => store?.state?.token?.length);
-const settings = ref<ISettings>();
+const access = ref(false);
 const menuOptions = ref<MenuOption[]>();
 
 const renderIcon = (icon: Component) => {
@@ -144,8 +144,8 @@ onMounted(async () => {
     menuOptions.value = makeMenu();
     activeKey.value = String(vuerouter.name);
   } else {
-    const { data } = await store.getUnauthorized('settings');
-    settings.value = data;
+    const result = await store.getUnauthorized('registration');
+    access.value = result.status;
   }
 });
 </script>
