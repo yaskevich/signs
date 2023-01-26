@@ -22,7 +22,7 @@
                     <n-icon
                       :component="
                         msg?.imagepath
-                          ? msg?.['tg_id']
+                          ? msg?.eid
                             ? FilePresentOutlined
                             : UploadFileOutlined
                           : msg?.data['_'] === 'Message'
@@ -34,22 +34,22 @@
                 </n-tag>
               </template>
               Data Type:
-              <template v-if="msg?.['tg_id']">
+              <template v-if="msg?.eid">
                 {{ msg?.data['_'] }}
               </template>
               <template v-else> File </template>
               <br />
-              Source: <span v-if="msg?.['tg_id']">Telegram #{{ msg?.['tg_id'] }} </span>
+              Source: <span v-if="msg?.eid">Telegram #{{ msg?.eid }} </span>
               <span v-else>Direct upload</span>
             </n-tooltip>
 
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-tag :type="msg?.['tg_id'] ? 'default' : 'success'">
+                <n-tag :type="msg?.eid ? 'default' : 'success'">
                   <template #icon>
                     <n-icon :component="PersonOutlineFilled" />
                   </template>
-                  <template v-if="msg?.['tg_id']">
+                  <template v-if="msg?.eid">
                     {{ tgUsers?.[msg?.data?.from_id?.user_id]?.['firstname'] || '•' }}
                   </template>
                   <template v-else>
@@ -57,7 +57,7 @@
                   </template>
                 </n-tag>
               </template>
-              User: {{ msg?.['tg_id'] ? 'Telegram' : 'System' }}
+              User: {{ msg?.eid ? 'Telegram' : 'System' }}
             </n-tooltip>
 
             <n-tooltip trigger="hover" v-if="msg?.data.meta?.exif">
@@ -93,18 +93,6 @@
               {{ msg?.geonote }}
             </n-tooltip>
 
-            <n-tooltip trigger="hover" v-if="msg?.data?.views">
-              <template #trigger>
-                <n-tag type="info">
-                  <template #icon>
-                    <n-icon :component="RemoveRedEyeOutlined" />
-                  </template>
-                  {{ msg?.data['views'] }}</n-tag
-                >
-              </template>
-              Views
-            </n-tooltip>
-
             <n-tooltip trigger="hover">
               <template #trigger>
                 <n-button size="small" quaternary icon-placement="right" @click="showJSON(msg)">
@@ -118,44 +106,76 @@
           </n-space>
         </template>
         <template #header-extra>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-tag>
-                <template #icon>
-                  <n-icon :component="CalendarMonthOutlined" />
-                </template>
-                <template v-if="msg?.['tg_id']">
-                  <template v-if="msg?.data?.fwd_from">
-                    {{ msg?.data?.fwd_from?.date?.slice(0, -6) }}
+          <n-space>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-tag>
+                  <template #icon>
+                    <n-icon :component="CalendarMonthOutlined" />
+                  </template>
+                  <template v-if="msg?.eid">
+                    <template v-if="msg?.data?.fwd_from">
+                      {{ msg?.data?.fwd_from?.date?.slice(0, -6) }}
+                    </template>
+                    <template v-else>
+                      {{ msg?.data?.date?.slice(0, -6) }}
+                    </template>
                   </template>
                   <template v-else>
-                    {{ msg?.data?.date?.slice(0, -6) }}
+                    {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
                   </template>
-                </template>
-                <template v-else>
-                  {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
-                </template>
-              </n-tag>
-            </template>
-            Timestamp
-            <template v-if="msg?.['tg_id']">
-              <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
-              <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
-            </template>
-            <div v-if="msg?.data?.meta?.image?.ModifyDate">EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}</div>
-            <div>DB: {{ extractDate(msg?.created) }}</div>
-          </n-tooltip>
+                </n-tag>
+              </template>
+              Timestamp
+              <template v-if="msg?.eid">
+                <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
+                <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
+              </template>
+              <div v-if="msg?.data?.meta?.image?.ModifyDate">
+                EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}
+              </div>
+              <div>DB: {{ extractDate(msg?.created) }}</div>
+            </n-tooltip>
+          </n-space>
         </template>
         <n-grid :cols="12">
-          <n-gi :span="8">
+          <n-gi :span="6">
             <n-space vertical>
-              <n-space v-if="msg?.data?.grouped_id">
-                <span style="font-weight: bold">Group</span> {{ msg.data['grouped_id'] }}
-              </n-space>
-              <n-space v-if="msg?.data?.fwd_from">
-                <span style="font-weight: bold">Fwd</span> {{ msg.data.fwd_from.from_id?.channel_id }}/{{
-                  msg.data.fwd_from?.channel_post
-                }}
+              <n-space>
+                <n-tooltip trigger="hover" v-if="msg?.data?.views">
+                  <template #trigger>
+                    <n-tag type="info">
+                      <template #icon>
+                        <n-icon :component="RemoveRedEyeOutlined" />
+                      </template>
+                      {{ msg?.data['views'] }}</n-tag
+                    >
+                  </template>
+                  Views
+                </n-tooltip>
+
+                <n-tooltip trigger="hover" v-if="msg?.data?.grouped_id">
+                  <template #trigger>
+                    <n-tag type="success">
+                      <template #icon>
+                        <n-icon :component="ViewListOutlined" />
+                      </template>
+                    </n-tag>
+                  </template>
+                  Group {{ msg.data['grouped_id'] }}
+                </n-tooltip>
+
+                <n-tooltip trigger="hover" v-if="msg?.data?.fwd_from">
+                  <template #trigger>
+                    <n-tag type="warning" quaternary>
+                      <template #icon>
+                        <n-icon :component="ForwardToInboxOutlined" />
+                      </template>
+                      {{ msg.data.fwd_from.from_id?.channel_id }}
+                    </n-tag>
+                  </template>
+                  Forwarded post: {{ msg.data.fwd_from.from_id?.channel_id }}/{{ msg.data.fwd_from?.channel_post }}
+                </n-tooltip>
               </n-space>
 
               <n-space v-if="msg?.annotated">
@@ -177,7 +197,7 @@
                 {{ msg.data.title }}
                 <!-- </div> -->
               </div>
-              <n-popconfirm @positive-click="removeImage(msg)" v-if="!msg?.['tg_id']">
+              <n-popconfirm @positive-click="removeImage(msg)" v-if="!msg?.eid">
                 <template #trigger>
                   <n-button type="error"> Delete </n-button>
                 </template>
@@ -188,7 +208,7 @@
               </n-popconfirm>
             </n-space>
           </n-gi>
-          <n-gi :span="4">
+          <n-gi :span="6">
             <div style="text-align: right">
               <router-link :to="'/datum/' + msg?.id">
                 <img
@@ -245,6 +265,8 @@ import {
   ElectricalServicesOutlined,
   TextsmsOutlined,
   MessageOutlined,
+  ViewListOutlined,
+  ForwardToInboxOutlined,
 } from '@vicons/material';
 import { useMessage } from 'naive-ui';
 
