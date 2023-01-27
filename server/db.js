@@ -68,7 +68,8 @@ const databaseScheme = {
     features   JSON,
     created    TIMESTAMP WITH TIME ZONE,
     location   POINT,
-    geonote    TEXT`,
+    geonote    TEXT,
+    note       TEXT`,
 
   objects: `
     id          INT GENERATED ALWAYS AS IDENTITY,
@@ -224,21 +225,21 @@ export default {
     // console.log('next', nextMsg.rows.shift());
     return { ...res.rows.shift(), ...nextMsg.rows.shift(), ...prevMsg.rows.shift() };
   },
-  async updateMessage(params) {
-    let data = {};
+  // async updateMessage(params) {
+  //   let data = {};
 
-    if (params.orient && params.country && params.eid) {
-      // console.log("save to DB");
-      const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4 WHERE eid = $5 RETURNING eid', [Number(params.orient), params.country, params.url, params.src, params.eid]);
-      data = res.rows?.[0];
-    }
+  //   if (params.orient && params.country && params.eid) {
+  //     // console.log("save to DB");
+  //     const res = await pool.query('UPDATE messages SET orient = $1, country = $2, url = $3, src = $4 WHERE eid = $5 RETURNING eid', [Number(params.orient), params.country, params.url, params.src, params.eid]);
+  //     data = res.rows?.[0];
+  //   }
 
-    return data;
-  },
+  //   return data;
+  // },
   async setPhotoMeta(datum) {
     let data = {};
     // console.log(datum);
-    const res = await pool.query('UPDATE messages SET features = $2, geonote = $3 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote]);
+    const res = await pool.query('UPDATE messages SET features = $2, geonote = $3, note = $4 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
     data = res.rows?.[0];
     return data;
   },
@@ -536,7 +537,7 @@ export default {
     if (!pwd) { return { error: 'password' }; }
 
     // console.log("email/pwd", email, pwd);
-    const res = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const res = await pool.query('SELECT * FROM users WHERE email = $1 OR username = $1', [email]);
     if (res.rows.length) {
       const data = res.rows[0];
       // console.log("userdata", data);
