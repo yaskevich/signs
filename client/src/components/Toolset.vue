@@ -79,7 +79,18 @@
     </n-card>
     <n-card title="Photo" v-else>
       <template #header-extra>
-        <n-button @click="savePhotoAnnotation" type="primary">Save</n-button>
+        <n-space>
+          <n-popconfirm @positive-click="removeImage(photo)" v-if="!photo?.eid">
+            <template #trigger>
+              <n-button type="error"> Delete </n-button>
+            </template>
+            <span>
+              You are going to remove this image and all its metadata stored in the database. <br />The operation cannot
+              be undone.
+            </span>
+          </n-popconfirm>
+          <n-button @click="savePhotoAnnotation" type="primary">Save</n-button>
+        </n-space>
       </template>
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
@@ -120,9 +131,12 @@
             </template>
           </n-form-item-gi>
         </n-grid>
-        <n-form-item label="Geospatial note">
+        <n-form-item label="Location">
           <!-- <n-button type="info"> Map </n-button> -->
-          <n-input type="textarea" placeholder="Location description" v-model:value="photo.geonote" autosize />
+          <n-input type="textarea" placeholder="Geospatial information" v-model:value="photo.geonote" autosize />
+        </n-form-item>
+        <n-form-item label="Text note" label-style="font-weight: bold">
+          <n-input type="textarea" placeholder="Tips for annotating" v-model:value="photo.note" />
         </n-form-item>
         <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <n-form-item-gi label="Country">
@@ -341,6 +355,21 @@ const onRightClick = () => {
 
 const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
 
+const removeImage = async (info: IMessage) => {
+  if (info?.id) {
+    const data = await store.post('unload', { id: info.id });
+    // console.log(data);
+    if (data?.img === info.imagepath) {
+      message.success('Image was removed');
+      router.back();
+    } else {
+      message.error(data?.msg || 'Unknown error');
+    }
+  } else {
+    message.error('ID error');
+  }
+};
+
 // onBeforeMount(async () => {
 // });
 
@@ -474,6 +503,7 @@ const savePhotoAnnotation = async () => {
     features: jsonFeatures,
     id: id.value,
     geonote: photo.value.geonote,
+    note: photo.value.note,
   };
 
   const data = await store.post('meta', { params });
