@@ -19,7 +19,8 @@
         action="/api/upload/"
         :headers="headers"
         @before-upload="beforeUpload"
-        @finish="imageLoaded">
+        @finish="imageLoaded"
+        @error="handleError">
         <n-upload-dragger>
           <div style="margin-bottom: 12px">
             <!-- <n-button size="small" color="#2080f0">
@@ -78,7 +79,7 @@ const beforeUpload = (data: { file: UploadFileInfo; fileList: UploadFileInfo[] }
     message.error('Allowed file formats are JPEG and PNG only!');
     return false;
   }
-  console.log(data);
+  console.log('before', data);
   return true;
 };
 
@@ -100,5 +101,13 @@ const imageLoaded = (options: { file: UploadFileInfo; event?: Event }) => {
     // loadedFiles[options.file.id] = path;
   }
   return;
+};
+
+const handleError = (options: { file: UploadFileInfo; event?: Event }) => {
+  if (options?.event?.target) {
+    const datum = JSON.parse((options.event.target as XMLHttpRequest).response);
+    console.log('error', datum);
+    message.error(datum.error);
+  }
 };
 </script>
