@@ -46,7 +46,7 @@ with TelegramClient('session_name', api_id, api_hash) as client:
     for person in client.get_participants(int(group_id)):
         who = person.to_dict()
         # print(who["id"], who["first_name"], who["last_name"], who["username"])
-        cursor.execute("INSERT INTO chats(type, username, firstname, lastname, tg_id) VALUES ('user', %s, %s, %s, %s) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING",
+        cursor.execute("INSERT INTO chats(type, username, firstname, lastname, eid) VALUES ('user', %s, %s, %s, %s) ON CONFLICT ON CONSTRAINT chats_eid_key DO NOTHING",
         (who["username"], who["first_name"], who["last_name"], who["id"]))
     conn.commit()
 
@@ -69,7 +69,7 @@ with TelegramClient('session_name', api_id, api_hash) as client:
                         print("Error with image", message.id)
                     else:
                         print("Loaded:", message.id, saved_path)
-            cursor.execute("INSERT INTO messages(tg_id, data, imagepath) VALUES (%s, %s, %s) ON CONFLICT ON CONSTRAINT messages_tg_id_key DO NOTHING", (message.id, message_json, jpg_name))
+            cursor.execute("INSERT INTO messages(eid, data, imagepath) VALUES (%s, %s, %s) ON CONFLICT ON CONSTRAINT messages_eid_key DO NOTHING", (message.id, message_json, jpg_name))
 
         except:
             print("=====================================")
