@@ -93,6 +93,7 @@ const databaseScheme = {
   // change chats_tg_id_key constraint -> eid and src
 
   settings: `
+    geotag_required BOOLEAN default true,
     registration_open BOOLEAN default true,
     registration_code TEXT,
     telegram_api_id INTEGER,
@@ -612,6 +613,7 @@ export default {
     const toDec = (dms, dir) => dms.map((x, i) => x / (60 ** i)).reduce((x, i) => x + i) * (dir > 'O' ? -1 : 1); // S and W > N and E
     // console.log('here', userId, filePath, fileName, fileTitle, fileSize);
     let id;
+    let errorMessage;
     try {
       let loc;
       let geonote = null;
@@ -624,6 +626,9 @@ export default {
       // console.log('image meta', data);
       const gps = data?.meta?.gps;
       // console.log('meta', data?.meta);
+      const settingsResult = await pool.query('SELECT * FROM settings');
+      const settings = settingsResult.rows.shift();
+
       if (gps) {
         const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
         const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
@@ -636,12 +641,20 @@ export default {
           data.geo = geo;
           geonote = geo.display_name;
         }
-        // console.log(geo);
+      } else {
+        errorMessage = 'Image does not have coordinates';
       }
-      const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote) VALUES($1, $2, $3, $4) RETURNING id', [fileName, JSON.stringify(data), loc, geonote]);
-      id = result?.rows?.shift()?.id;
 
-      await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
+      if (settings?.geotag_required && !gps?.GPSProcessingMethod) {
+        errorMessage = 'The image does not have required geotag!';
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } else {
+        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote) VALUES($1, $2, $3, $4) RETURNING id', [fileName, JSON.stringify(data), loc, geonote]);
+        id = result?.rows?.shift()?.id;
+        await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
+      }
     } catch (error) {
       console.log(error);
       if (fs.existsSync(filePath)) {
@@ -651,7 +664,7 @@ export default {
         fs.unlinkSync(thumbsPath);
       }
     }
-    return id;
+    return [id, errorMessage];
   },
   async removeImage(user, params, imagesDir, thumbsDir) {
     let data = {};
