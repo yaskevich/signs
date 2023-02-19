@@ -2,13 +2,12 @@
   <n-card title="Settings" :bordered="false" class="minimal left" v-if="isLoaded">
     <n-space vertical>
       <n-h4>Registration</n-h4>
-      Status
+      <n-h5>Status</n-h5>
       <n-switch v-model:value="settings.registration_open">
         <template #checked> Open </template>
         <template #unchecked> Closed </template>
       </n-switch>
-
-      Activation Code
+      <n-h5>Activation Code</n-h5>
       <n-input
         v-model:value="settings.registration_code"
         type="text"
@@ -16,6 +15,13 @@
         :disabled="!settings.registration_open"
         autofocus
         clearable></n-input>
+      <n-h4>Uploading</n-h4>
+      <n-h5>Geotag</n-h5>
+
+      <n-switch v-model:value="settings.geotag_required">
+        <template #checked> Required </template>
+        <template #unchecked> Not required </template>
+      </n-switch>
 
       <n-h4>Telegram</n-h4>
       <a href="https://gram.js.org/getting-started/authorization">Getting API ID and API Hash</a>
@@ -73,7 +79,9 @@ const saveSettings = async () => {
   const data = await store.post('settings', {
     ...settings.value,
   });
-  console.log(data);
+  if (data === 1) {
+    message.success('Settings were updated successfully');
+  }
 };
 
 onBeforeMount(async () => {
