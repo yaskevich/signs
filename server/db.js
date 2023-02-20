@@ -274,7 +274,10 @@ export default {
   //   const res = await pool.query(`SELECT * FROM messages WHERE eid < ${id} ORDER BY eid DESC LIMIT 1`);
   //   return res.rows.length ? res.rows[0] : {};
   // },
-  async getChats() {
+  async getChats(user) {
+    if (user?.privs !== 1) {
+      return [];
+    }
     const res = await pool.query('select * from chats');
     return res.rows;
   },
@@ -507,14 +510,15 @@ export default {
     return data;
   },
   async getUsers(user, id) {
-    let sql = `SELECT id, username, firstname, lastname, email, privs, activated, requested ${user.privs === 1 ? ', note' : ''} from users`;
+    let sql = `SELECT id, username, firstname, lastname, email, privs, activated ${user.privs === 1 ? ', requested, note' : ''} from users`;
+    console.log(sql);
     let data = [];
     const values = [];
 
     if (id) {
       sql += ' WHERE id = $1';
       values.push(id);
-    } else {
+    } else if (user.privs === 1) {
       sql += ' ORDER BY requested DESC';
     }
 
@@ -597,8 +601,12 @@ export default {
     }
     return { error: 'user' };
   },
-  async getSettings() {
-    let data = [];
+  async getSettings(user) {
+    let data = {};
+    if (user?.privs !== 1) {
+      return data;
+    }
+
     const sql = 'SELECT * FROM settings';
 
     try {
