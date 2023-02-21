@@ -29,7 +29,7 @@
           </n-button-group>
         </n-gi>
         <n-gi>
-          <n-tooltip trigger="hover" placement="right">
+          <n-tooltip trigger="hover" placement="right" v-if="item?.requested">
             <template #trigger>
               <n-tag>
                 <n-time :time="new Date(item.requested)" type="relative" />
