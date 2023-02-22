@@ -130,8 +130,10 @@ const renderOption = (e: any) => {
           icon: () => h(NIcon, {}, { default: () => h(chooseIcon(e.option)) }),
         }
       ),
-      h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' }),
-      ['single', 'multi'].includes(e?.option?.type)
+      store?.state?.user?.privs === 1
+        ? h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' })
+        : null,
+      store?.state?.user?.privs === 1 && ['single', 'multi'].includes(e?.option?.type)
         ? h(
             NButton,
             { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
@@ -168,18 +170,22 @@ const saveFeature = async () => {
       },
     });
 
-    if (data?.id == feature.value.id) {
-      refOption.id = feature.value.id;
-      refOption.title = feature.value.title;
-      refOption.code = feature.value.code;
-      refOption.comment = feature.value.comment;
-      refOption.parent = feature.value.parent;
-      message.success('The data were saved.');
-    } else if (!feature?.value?.id) {
-      refOption?.children
-        ? refOption?.children.push({ ...feature.value })
-        : (refOption.children = [{ ...feature.value }]);
-      message.success('New item was added.');
+    if (data?.id) {
+      if (data.id == feature.value.id) {
+        refOption.id = feature.value.id;
+        refOption.title = feature.value.title;
+        refOption.code = feature.value.code;
+        refOption.comment = feature.value.comment;
+        refOption.parent = feature.value.parent;
+        message.success('The data were saved.');
+      } else if (!feature?.value?.id) {
+        refOption?.children
+          ? refOption?.children.push({ ...feature.value })
+          : (refOption.children = [{ ...feature.value }]);
+        message.success('New item was added.');
+      } else {
+        message.error('The data were not saved!');
+      }
     } else {
       message.error('The data were not saved!');
     }
