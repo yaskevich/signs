@@ -91,6 +91,7 @@ const makeItem = (name: string, title: string, icon: Component) => ({
   label: () => h(RouterLink, { to: { name } }, { default: () => title }),
   key: name,
   icon: renderIcon(icon),
+  show: !(name === 'Settings' && store?.state?.user?.privs !== 1),
 });
 
 const processMenu = async (key: string, item: MenuOption) => {
