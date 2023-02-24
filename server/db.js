@@ -244,7 +244,11 @@ export default {
     data = res.rows?.[0];
     return data;
   },
-  async updateFeature(params) {
+  async updateFeature(user, params) {
+    if (user?.privs !== 1) {
+      return {};
+    }
+
     let data = {};
     // console.log(params);
     if (params.code) {
@@ -511,7 +515,7 @@ export default {
   },
   async getUsers(user, id) {
     let sql = `SELECT id, username, firstname, lastname, email, privs, activated ${user.privs === 1 ? ', requested, note' : ''} from users`;
-    console.log(sql);
+    // console.log(sql);
     let data = [];
     const values = [];
 
