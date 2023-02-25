@@ -183,8 +183,6 @@ app.get('/api/attached', auth, async (req, res) => res.json(await db.getAttached
 
 app.post('/api/meta', auth, async (req, res) => res.json(await db.setPhotoMeta(req.body.params)));
 
-app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req.body.params)));
-
 app.post('/api/object', auth, async (req, res) => res.json(await db.setObject(req.body.params, imagesDir, fragmentsDir)));
 
 app.delete('/api/object/:id', auth, async (req, res) => res.json(await db.deleteObject(req.params.id, fragmentsDir)));
@@ -195,15 +193,11 @@ app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(N
 
 // app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
 
-app.get('/api/users', auth, async (req, res) => {
-  const users = await db.getUsers(req.user, req.query?.id);
-  res.json(users);
-});
-
 app.post('/api/upload', auth, async (req, res) => {
   let status = 200;
   let fileName = '';
   let id;
+  let errorMessage;
   // console.log('body', req.body);
   if (Object.keys(req.files).length) {
     // console.log(Object.keys(req.files.file));
@@ -220,30 +214,36 @@ app.post('/api/upload', auth, async (req, res) => {
       const thumbsPath = path.join(thumbsDir, fileName);
 
       if (fs.existsSync(filePath)) {
-        console.log('Uploaded file already exists', fileName);
+        errorMessage = 'Uploaded file already exists';
+        console.log(errorMessage, fileName);
         status = 409;
       } else {
         try {
           await img.mv(filePath);
         } catch (error) {
           console.log(error);
+          errorMessage = 'File copy error';
           status = 500;
         }
-        id = await db.addImage(req.user.id, filePath, thumbsPath, fileName, fileTitle, fileSize);
+        const results = await db.addImage(req.user.id, filePath, thumbsPath, fileName, fileTitle, fileSize);
+        [id, errorMessage] = results;
         if (!id) {
+          errorMessage = errorMessage || 'Database error';
           status = 500;
         }
       }
     } else {
-      console.log('Wrong file type');
+      errorMessage = 'Wrong file type';
+      console.log(errorMessage);
       status = 415;
     }
   } else {
-    console.log('No files were uploaded');
+    errorMessage = 'No files were uploaded';
+    console.log(errorMessage);
     status = 400;
   }
 
-  res.status(status).json({ id, file: fileName });
+  res.status(status).json({ id, file: fileName, ...(errorMessage && { error: errorMessage }) });
 });
 
 app.post('/api/unload', auth, async (req, res) => {
@@ -254,14 +254,21 @@ app.post('/api/settings', auth, async (req, res) => {
   res.json(await db.updateSettings(req.body));
 });
 
-app.get('/api/access', async (req, res) => {
+app.get('/api/registration', async (req, res) => {
   const result = await db.getSettings();
-  res.json({ access: result.registration_open });
+  res.json({ status: result.registration_open });
 });
 
-app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings()));
+app.get('/api/users', auth, async (req, res) => {
+  const users = await db.getUsers(req.user, req.query?.id);
+  res.json(users);
+});
 
-app.get('/api/chats', auth, async (req, res) => { res.json(await db.getChats()); });
+app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings(req?.user)));
+
+app.get('/api/chats', auth, async (req, res) => res.json(await db.getChats(req?.user)));
+
+app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req?.user, req.body.params)));
 
 app.listen(port);
 console.log(`Backend is at port ${port}`);
