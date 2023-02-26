@@ -85,10 +85,12 @@ const saveSettings = async () => {
 };
 
 onBeforeMount(async () => {
-  const data = await store.get('settings');
-  settings.value = data;
-  isLoaded.value = true;
-  const chatsList = await store.get('chats');
-  chats.value = chatsList;
+  if (store?.state?.user?.privs === 1) {
+    const data = await store.get('settings');
+    settings.value = data;
+    isLoaded.value = Boolean(Object.keys(data).length);
+    const chatsList = await store.get('chats');
+    chats.value = chatsList;
+  }
 });
 </script>
