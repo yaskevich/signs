@@ -56,7 +56,7 @@ const get = async (route: string, id: string | null = '', data: Object = {}): Pr
       const response = await axios.get('/api/' + route, config);
       // console.log(response.data);
 
-      return response.data;
+      return response?.data;
     } catch (error: any | AxiosError) {
       console.log('Cannot get', error);
       if (axios.isAxiosError(error)) {
@@ -80,7 +80,7 @@ const post = async (table: string, data: Object): Promise<any> => {
       // console.log(`POST ${table}`);
       const response = await axios.post('/api/' + table, data, config);
       // console.log("store:response", response.data);
-      return response.data;
+      return response?.data;
     } catch (error) {
       console.log('Cannot get', error);
       return error;
@@ -94,7 +94,7 @@ const postUnauthorized = async (table: string, data: Object): Promise<any> => {
     // console.log(`POST ${table}`);
     const response = await axios.post('/api/' + table, data);
     // console.log('post [NO AUTH]', table, response.data);
-    return response;
+    return response?.data;
   } catch (error) {
     console.log('Cannot get', error);
     return error;
@@ -105,7 +105,7 @@ const getUnauthorized = async (table: string, data?: Object): Promise<any> => {
   try {
     const response = await axios.get('/api/' + table, data);
     // console.log('get [NO AUTH]', table, response.data);
-    return response;
+    return response?.data;
   } catch (error) {
     console.log('Cannot get', error);
     return error;
@@ -126,7 +126,7 @@ const getUser = async () => {
       const config = { headers: { Authorization: 'Bearer ' + state.token } };
       const response = await axios.get('/api/user/info', config);
       // state.user = response.data;
-      setUser(response.data);
+      setUser(response?.data);
     } catch (error: any | AxiosError) {
       console.log('Cannot get user', error);
       if (error.response?.status === 401) {
@@ -148,7 +148,7 @@ const deleteById = async (table: string, id: string | number): Promise<any> => {
       // console.log("delete query", table, id);
       const response = await axios.delete('/api/' + table + '/' + id, config);
       // console.log(response.data);
-      return response.data;
+      return response?.data;
     } catch (error) {
       console.log('Cannot delete', error);
       return error;
