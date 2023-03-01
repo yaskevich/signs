@@ -29,7 +29,8 @@ interface IAnnotation {
   id: string;
   type: string;
   content: string;
-  tg_id?: number;
+  eid?: number;
+  data_id: number;
   orient: number;
   country: string;
   properties: Array<IFeature>;
@@ -38,7 +39,7 @@ interface IAnnotation {
 
 interface IMessage {
   id: number;
-  tg_id: number;
+  eid: number;
   orient: number;
   country: string;
   next?: number;
@@ -49,7 +50,10 @@ interface IMessage {
   imagepath: string;
   annotated: string;
   features: Array<IFeature>;
+  geonote: string;
+  note: string;
   data: {
+    // Telegram
     message: string;
     grouped_id: string;
     from_id: { user_id: string };
@@ -57,6 +61,17 @@ interface IMessage {
     date: string;
     views: string;
     _: string;
+    // alternative
+    title?: string;
+    user: number;
+    meta: {
+      image: {
+        ModifyDate: string;
+      };
+      gps: Object;
+      exif: Object;
+    };
+    geo: Object;
   };
 }
 
@@ -75,6 +90,16 @@ interface IUser {
   requested: Date;
   text_id: number;
   token?: string;
+  note?: string;
+}
+
+interface IChat {
+  src: string;
+  type: string;
+  firstname: string;
+  lastname: string;
+  title: string;
+  eid: number;
 }
 
 interface IUsersDict {
@@ -85,7 +110,7 @@ interface IObject {
   id: number;
   data_id: number;
   content: string;
-  tg_id?: number;
+  eid?: number;
   properties: Array<IFeature>;
   features: Array<IFeature>;
   geometry: string;
