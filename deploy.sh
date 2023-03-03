@@ -29,6 +29,8 @@ do
   fi
 done
 
+mv $WORK/server/connectors $WORK
+
 npm install --prefix $WORK
 cp $DIR/$APP.env $WORK/.env
 printf "\nCOMMIT=%s" $HASH >> $WORK/.env
