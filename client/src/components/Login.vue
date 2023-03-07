@@ -41,8 +41,7 @@ const handleValidateClick = async (e: MouseEvent) => {
   e.preventDefault();
   if (formValue.email && formValue.password) {
     // console.log(formValue);
-    const { data } = await store.postUnauthorized('user/login', formValue);
-    // console.log("login result", data);
+    const data = await store.postUnauthorized('user/login', formValue);
     if (data?.error) {
       console.error('error', data);
       Object.assign(error, data);
