@@ -1,23 +1,31 @@
-# Signs
+# SIGNS
+
+## 🔬 meme study platform 🧮 computational memology ❤️ digital semiotics 📸
+
 Platform for collecting and managing **visual** (image-based) text content &mdash; everything that is related to language-alike symbolic communication in a society. Conceptually, it is a tool for building a **corpus of microtexts**.
 <!-- (protest/picket signs, billboards, signboards, graffiti etc.) -->
-### Status 
 
-`Beta / Work In Progress` [January 2023]
+The term *corpus* means that we deal with a *unit* (object) in its *context* (surroundings) via encoding all the information by means of *annotation* (formalized description stored separately).
 
-The code base is still in **experimental** phase and it is being redesigned during development and testing. However, the platform is used for ongoing processing of real-world data for research pruposes. Actually, the research drives the development of the platform.
+The tool can be of use for research in such disciplines as **linguistics**, **history**, **cultural anthropology**, **social studies**, **semiotics** etc.
+
+### Status
+
+**Beta / Work In Progress** [March 2023]
+
+The code base is still in **experimental** phase and it is being redesigned during development and testing. However, the platform is used for ongoing processing of real-world data for research purposes. Actually, the research drives the development of the platform.
 
 ### Project structure
 
-[Telegram](https://telegram.org/) is used as a tool for crowd-sourcing and preannotating data that later are annotated via user interface of the platform.
+[Telegram](https://telegram.org/) can be used as a tool for crowd-sourcing data (and adding minimal meta-information) that later are annotated via user interface of the platform.
 
-Since Jan 2023 regular UI for direct uploading of images is available. That makes Telegram an optional data source.
+Since January 2023 regular UI for direct uploading of images is available. That makes Telegram an optional data source.
 
 #### Components
 
 - server (provides API to access data, serves assets), written in JavaScript (NodeJS)
 - client (functions as user interface to all the data), written in JavaScript (Vue 3)
-- parser (extracts data from the Telegram chat), written in Python 3
+- parser (extracts data from a Telegram chat), written in Python 3
 
 #### Current development goals
 
@@ -27,15 +35,10 @@ Since Jan 2023 regular UI for direct uploading of images is available. That make
 - remove Python code replacing it with JavaScript
 - implement connectors for other data sources (Google Drive?)
 
-### Requirements
-- PostgreSQL 10+ 
-- NodeJS 12+
-- Python 3.6+
-
-The platform was tested only in Linux environment:
-- PostgreSQL 14.5
-- NodeJS 16
-- Python 3.10
+| Requirements                    | OS    | NodeJS | PostgreSQL | Python |
+| ------------------------------- | ----- | ------ | ---------- |--------|
+| Minimal setup                   | *any* | 14     | 10         | 3.6    |
+| Development setup (recommended) | Linux | 18     | 15         | 3.10   |
 
 ### Deployment
 
