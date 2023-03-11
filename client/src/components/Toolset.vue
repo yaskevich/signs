@@ -131,12 +131,12 @@
             </template>
           </n-form-item-gi>
         </n-grid>
-        <n-form-item label="Location">
-          <!-- <n-button type="info"> Map </n-button> -->
-          <n-input type="textarea" placeholder="Geospatial information" v-model:value="photo.geonote" autosize />
-        </n-form-item>
         <n-form-item label="Text note" label-style="font-weight: bold">
           <n-input type="textarea" placeholder="Tips for annotating" v-model:value="photo.note" />
+        </n-form-item>
+        <n-form-item label="Location" v-if="isLoaded">
+          <n-input type="textarea" placeholder="Geospatial information" v-model:value="photo.geonote" autosize />
+          <n-button type="warning"> Change </n-button>
         </n-form-item>
         <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <n-form-item-gi label="Country">
@@ -170,10 +170,15 @@
       <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
     </n-card>
   </n-space>
+
+  <div v-if="isLoaded"></div>
+  <div class="map-wrap">
+    <div class="map" ref="mapContainer"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, onMounted, onBeforeUnmount, toRaw } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
 import router from '../router';
 import store from '../store';
@@ -182,6 +187,39 @@ import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
 import { ArrowBackOutlined, ArrowForwardOutlined } from '@vicons/material';
+import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import type { LngLatLike, StyleSpecification } from 'maplibre-gl';
+
+const coordinates = ref<LngLatLike>([0, 0]);
+const mapContainer = ref<HTMLElement>();
+const map = shallowRef<Map>();
+
+const rasterStyle = {
+  version: 8,
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution:
+        '© <a target="_top" rel="noopener" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'simple-tiles',
+      type: 'raster',
+      source: 'raster-tiles',
+      minzoom: 0,
+      maxzoom: 22,
+    },
+  ],
+} as StyleSpecification;
+
+onUnmounted(() => {
+  map.value?.remove();
+});
 
 const toolsOptions = [
   { title: 'Rectangle', type: 'rect' },
@@ -205,6 +243,7 @@ const objectsMap = reactive({} as keyable);
 const selectedObject = reactive({} as IObject);
 const showObjectForm = ref(false);
 const objectValues = reactive({} as keyable);
+const isLoaded = ref(false);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -385,7 +424,27 @@ onMounted(async () => {
   initAnnotorius();
   if (id.value) {
     let data = await store.get('message', null, { id: id.value });
-    console.log('photo data', data);
+    // console.log('photo data', data);
+    isLoaded.value = true;
+
+    if (data?.location?.x && data?.location?.y && mapContainer.value) {
+      coordinates.value = [data.location.y, data.location.x];
+      map.value = markRaw(
+        new Map({
+          container: mapContainer.value,
+          style: rasterStyle,
+          center: coordinates.value,
+          zoom: 12,
+        })
+      );
+      map.value.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+      map.value.addControl(new FullscreenControl({ container: mapContainer.value }));
+      // draggable: true
+      new Marker({ color: '#FF0000' })
+        .setLngLat(coordinates.value)
+        // .setPopup(new Popup().setText('1208 Hourglass Drive, Stowe, VT 05672, United States of America'))
+        .addTo(map.value);
+    }
 
     const imagepath = buildImagePath(data.imagepath);
     imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
@@ -581,6 +640,18 @@ const changeTool = (name: string) => {
 </script>
 
 <style lang="scss" scoped>
+.map-wrap {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+.map {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 .dropdown {
   width: 14rem;
 }
