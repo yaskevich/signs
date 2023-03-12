@@ -100,7 +100,12 @@ const databaseScheme = {
     telegram_api_hash TEXT,
     telegram_session TEXT,
     telegram_id TEXT,
-    telegram_name TEXT`,
+    telegram_name TEXT,
+    map_tile TEXT,
+    map_style TEXT,
+    map_vector BOOLEAN default false,
+    map_mapbox BOOLEAN default false,
+    map_mapbox_key TEXT`,
 };
 
 let tablesResult;
