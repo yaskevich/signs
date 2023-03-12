@@ -122,8 +122,9 @@ app.get('/api/user/info', auth, async (req, res) => {
   //     exp = decoded.exp;
   //   }
   // }
+  const settings = await db.getSettings(req.user);
   res.json({
-    ...req.user, server: __package.version, commit, unix, token: issueToken(req.user),
+    ...req.user, server: __package.version, commit, unix, token: issueToken(req.user), settings,
   });
 });
 
