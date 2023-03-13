@@ -23,6 +23,39 @@
         <template #unchecked> Not required </template>
       </n-switch>
 
+      <n-h4>Map</n-h4>
+
+      <n-switch v-model:value="settings.map_vector">
+        <template #checked> Vector </template>
+        <template #unchecked> Raster </template>
+      </n-switch>
+      <template v-if="!settings.map_vector">
+        <n-input
+          type="text"
+          placeholder="Tile URL"
+          clearable
+          :allow-input="noSideSpace"
+          v-model:value="settings.map_tile"></n-input>
+        <small
+          >If this URL is not set, the OpenStreetMap servers are used. But it is <strong>recommended</strong> to use
+          other servers.</small
+        >
+      </template>
+      <n-input
+        type="text"
+        v-model:value="settings.map_style"
+        clearable
+        :placeholder="settings.map_mapbox ? 'Mapbox style URL' : 'Style URL with API key'"
+        v-if="settings.map_vector"></n-input>
+      <template v-if="settings.map_vector">
+        <n-checkbox v-model:checked="settings.map_mapbox"> Mapbox </n-checkbox>
+        <n-input
+          type="text"
+          placeholder="Access token"
+          v-model:value="settings.map_mapbox_key"
+          v-show="settings.map_mapbox"></n-input>
+      </template>
+
       <n-h4>Telegram</n-h4>
       <a href="https://gram.js.org/getting-started/authorization">Getting API ID and API Hash</a>
       API ID
@@ -75,12 +108,17 @@ const settings = ref();
 const isLoaded = ref(false);
 const chats = ref([] as Array<IChat>);
 
+const noSideSpace = (value: string) => !/ /g.test(value);
+
 const saveSettings = async () => {
   const data = await store.post('settings', {
     ...settings.value,
   });
   if (data === 1) {
     message.success('Settings were updated successfully');
+    if (store?.state?.user) {
+      Object.assign(store.state.user.settings, settings.value);
+    }
   }
 };
 
