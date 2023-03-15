@@ -135,9 +135,15 @@
           <n-input type="textarea" placeholder="Tips for annotating" v-model:value="photo.note" />
         </n-form-item>
         <n-form-item label="Location" v-if="isLoaded">
-          <n-input type="textarea" placeholder="Geospatial information" v-model:value="photo.geonote" autosize />
-          <n-button type="warning"> Change </n-button>
+          <n-input type="text" placeholder="Geospatial information" v-model:value="photo.geonote" />
         </n-form-item>
+
+        <n-space justify="space-between">
+          <!-- lat lon -->
+          <n-tag size="large" type="info">{{ coordinates[1] }} {{ coordinates[0] }}</n-tag>
+          <n-button type="warning"> Enable editing </n-button>
+        </n-space>
+
         <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <n-form-item-gi label="Country">
             <n-select
@@ -179,7 +185,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
 import { useMessage } from 'naive-ui';
@@ -189,33 +195,12 @@ import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
 import { ArrowBackOutlined, ArrowForwardOutlined } from '@vicons/material';
 import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { LngLatLike, StyleSpecification } from 'maplibre-gl';
+import type { StyleSpecification, ResourceTypeEnum, MapOptions } from 'maplibre-gl';
+import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
 
-const coordinates = ref<LngLatLike>([0, 0]);
+const coordinates = ref<[number, number]>([0, 0]);
 const mapContainer = ref<HTMLElement>();
 const map = shallowRef<Map>();
-
-const rasterStyle = {
-  version: 8,
-  sources: {
-    'raster-tiles': {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution:
-        '© <a target="_top" rel="noopener" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    },
-  },
-  layers: [
-    {
-      id: 'simple-tiles',
-      type: 'raster',
-      source: 'raster-tiles',
-      minzoom: 0,
-      maxzoom: 22,
-    },
-  ],
-} as StyleSpecification;
 
 onUnmounted(() => {
   map.value?.remove();
@@ -409,49 +394,97 @@ const removeImage = async (info: IMessage) => {
   }
 };
 
-// onBeforeMount(async () => {
-// });
+const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
+  const {
+    map_vector: isVector,
+    map_tile: tilePath,
+    map_style: stylePath,
+    map_mapbox: isMapbox,
+    map_mapbox_key: mapboxKey,
+  } = opts;
+
+  const tileServer = !isVector && tilePath ? tilePath : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  const rasterStyle = {
+    version: 8,
+    sources: {
+      'raster-tiles': {
+        type: 'raster',
+        tiles: [tileServer],
+        tileSize: 256,
+        attribution:
+          '© <a target="_top" rel="noopener" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      },
+    },
+    layers: [
+      {
+        id: 'simple-tiles',
+        type: 'raster',
+        source: 'raster-tiles',
+        minzoom: 0,
+        maxzoom: 22,
+      },
+    ],
+  } as StyleSpecification;
+
+  const style = isVector ? stylePath : rasterStyle;
+
+  if (style) {
+    const mapSetup = {
+      container: mapContainer.value,
+      style,
+      center: lngLat,
+      zoom: 12,
+    } as MapOptions;
+
+    if (isMapbox && mapboxKey) {
+      mapSetup.transformRequest = (url: string, rt?: ResourceTypeEnum) =>
+        isMapboxURL(url) ? transformMapboxUrl(url, String(rt), mapboxKey) : { url };
+    }
+
+    const mapInstance = markRaw(new Map(mapSetup));
+    mapInstance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+    mapInstance.addControl(new FullscreenControl({ container: mapContainer.value }));
+    // draggable: true
+    new Marker({ color: '#FF0000' })
+      .setLngLat(lngLat)
+      // .setPopup(new Popup().setText('test'))
+      .addTo(mapInstance);
+
+    return mapInstance;
+  }
+};
 
 onBeforeUnmount(async () => {
   anno.value.destroy();
 });
 
+onBeforeRouteUpdate(async (to, from) => {
+  console.log('update route', from.fullPath, '→', to.fullPath);
+});
+
 onMounted(async () => {
-  const fdata = await store.get('features');
-  Object.assign(featuresList, fdata);
-  Object.assign(featuresTree, store.nest(fdata));
+  const featuresData = await store.get('features');
+  Object.assign(featuresList, featuresData);
+  Object.assign(featuresTree, store.nest(featuresData));
 
   initAnnotorius();
   if (id.value) {
-    let data = await store.get('message', null, { id: id.value });
+    let msg = await store.get('message', null, { id: id.value });
     // console.log('photo data', data);
     isLoaded.value = true;
 
-    if (data?.location?.x && data?.location?.y && mapContainer.value) {
-      coordinates.value = [data.location.y, data.location.x];
-      map.value = markRaw(
-        new Map({
-          container: mapContainer.value,
-          style: rasterStyle,
-          center: coordinates.value,
-          zoom: 12,
-        })
-      );
-      map.value.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-      map.value.addControl(new FullscreenControl({ container: mapContainer.value }));
-      // draggable: true
-      new Marker({ color: '#FF0000' })
-        .setLngLat(coordinates.value)
-        // .setPopup(new Popup().setText('1208 Hourglass Drive, Stowe, VT 05672, United States of America'))
-        .addTo(map.value);
+    if (store?.state?.user && msg?.location?.x && msg?.location?.y && mapContainer.value) {
+      coordinates.value = [msg.location.y, msg.location.x];
+      map.value = initMap(coordinates.value, store?.state?.user?.settings);
     }
 
-    const imagepath = buildImagePath(data.imagepath);
+    const imagepath = buildImagePath(msg.imagepath);
     imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
-    photo.value = data;
+    photo.value = msg;
     // console.log('values scheme', toRaw(formArray));
     // console.log(data.features);
-    Object.assign(featuresMap, Object.fromEntries(fdata.map((x: any) => [x.id, x])));
+    Object.assign(featuresMap, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
     // console.log(photo.value?.features);
     for (const unit of photo.value?.features) {
       const rule = featuresMap[unit.id];
@@ -459,13 +492,6 @@ onMounted(async () => {
       const value = rule.type ? unit.value : unit.id;
       valuesMap[unitId] = value;
     }
-    // datum.country = data.country;
-    // datum.src = data.src;
-    // datum.url = data.url;
-
-    // if (data.orient) {
-    //   orientProp.value = data.orient;
-    // }
 
     const attachedData = await store.get('attached', null, { id: id.value });
     attachedData.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
