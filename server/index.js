@@ -168,7 +168,7 @@ app.get('/api/messages', auth, async (req, res) => {
   // console.log(req.query);
   const count = await db.getMessagesCount();
   const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
-  const usersList = await db.getChats();
+  const usersList = await db.getChats(req.user);
   const usersDict = Object.fromEntries(usersList.map((x) => [x.eid, x]));
   return res.json({
     count,
