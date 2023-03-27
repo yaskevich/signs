@@ -36,7 +36,9 @@
     </div>
     <div v-if="note">
       <p>
-        After the administartor activates your account, you will be able to log in with the e-mail
+        <span v-if="status">Now you can</span>
+        <span v-else>After the administartor activates your account, you will be able to</span>
+        &nbsp;log in with the e-mail
         <strong>{{ formValue.user.email }}</strong> and this password:
       </p>
       <div style="font-family: monospace; font-size: 1.7rem">{{ note }}</div>
@@ -54,7 +56,7 @@ import store from '../store';
 import { ref } from 'vue';
 import { FormInst, useMessage } from 'naive-ui';
 const message = useMessage();
-
+const status = ref(false);
 const formRef = ref<FormInst | null>(null);
 const note = ref('');
 const showForm = ref(true);
@@ -115,10 +117,11 @@ const handleValidateClick = (e: MouseEvent) => {
     formRef.value.validate(async (errors: any) => {
       if (!errors) {
         // console.log(formValue.value);
-        const { data } = await store.postUnauthorized('user/reg', formValue.value.user);
+        const data = await store.postUnauthorized('user/reg', formValue.value.user);
         if (data?.message) {
           const pwd = data?.message;
-          // console.log('result', data);
+          status.value = data?.status;
+          console.log('result', data);
           note.value = pwd;
           showForm.value = false;
         } else {
