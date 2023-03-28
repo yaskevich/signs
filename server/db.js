@@ -66,7 +66,7 @@ const databaseScheme = {
     imagepath  TEXT,
     data       JSON,
     features   JSON,
-    created    TIMESTAMP WITH TIME ZONE,
+    created    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     location   POINT,
     geonote    TEXT,
     note       TEXT`,
@@ -205,7 +205,7 @@ export default {
     return res.rows[0].count;
   },
   async getPhotosCount() {
-    const res1 = await pool.query("select COUNT(*) as all,  count(*) FILTER (where imagepath <> '') as images from messages");
+    const res1 = await pool.query("select COUNT(*)::int as all, (COUNT(*) FILTER (where imagepath <> ''))::int as images from messages");
     const total = res1.rows[0];
     const res2 = await pool.query("select imagepath from messages where imagepath <> '' group by imagepath having count(*) > 1");
     const dups = res2.rows.length;
@@ -213,11 +213,11 @@ export default {
   },
   async getObjectsCount() {
     // const res = await pool.query('select COUNT(*) from messages where length (annotations::text) > 2');
-    const res = await pool.query('select COUNT(*) from objects');
+    const res = await pool.query('select COUNT(*)::int from objects');
     return res.rows[0].count;
   },
   async getMessagesAnnotatedCount() {
-    const res = await pool.query('select count(distinct(data_id)) from objects where data_id is not null');
+    const res = await pool.query('select count(distinct(data_id))::int from objects where data_id is not null');
     return res.rows[0].count;
   },
   async getMessages(off, batch) {
@@ -570,6 +570,7 @@ export default {
     // console.log('create user', formData);
     const data = formData;
     let isActivated = status;
+    let setup = false;
     const settingsResult = await pool.query('SELECT * FROM settings');
     const settings = settingsResult.rows.shift();
 
@@ -590,6 +591,7 @@ export default {
       // make later regular set up UI
       data.privs = 1;
       isActivated = true;
+      setup = true;
       console.log('create admin');
     }
     const note = formData?.note || '';
@@ -606,18 +608,13 @@ export default {
     // console.log(pwd, hash);
     const result = await pool.query('INSERT INTO users (requested, username, firstname, lastname, email, sex, privs, _passhash, activated, note) VALUES(NOW(), LOWER($1), INITCAP($2), INITCAP($3), LOWER($4), $5, $6, $7, $8, $9) RETURNING id', [data.username, data.firstname, data.lastname, data.email, data.sex, data.privs, hash, isActivated, note]);
     if (result.rows.length === 1) {
-      return { message: pwd };
+      return { message: pwd, status: isActivated, setup };
     }
     return { error: 'user' };
   },
   async getSettings(user) {
     let data = {};
-    if (user?.privs !== 1) {
-      return data;
-    }
-
-    const sql = 'SELECT * FROM settings';
-
+    const sql = `SELECT ${user?.privs === 1 ? '*' : 'registration_open'} FROM settings`;
     try {
       const result = await pool.query(sql);
       data = result?.rows?.[0];
