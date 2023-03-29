@@ -108,6 +108,11 @@ const databaseScheme = {
     map_mapbox_key TEXT`,
 };
 
+const initQueries = {
+  settings: 'INSERT INTO settings DEFAULT VALUES',
+  features: "INSERT INTO features (code, title, parent, type, comment) VALUES ('images', 'Images', 0, 'multi', 'Basic entity'), ('objects', 'Objects', 0, 'multi', 'Basic entity')"
+};
+
 let tablesResult;
 try {
   tablesResult = await pool.query(databaseQuery);
@@ -126,8 +131,8 @@ const prepareTable = async (args) => {
     try {
       await pool.query(`CREATE TABLE IF NOT EXISTS ${tableName} (${args[1]})`);
 
-      if (tableName === 'settings') {
-        await pool.query('INSERT INTO settings DEFAULT VALUES');
+      if (initQueries?.[tableName]) {
+        await pool.query(initQueries[tableName]);
       }
     } catch (createError) {
       console.error(createError);
@@ -294,7 +299,7 @@ export default {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
     const objectFeatures = params?.objects;
-    const photoFeatures = params?.photos;
+    const photoFeatures = params?.images;
     const sqlJoin = 'INNER JOIN messages ON ann.data_id = messages.id';
 
     let featuresCondition = '';
