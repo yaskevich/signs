@@ -6,15 +6,18 @@
           <n-tooltip trigger="hover">
             <template #trigger>
               <n-h1 style="color: orangered">
-                {{ Number((datum.photos / ((datum?.messages?.images - datum?.messages?.dups) / 100)).toFixed(2)) }} %
+                {{
+                  datum?.images && datum?.messages?.images
+                    ? Number((datum.images / ((datum.messages.images - datum?.messages?.dups) / 100)).toFixed(2))
+                    : 0
+                }}&#37;
               </n-h1>
             </template>
-            Annotated photos to all unique photos ratio
+            Annotated images to all unique images ratio
           </n-tooltip>
-
           <div v-for="item in datum?.tree">
             <n-h3> {{ item.title || item.code }} • {{ (datum as keyable)?.[item.code] }}</n-h3>
-            <div v-for="item2 in item.children.filter((x:any) => x.type !== 'text')">
+            <div v-for="item2 in item?.children?.filter((x:any) => x.type !== 'text')">
               <n-h5 style="font-variant: small-caps">{{ item2.title || item2.code }}</n-h5>
               <template v-for="item3 in item2?.children?.sort((a:any, b:any) => b.num - a.num)">
                 <template v-if="item3.type">
@@ -48,13 +51,13 @@
               <span>Total number of items</span> <span> {{ datum?.messages?.all }} </span>
             </n-space>
             <n-space justify="space-between">
-              <span>...with photos</span>
+              <span>...with images</span>
               <span :title="'total, including ' + datum?.messages?.dups + ' duplicates'">{{
                 datum?.messages?.images
               }}</span>
             </n-space>
             <n-space justify="space-between">
-              <span>...with unique photos</span> <span> {{ datum?.messages?.images - datum?.messages?.dups }} </span>
+              <span>...with unique images</span> <span> {{ datum?.messages?.images - datum?.messages?.dups }} </span>
             </n-space>
           </n-space>
           <!-- <n-divider></n-divider> -->
