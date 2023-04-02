@@ -486,11 +486,13 @@ onMounted(async () => {
     // console.log(data.features);
     Object.assign(featuresMap, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
     // console.log(photo.value?.features);
-    for (const unit of photo.value?.features) {
-      const rule = featuresMap[unit.id];
-      const unitId = rule.type ? unit.id : rule.parent;
-      const value = rule.type ? unit.value : unit.id;
-      valuesMap[unitId] = value;
+    if (photo.value?.features) {
+      for (const unit of photo.value.features) {
+        const rule = featuresMap[unit.id];
+        const unitId = rule.type ? unit.id : rule.parent;
+        const value = rule.type ? unit.value : unit.id;
+        valuesMap[unitId] = value;
+      }
     }
 
     const attachedData = await store.get('attached', null, { id: id.value });
