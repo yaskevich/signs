@@ -3,8 +3,8 @@
     <h3>Login</h3>
     <div class="left-column">
       <n-form :label-width="80" :model="formValue" ref="formRef">
-        <n-form-item label="E-mail">
-          <n-input v-model:value="formValue.email" placeholder="Input e-mail" />
+        <n-form-item label="E-mail or username">
+          <n-input v-model:value="formValue.email" />
         </n-form-item>
 
         <n-form-item path="password" label="Password">
