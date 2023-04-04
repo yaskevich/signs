@@ -1,18 +1,89 @@
-import { reactive, ref } from 'vue';
+import { h, Component, reactive } from 'vue';
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import project from '../package.json';
-import router from './router';
+import {
+  SelectAllOutlined,
+  AccountTreeOutlined,
+  HomeOutlined,
+  SettingsOutlined,
+  PersonOutlined,
+  PersonSearchOutlined,
+  LogOutOutlined,
+  EditNoteOutlined,
+  CloudUploadOutlined,
+  ListAltOutlined,
+  InputOutlined,
+} from '@vicons/material';
+import { NIcon } from 'naive-ui';
+import { RouterLink, RouteRecordName } from 'vue-router';
 
 const state = reactive<IState>({
   token: localStorage.getItem('token') || '',
   user: {} as IUser,
+  nav: {
+    options: [],
+    key: '',
+  },
   error: '',
   selection: {
-    photos: {},
+    images: {},
     objects: {},
     mode: false,
   },
 });
+
+const renderIcon = (icon: Component) => {
+  return () => h(NIcon, null, { default: () => h(icon) });
+};
+
+const makeItem = (name: string, title: string, icon: Component) => ({
+  label: () => h(RouterLink, { to: { name } }, { default: () => title }),
+  key: name,
+  icon: renderIcon(icon),
+  show: !(name === 'Settings' && state?.user?.privs !== 1),
+});
+
+const makeMenu = () => [
+  makeItem('Home', 'Home', HomeOutlined),
+  makeItem('TMessages', 'Input', InputOutlined),
+  makeItem('Flow', 'Objects', SelectAllOutlined),
+  {
+    label: 'Management',
+    key: 'management',
+    icon: renderIcon(SettingsOutlined),
+    children: [
+      makeItem('Upload', 'Upload', CloudUploadOutlined),
+      makeItem('Scheme', 'Scheme', AccountTreeOutlined),
+      makeItem('Users', 'Users', PersonSearchOutlined),
+      makeItem('Settings', 'Settings', ListAltOutlined),
+    ],
+  },
+  {
+    label: state?.user?.username,
+    key: 'username',
+    disabled: false,
+    icon: renderIcon(PersonOutlined),
+    children: [
+      {
+        label: 'Log out',
+        key: 'logout',
+        disabled: false,
+        icon: renderIcon(LogOutOutlined),
+      },
+      {
+        label: 'Edit profile',
+        key: 'profile',
+        disabled: false,
+        icon: renderIcon(EditNoteOutlined),
+      },
+    ],
+  },
+];
+
+const initMenu = (routerString: RouteRecordName | null | undefined) => {
+  state.nav.options = makeMenu();
+  state.nav.key = String(routerString);
+};
 
 const getFile = async (route: string, id: string): Promise<any> => {
   if (state.token && id) {
@@ -182,4 +253,5 @@ export default {
   nest,
   setUser,
   convertArrayToObject,
+  initMenu,
 };
