@@ -30,9 +30,10 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import router from '../router';
 import store from '../store';
+import { useRoute } from 'vue-router';
 
+const vuerouter = useRoute();
 const formRef = ref(null);
 const formValue = reactive({ email: '', password: '' });
 const error = reactive({} as any);
@@ -47,12 +48,8 @@ const handleValidateClick = async (e: MouseEvent) => {
       Object.assign(error, data);
     } else {
       store.setUser(data);
-      // router.push('/');
+      store.initMenu(vuerouter?.name);
     }
   }
-
-  // const result = await store.post('user/login', formValue.value.user);
-  // message.success('Valid');
-  // message.error('Invalid');
 };
 </script>
