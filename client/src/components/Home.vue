@@ -19,16 +19,16 @@
             <n-h3> {{ item.title || item.code }} • {{ (datum as keyable)?.[item.code] }}</n-h3>
             <div v-for="item2 in item?.children?.filter((x:any) => x.type !== 'text')">
               <n-h5 style="font-variant: small-caps">{{ item2.title || item2.code }}</n-h5>
-              <template v-for="item3 in item2?.children?.sort((a:any, b:any) => b.num - a.num)">
+              <template v-for="item3 in item2?.children?.filter((x:any)=> x.num).sort((a:any, b:any) => b.num - a.num)">
                 <template v-if="item3.type">
                   <n-space vertical>
                     <FeatureItem :item="item3"></FeatureItem>
                     <n-space
                       justify="space-between"
-                      v-for="item4 in item3.children.sort((a:any, b:any) => b.num - a.num)">
+                      v-for="item4 in item3.children.filter((x:any)=> x.num).sort((a:any, b:any) => b.num - a.num)">
                       <template v-if="item4?.num">
                         <FeatureItem :item="item4"></FeatureItem>
-                        <span>{{ item4?.num || 0 }}</span>
+                        <span>{{ item4?.num }}</span>
                       </template>
                     </n-space>
                   </n-space>
@@ -37,7 +37,7 @@
                   <n-space justify="space-between">
                     <template v-if="item3?.num">
                       <FeatureItem :item="item3"></FeatureItem>
-                      <span>{{ item3?.num || 0 }}</span>
+                      <span>{{ item3?.num }}</span>
                     </template>
                   </n-space>
                 </template>
