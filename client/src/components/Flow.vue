@@ -24,8 +24,10 @@
                 v-for="item in feat?.children">
                 {{ item?.title }}
               </n-tag>
+              <n-input v-if="feat.type === 'text'" type="text" size="small" />
             </n-space>
           </template>
+          <n-divider></n-divider>
           <template v-for="feat in options?.[0]?.children">
             <n-space v-if="feat.type !== 'text'">
               <n-tag type="info">{{ feat.title }}</n-tag>
@@ -47,16 +49,17 @@
                   :checkable="item.type !== 'single'">
                   {{ item?.title }}
                 </n-tag>
-                <n-select
-                  size="small"
-                  v-if="item?.type === 'single'"
-                  :options="item?.children"
-                  label-field="title"
-                  value-field="id"
-                  :placeholder="'Select ' + item?.title"
-                  filterable
-                  v-model:value="properties[feat.id]" />
-                <n-button size="small" @click="properties[feat.id] = null">Clear</n-button>
+                <template v-if="item?.type === 'single'">
+                  <n-select
+                    size="small"
+                    :options="item?.children"
+                    label-field="title"
+                    value-field="id"
+                    :placeholder="'Select ' + item?.title"
+                    filterable
+                    v-model:value="properties[feat.id]" />
+                  <n-button size="small" @click="properties[feat.id] = null">Clear</n-button>
+                </template>
               </template>
             </n-space>
           </template>
@@ -180,7 +183,7 @@ const isSelected = ref(false);
 const isLoaded = ref(false);
 const items = ref<Array<IAnnotation>>([]);
 const features = store.state.selection.objects;
-const properties = store.state.selection.photos;
+const properties = store.state.selection.images;
 const paginationOptions = [10, 50, 100, 250, 500, 1000, 5000];
 const options = reactive([] as Array<IFeature>);
 const showPanel = ref(false);
@@ -202,6 +205,9 @@ const updateSelection = () => {
 const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
+  const images = Object.entries(store.state.selection.images)
+    .filter(x => x[1])
+    .map(x => (typeof x[1] === 'number' ? x[1] : Number(x[0])));
 
   let data = await store.get('objects', null, {
     offset: (page.value - 1) * pageSize.value,
@@ -209,7 +215,8 @@ const updatePage = async () => {
     objects: Object.values(store.state.selection.objects)
       .filter((x: IFeature) => Boolean(x?.checked))
       .map((x: IFeature) => x.id),
-    photos: Object.values(store.state.selection.photos)?.filter(Boolean),
+    images,
+    // images: Object.values(store.state.selection.images)?.filter(Boolean),
   });
 
   items.value = data.selection;
