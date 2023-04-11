@@ -36,7 +36,7 @@
         </n-card>
         <div v-for="item in featuresTree.find(x => x.code === 'objects')?.children">
           <n-space justify="start">
-            <n-tag type="info">{{ item.title }}</n-tag>
+            <n-tag type="info">{{ item.title }} {{ item.type }}</n-tag>
             <n-input-group v-if="item?.type === 'single'">
               <n-select
                 size="small"
@@ -50,20 +50,30 @@
             </n-input-group>
 
             <template v-else>
-              <template v-for="subitem in item?.children">
-                <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{ subitem.title }}</n-checkbox>
-                <n-input
-                  autosize
-                  v-if="selectedObject.features[subitem.id]?.value"
-                  v-model:value="selectedObject.features[subitem.id].note"
-                  type="text"
-                  size="tiny"
-                  placeholder="Note..."
-                  style="margin-left: -15px; min-width: 60px" />
-                <!-- <n-switch>
+              <n-input
+                v-if="item?.type === 'text'"
+                type="text"
+                :placeholder="item?.title"
+                size="small"
+                v-model:value="selectedObject.features[item.id].note" />
+              <template v-else>
+                <template v-for="subitem in item?.children">
+                  <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{
+                    subitem.title
+                  }}</n-checkbox>
+                  <n-input
+                    autosize
+                    v-if="selectedObject.features[subitem.id]?.value"
+                    v-model:value="selectedObject.features[subitem.id].note"
+                    type="text"
+                    size="tiny"
+                    placeholder="Note..."
+                    style="margin-left: -15px; min-width: 60px" />
+                  <!-- <n-switch>
                 <template #checked> {{ subitem.title }} </template>
                 <template #unchecked> {{ subitem.title }} </template>
               </n-switch> -->
+                </template>
               </template>
             </template>
           </n-space>
@@ -77,6 +87,7 @@
         </n-popconfirm>
       </n-space>
     </n-card>
+
     <n-card title="Photo" v-else>
       <template #header-extra>
         <n-space>
@@ -92,9 +103,13 @@
           <n-button @click="savePhotoAnnotation" type="primary">Save</n-button>
         </n-space>
       </template>
+
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
-          <n-form-item-gi v-for="item in featuresTree?.[0]?.children" :label="item?.title">
+          <template v-if="featuresTree[0]?.children && isLoaded">
+            <component v-for="item in featuresTree[0].children" :is="render(item)" />
+          </template>
+          <!-- <n-form-item-gi v-for="item in featuresTree?.[0]?.children" :label="item?.title">
             <n-input
               v-if="item?.type === 'text'"
               type="text"
@@ -127,9 +142,11 @@
                     </n-input-group>
                   </n-space>
                 </template>
+                <template v-else>
+                </template>
               </template>
             </template>
-          </n-form-item-gi>
+          </n-form-item-gi> -->
         </n-grid>
         <n-form-item label="Text note" label-style="font-weight: bold">
           <n-input type="textarea" placeholder="Tips for annotating" v-model:value="photo.note" />
@@ -143,33 +160,6 @@
           <n-tag size="large" type="info">{{ coordinates[1] }} {{ coordinates[0] }}</n-tag>
           <n-button type="warning"> Enable editing </n-button>
         </n-space>
-
-        <!-- <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
-          <n-form-item-gi label="Country">
-            <n-select
-              v-model:value="datum.country"
-              :options="scheme.countries"
-              label-field="name"
-              value-field="code"
-              placeholder="Select a country"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi label="Orientation">
-            <n-select
-              v-model:value="orientProp"
-              :options="scheme.orientation"
-              label-field="name"
-              value-field="level"
-              placeholder="Select an attitude"
-            />
-          </n-form-item-gi>
-          <n-form-item-gi label="Source: title" feedback="Enter text title of the source">
-            <n-input v-model:value="datum.src" type="text" placeholder="Source" />
-          </n-form-item-gi>
-          <n-form-item-gi label="Source: URL" feedback="Put URL (web link) of the source">
-            <n-input v-model:value="datum.url" type="text" placeholder="URL" />
-          </n-form-item-gi>
-        </n-grid> -->
       </n-form>
     </n-card>
     <n-card v-if="photo?.data?.message" embedded>
@@ -184,11 +174,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
+import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
-import { useMessage } from 'naive-ui';
+import { useMessage, NFormItemGi, NInput, NInputGroup, NSelect, NButton, NTag, NCheckbox, NSpace } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
@@ -201,6 +191,96 @@ import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-trans
 const coordinates = ref<[number, number]>([0, 0]);
 const mapContainer = ref<HTMLElement>();
 const map = shallowRef<Map>();
+const imageKV = reactive({} as keyable);
+
+const updateInput = (userInput: any, key: any) => {
+  // console.log('update text input', userInput, key);
+  imageKV[key]['value'] = userInput;
+};
+
+const updateSelect = (userInput: any, group: Array<string>) => {
+  // console.log('update select input', userInput, group);
+  group.forEach((y: string) => (y !== userInput ? delete imageKV?.[y] : (imageKV[y] = { id: Number(y), value: true })));
+};
+
+const updateCheckbox = (state: any, id: any) => {
+  // console.log('update text input', state, id);
+  imageKV[id] = { id: Number(id), value: state, note: imageKV?.[id]?.note || '' };
+};
+
+const updateNote = (userInput: any, key: any) => {
+  console.log('update note', userInput, key);
+  imageKV[key]['note'] = userInput;
+};
+
+const render = (item: any, deep = false) => {
+  // console.log(item.title);
+  let children: any;
+
+  switch (item?.type) {
+    case 'text':
+      const key = String(item.id);
+      children = h(NInput, {
+        type: 'text',
+        placeholder: item?.title,
+        defaultValue: imageKV[key].value || '',
+        onUpdateValue: (x: any) => updateInput(x, key),
+      });
+      break;
+    case 'single':
+      if (item?.children) {
+        const siblings = item.children.map((x: any) => x.id);
+        const key = item.children.find((x: any) => imageKV[x.id]?.value)?.id;
+        children = deep ? [h(NTag, { type: 'default', size: 'large' }, { default: () => item.title })] : [];
+        children.push(
+          h(NSelect, {
+            options: item.children,
+            labelField: 'title',
+            valueField: 'id',
+            filterable: true,
+            clearable: true,
+            defaultValue: key,
+            placeholder: 'Select ' + item?.title,
+            onUpdateValue: (x: any) => updateSelect(x, siblings),
+          })
+        );
+      }
+      break;
+    case 'multi':
+      if (!item?.children?.[0]?.type) {
+        children = item?.children
+          .map((x: any) => [
+            h(
+              NCheckbox,
+              { type: 'info', onUpdateChecked: (val: any) => updateCheckbox(val, x.id) },
+              { default: () => x.title }
+            ),
+            h(NInput, {
+              type: 'text',
+              placeholder: 'Note...',
+              autosize: true,
+              size: 'tiny',
+              disabled: !imageKV[x.id]?.value,
+              class: 'note',
+              defaultValue: imageKV[x.id]?.note || '',
+              onUpdateValue: (val: any) => updateNote(val, x.id),
+            }),
+          ])
+          .flat();
+      } else {
+        console.log(item.children[0]);
+
+        children = render(item.children[0], true);
+      }
+    // <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{
+    //               subitem.title
+    //             }}</n-checkbox>
+    // default:
+    //   console.log('kek');
+  }
+
+  return deep ? children : h(NFormItemGi, { label: item.title }, { default: () => children });
+};
 
 onUnmounted(() => {
   map.value?.remove();
@@ -468,6 +548,8 @@ onMounted(async () => {
   Object.assign(featuresList, featuresData);
   Object.assign(featuresTree, store.nest(featuresData));
 
+  // console.log(featuresTree);
+
   initAnnotorius();
   if (id.value) {
     let msg = await store.get('message', null, { id: id.value });
@@ -485,7 +567,12 @@ onMounted(async () => {
     // console.log('values scheme', toRaw(formArray));
     // console.log(data.features);
     Object.assign(featuresMap, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
-    // console.log(photo.value?.features);
+    // console.log('features map', featuresMap);
+    // console.log('image features', msg.features);
+
+    Object.assign(imageKV, store.convertArrayToObject(msg.features));
+    // console.log(imageKV);
+
     if (photo.value?.features) {
       for (const unit of photo.value.features) {
         const rule = featuresMap[unit.id];
@@ -494,6 +581,8 @@ onMounted(async () => {
         valuesMap[unitId] = value;
       }
     }
+
+    // console.log('values map', valuesMap);
 
     const attachedData = await store.get('attached', null, { id: id.value });
     attachedData.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
@@ -580,12 +669,11 @@ const savePhotoAnnotation = async () => {
   // for (const [key, value] of Object.entries(values)) {
   //   console.log(`${key}: ${value}`);
   // }
-  // console.log(valuesMap);
 
-  const jsonFeatures = Object.entries(valuesMap)
-    .filter(x => x[1])
-    .map(x => (featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }));
-  console.log(jsonFeatures);
+  // const jsonFeatures = Object.entries(valuesMap)
+  //   .filter(x => x[1])
+  //   .map(x => (featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }));
+  const jsonFeatures = Object.values(imageKV);
   const params = {
     features: jsonFeatures,
     id: id.value,
@@ -700,5 +788,9 @@ const changeTool = (name: string) => {
 :deep(.a9s-selection .a9s-inner) {
   stroke: #ff00e3;
   stroke-width: 5px;
+}
+.note {
+  margin-left: -15px;
+  min-width: 60px;
 }
 </style>
