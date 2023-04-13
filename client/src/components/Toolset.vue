@@ -6,23 +6,23 @@
 
     <n-space justify="space-around" size="small">
       <!-- <n-button @click="getNext(true)">Previous</n-button> -->
-      <n-button @click="getNext(true)" :disabled="!photo?.prev" size="small">
+      <n-button @click="getNext(true)" :disabled="!item?.prev" size="small">
         <template #icon>
           <n-icon :component="ArrowBackOutlined" />
         </template>
       </n-button>
       <n-radio-group v-model:value="drawingTool" name="toolsgroup" @update-value="changeTool" size="small">
-        <n-radio-button v-for="item in toolsOptions" :key="item.type" :value="item.type" :label="item.title" />
+        <n-radio-button v-for="tool in toolsOptions" :key="tool.type" :value="tool.type" :label="tool.title" />
       </n-radio-group>
       <!-- <n-button @click="getNext()">Next</n-button> -->
-      <n-button @click="getNext()" :disabled="!photo?.next" size="small">
+      <n-button @click="getNext()" :disabled="!item?.next" size="small">
         <template #icon>
           <n-icon :component="ArrowForwardOutlined" />
         </template>
       </n-button>
     </n-space>
 
-    <n-card :title="selectedObject?.id ? `Object ${selectedObject.id}` : 'New object'" v-if="showObjectForm">
+    <n-card :title="selectedObject?.id ? `Object ${selectedObject.id}` : 'New object'" v-if="level">
       <template #header-extra>
         <n-space justify="space-between">
           <n-button ghost @click="discardChanges" type="primary">Cancel</n-button>
@@ -34,50 +34,53 @@
         <n-card embedded>
           <n-input v-model:value="selectedObject.content" type="textarea" placeholder="Text" />
         </n-card>
-        <div v-for="item in featuresTree.find(x => x.code === 'objects')?.children">
+
+        <n-form>
+          <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
+            <template v-if="featuresTree[1]?.children && isLoaded">
+              <component v-for="prop in featuresTree[1].children" :is="renderFeature(prop, featuresIO[1])" />
+            </template>
+          </n-grid>
+        </n-form>
+
+        <!-- <div v-for="branch in featuresTree.find(x => x.code === 'objects')?.children">
           <n-space justify="start">
-            <n-tag type="info">{{ item.title }} {{ item.type }}</n-tag>
-            <n-input-group v-if="item?.type === 'single'">
+            <n-tag type="info">{{ branch.title }}</n-tag>
+            <n-input-group v-if="branch?.type === 'single'">
               <n-select
                 size="small"
-                :options="item?.children"
+                :options="branch?.children"
                 label-field="title"
                 value-field="id"
                 filterable
-                :placeholder="'Select ' + item?.title"
-                v-model:value="objectValues[item.id]" />
-              <n-button size="small" secondary type="warning" @click="objectValues[item.id] = null">Clear</n-button>
+                :placeholder="'Select ' + branch?.title"
+                v-model:value="objectValues[branch.id]" />
+              <n-button size="small" secondary type="warning" @click="objectValues[branch.id] = null">Clear</n-button>
             </n-input-group>
 
             <template v-else>
               <n-input
-                v-if="item?.type === 'text'"
+                v-if="branch?.type === 'text'"
                 type="text"
-                :placeholder="item?.title"
+                :placeholder="branch?.title"
                 size="small"
-                v-model:value="selectedObject.features[item.id].note" />
+                v-model:value="selectedObject.features[branch.id].note" />
               <template v-else>
-                <template v-for="subitem in item?.children">
-                  <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{
-                    subitem.title
-                  }}</n-checkbox>
+                <template v-for="leaf in branch?.children">
+                  <n-checkbox v-model:checked="selectedObject.features[leaf.id].value">{{ leaf.title }}</n-checkbox>
                   <n-input
                     autosize
-                    v-if="selectedObject.features[subitem.id]?.value"
-                    v-model:value="selectedObject.features[subitem.id].note"
+                    v-if="selectedObject.features[leaf.id]?.value"
+                    v-model:value="selectedObject.features[leaf.id].note"
                     type="text"
                     size="tiny"
                     placeholder="Note..."
                     style="margin-left: -15px; min-width: 60px" />
-                  <!-- <n-switch>
-                <template #checked> {{ subitem.title }} </template>
-                <template #unchecked> {{ subitem.title }} </template>
-              </n-switch> -->
                 </template>
               </template>
             </template>
           </n-space>
-        </div>
+        </div> -->
         <n-popconfirm @positive-click="deleteObject">
           <template #trigger>
             <n-button type="error">Delete</n-button>
@@ -88,10 +91,10 @@
       </n-space>
     </n-card>
 
-    <n-card title="Photo" v-else>
+    <n-card title="Image" v-else>
       <template #header-extra>
         <n-space>
-          <n-popconfirm @positive-click="removeImage(photo)" v-if="!photo?.eid">
+          <n-popconfirm @positive-click="removeItem(item)" v-if="!item?.eid">
             <template #trigger>
               <n-button type="error"> Delete </n-button>
             </template>
@@ -100,14 +103,14 @@
               be undone.
             </span>
           </n-popconfirm>
-          <n-button @click="savePhotoAnnotation" type="primary">Save</n-button>
+          <n-button @click="saveItemAnnotation" type="primary">Save</n-button>
         </n-space>
       </template>
 
       <n-form>
         <n-grid x-gap="12" cols="1 s:2 m:2 l:2 xl:2 2xl:2" responsive="screen">
           <template v-if="featuresTree[0]?.children && isLoaded">
-            <component v-for="item in featuresTree[0].children" :is="render(item)" />
+            <component v-for="prop in featuresTree[0].children" :is="renderFeature(prop, featuresIO[0])" />
           </template>
           <!-- <n-form-item-gi v-for="item in featuresTree?.[0]?.children" :label="item?.title">
             <n-input
@@ -149,32 +152,32 @@
           </n-form-item-gi> -->
         </n-grid>
         <n-form-item label="Text note" label-style="font-weight: bold">
-          <n-input type="textarea" placeholder="Tips for annotating" v-model:value="photo.note" />
+          <n-input type="textarea" placeholder="Tips for annotating" v-model:value="item.note" />
         </n-form-item>
         <n-form-item label="Location" v-if="isLoaded">
-          <n-input type="text" placeholder="Geospatial information" v-model:value="photo.geonote" />
+          <n-input type="text" placeholder="Geospatial information" v-model:value="item.geonote" />
         </n-form-item>
 
         <n-space justify="space-between">
           <!-- lat lon -->
-          <n-tag size="large" type="info">{{ coordinates[1] }} {{ coordinates[0] }}</n-tag>
+          <n-tag size="large" v-if="coordinates?.[0] && coordinates?.[1]" type="info"
+            >{{ coordinates[1] }} {{ coordinates[0] }}</n-tag
+          >
           <n-button type="warning"> Enable editing </n-button>
         </n-space>
       </n-form>
     </n-card>
-    <n-card v-if="photo?.data?.message" embedded>
-      <span v-html="photo.data.message.split('\n').join('<br/>')"></span>
+    <div class="map-wrap" v-if="coordinates?.[0] && coordinates?.[1]">
+      <div class="map" ref="mapContainer"></div>
+    </div>
+    <n-card v-if="item?.data?.message" embedded>
+      <span v-html="item.data.message.split('\n').join('<br/>')"></span>
     </n-card>
   </n-space>
-
-  <div v-if="isLoaded"></div>
-  <div class="map-wrap">
-    <div class="map" ref="mapContainer"></div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
+import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef, nextTick } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
@@ -188,71 +191,108 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { StyleSpecification, ResourceTypeEnum, MapOptions } from 'maplibre-gl';
 import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
 
+const message = useMessage();
+const vuerouter = useRoute();
+const id = ref(Number(vuerouter.params.id));
+const requestedObjectId = Number(vuerouter.params.object);
+const item = ref({} as IMessage);
+const imgSrc = ref('');
+const imgRef = ref();
+const anno = ref();
+const drawingTool = ref('rect');
+// const featuresHash = reactive({} as keyable);
+const featuresTree = reactive([] as Array<IFeature>);
+// const featuresList = reactive([] as Array<IFeature>);
+const objectsMap = reactive({} as keyable);
+const selectedObject = reactive({} as IObject);
+const level = ref(0);
+// const objectValues = reactive({} as keyable);
+const isLoaded = ref(false);
 const coordinates = ref<[number, number]>([0, 0]);
 const mapContainer = ref<HTMLElement>();
 const map = shallowRef<Map>();
-const imageKV = reactive({} as keyable);
+const featuresIO = reactive([{} as keyable, {} as keyable]);
+const toolsOptions = [
+  { title: 'Rectangle', type: 'rect' },
+  { title: 'Polygon', type: 'polygon' },
+  { title: 'Tilted Box', type: 'annotorious-tilted-box' },
+];
 
 const updateInput = (userInput: any, key: any) => {
   // console.log('update text input', userInput, key);
-  imageKV[key]['value'] = userInput;
+  userInput
+    ? (featuresIO[level.value][key] = { id: Number(key), value: userInput })
+    : delete featuresIO[level.value]?.[key];
 };
 
 const updateSelect = (userInput: any, group: Array<string>) => {
   // console.log('update select input', userInput, group);
-  group.forEach((y: string) => (y !== userInput ? delete imageKV?.[y] : (imageKV[y] = { id: Number(y), value: true })));
+  group.forEach((y: string) =>
+    y !== userInput
+      ? delete featuresIO[level.value]?.[y]
+      : (featuresIO[level.value][y] = { id: Number(y), value: true })
+  );
 };
 
 const updateCheckbox = (state: any, id: any) => {
   // console.log('update text input', state, id);
-  imageKV[id] = { id: Number(id), value: state, note: imageKV?.[id]?.note || '' };
+  featuresIO[level.value][id] = {
+    id: Number(id),
+    value: state,
+    note: featuresIO[level.value]?.[id]?.note || '',
+  };
 };
 
 const updateNote = (userInput: any, key: any) => {
-  console.log('update note', userInput, key);
-  imageKV[key]['note'] = userInput;
+  // console.log('update note', userInput, key);
+  featuresIO[level.value][key]['note'] = userInput;
 };
 
-const render = (item: any, deep = false) => {
-  // console.log(item.title);
+const renderFeature = (unit: any, vals: any, deep = false) => {
+  // console.log(unit, vals);
+  // console.log(unit.title);
   let children: any;
 
-  switch (item?.type) {
+  switch (unit?.type) {
     case 'text':
-      const key = String(item.id);
+      const key = String(unit.id);
       children = h(NInput, {
         type: 'text',
-        placeholder: item?.title,
-        defaultValue: imageKV[key].value || '',
+        placeholder: unit?.title,
+        defaultValue: vals[key]?.value || '',
         onUpdateValue: (x: any) => updateInput(x, key),
       });
       break;
     case 'single':
-      if (item?.children) {
-        const siblings = item.children.map((x: any) => x.id);
-        const key = item.children.find((x: any) => imageKV[x.id]?.value)?.id;
-        children = deep ? [h(NTag, { type: 'default', size: 'large' }, { default: () => item.title })] : [];
+      if (unit?.children) {
+        const siblings = unit.children.map((x: any) => x.id);
+        const key = unit.children.find((x: any) => vals[x.id]?.value)?.id;
+        children = deep ? [h(NTag, { type: 'default', size: 'large' }, { default: () => unit.title })] : [];
         children.push(
           h(NSelect, {
-            options: item.children,
+            options: unit.children,
             labelField: 'title',
             valueField: 'id',
             filterable: true,
             clearable: true,
             defaultValue: key,
-            placeholder: 'Select ' + item?.title,
+            placeholder: 'Select ' + unit?.title,
             onUpdateValue: (x: any) => updateSelect(x, siblings),
           })
         );
       }
       break;
     case 'multi':
-      if (!item?.children?.[0]?.type) {
-        children = item?.children
+      if (!unit?.children?.[0]?.type) {
+        let children2 = unit?.children
           .map((x: any) => [
             h(
               NCheckbox,
-              { type: 'info', onUpdateChecked: (val: any) => updateCheckbox(val, x.id) },
+              {
+                checked: vals[x.id]?.value,
+                type: 'info',
+                onUpdateChecked: (val: any) => updateCheckbox(val, x.id),
+              },
               { default: () => x.title }
             ),
             h(NInput, {
@@ -260,55 +300,43 @@ const render = (item: any, deep = false) => {
               placeholder: 'Note...',
               autosize: true,
               size: 'tiny',
-              disabled: !imageKV[x.id]?.value,
-              class: 'note',
-              defaultValue: imageKV[x.id]?.note || '',
+              disabled: !vals[x.id]?.value,
+              class: vals[x.id]?.value ? 'note' : 'hidden',
+              defaultValue: vals[x.id]?.note || '',
               onUpdateValue: (val: any) => updateNote(val, x.id),
             }),
           ])
           .flat();
-      } else {
-        console.log(item.children[0]);
 
-        children = render(item.children[0], true);
+        children = [
+          h(
+            NSpace,
+            {
+              justify: 'start',
+            },
+            // [h(NTag, { type: 'info' }, { default: () => unit.title }), children]
+            () => children2
+          ),
+        ];
+      } else {
+        console.log('CHECK!', unit.children[0].title);
+        children = renderFeature(unit.children[0], vals, true);
       }
-    // <n-checkbox v-model:checked="selectedObject.features[subitem.id].value">{{
-    //               subitem.title
-    //             }}</n-checkbox>
     // default:
     //   console.log('kek');
   }
 
-  return deep ? children : h(NFormItemGi, { label: item.title }, { default: () => children });
+  return deep ? children : h(NFormItemGi, { label: unit.title }, { default: () => children });
+};
+
+const cleanObjectFeatures = () => {
+  for (let prop in featuresIO[1]) delete featuresIO[1][prop];
+  console.log('clean');
 };
 
 onUnmounted(() => {
   map.value?.remove();
 });
-
-const toolsOptions = [
-  { title: 'Rectangle', type: 'rect' },
-  { title: 'Polygon', type: 'polygon' },
-  { title: 'Tilted Box', type: 'annotorious-tilted-box' },
-];
-const message = useMessage();
-const vuerouter = useRoute();
-const id = ref(Number(vuerouter.params.id));
-const requestedObjectId = Number(vuerouter.params.object);
-const photo = ref({} as IMessage);
-const imgSrc = ref('');
-const imgRef = ref();
-const anno = ref();
-const drawingTool = ref('rect');
-const featuresMap = reactive({} as keyable);
-const featuresTree = reactive([] as Array<IFeature>);
-const featuresList = reactive([] as Array<IFeature>);
-const valuesMap = reactive({} as keyable);
-const objectsMap = reactive({} as keyable);
-const selectedObject = reactive({} as IObject);
-const showObjectForm = ref(false);
-const objectValues = reactive({} as keyable);
-const isLoaded = ref(false);
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -336,7 +364,7 @@ const initAnnotorius = () => {
       router.push(`/datum/${id.value}/${annotation.id}`);
     })
     .on('deleteAnnotation', function (annotation: any) {
-      if (showObjectForm.value === true) {
+      if (level.value === 1) {
         console.log('ignore DEL press');
         anno.value.addAnnotation(annotation);
       } else {
@@ -350,13 +378,13 @@ const initAnnotorius = () => {
         const [shape, geometry] = parseSelector(target.selector);
         selectedObject.shape = shape;
         selectedObject.geometry = geometry;
-        selectedObject.image = photo.value.imagepath;
+        selectedObject.image = item.value.imagepath;
       }
     })
     .on('createAnnotation', function (annotation: any) {
       // console.log('createAnnotation (& delete)', annotation);
       anno.value.removeAnnotation(annotation);
-      showObjectForm.value = false;
+      level.value = 0;
       // saveAnnotations();
     })
     .on('selectAnnotation', function (annotation: any) {
@@ -365,7 +393,7 @@ const initAnnotorius = () => {
     })
     .on('cancelSelected', function (selection: any) {
       Object.assign(selectedObject, { id: null });
-      showObjectForm.value = false;
+      level.value = 0;
       console.log('cancel selection');
     })
     .on('createSelection', function (selection: any) {
@@ -377,18 +405,19 @@ const initAnnotorius = () => {
       // console.log(snippet, transform);
       const [shape, geometry] = parseSelector(selection.target.selector);
       if (shape && geometry) {
-        const newFeatures = Object.fromEntries(featuresList.map(x => [x.id, { ...x, note: '', value: false }]));
+        // const newFeatures = Object.fromEntries(featuresList.map(x => [x.id, { ...x, note: '', value: false }]));
         Object.assign(selectedObject, {
           id: null,
           shape,
           geometry,
           content: '',
-          features: newFeatures,
-          eid: photo.value.eid,
-          data_id: photo.value.id,
-          image: photo.value.imagepath,
+          features: [], //newFeatures,
+          eid: item.value.eid,
+          data_id: item.value.id,
+          image: item.value.imagepath,
         });
-        showObjectForm.value = true;
+        cleanObjectFeatures();
+        level.value = 1;
       } else {
         message.error('Snippet format error');
       }
@@ -399,25 +428,26 @@ const initAnnotorius = () => {
 };
 
 const selectObject = (oid: number) => {
-  const featuresFull = Object.fromEntries(
-    featuresList.map((x: any) => {
-      const prop = objectsMap[oid]?.features.find((y: any) => y.id === x.id) || {
-        note: '',
-        value: false,
-      };
-      return [x.id, { ...x, ...prop }];
-    })
-  );
-
-  Object.assign(selectedObject, objectsMap[oid], { features: featuresFull });
-
-  const singleIds = objectsMap[oid]?.features
-    .filter((x: any) => featuresMap[featuresMap[x?.id].parent].type === 'single')
-    .map((x: any) => ({ [featuresMap[x?.id].parent]: x?.id }));
-
-  Object.assign(objectValues, ...singleIds);
-
-  showObjectForm.value = true;
+  // const featuresFull = Object.fromEntries(
+  //   featuresList.map((x: any) => {
+  //     const prop = objectsMap[oid]?.features.find((y: any) => y.id === x.id) || {
+  //       note: '',
+  //       value: false,
+  //     };
+  //     return [x.id, { ...x, ...prop }];
+  //   })
+  // );
+  // Object.assign(selectedObject, objectsMap[oid], { features: featuresFull });
+  Object.assign(selectedObject, objectsMap[oid]);
+  // console.log(objectsMap[oid]);
+  for (let prop in featuresIO[1]) delete featuresIO[1][prop];
+  cleanObjectFeatures();
+  Object.assign(featuresIO[1], store.convertArrayToObject(objectsMap[oid]?.features) || {});
+  // const singleIds = objectsMap[oid]?.features
+  //   .filter((x: any) => featuresHash[featuresHash[x?.id].parent].type === 'single')
+  //   .map((x: any) => ({ [featuresHash[x?.id].parent]: x?.id }));
+  // Object.assign(objectValues, ...singleIds);
+  level.value = 1;
 };
 
 const parseSelector = (selectionObject: any) => {
@@ -459,7 +489,7 @@ const onRightClick = () => {
 
 const buildImagePath = (imageName: string) => window.location.origin + '/api/media/downloads/' + imageName;
 
-const removeImage = async (info: IMessage) => {
+const removeItem = async (info: IMessage) => {
   if (info?.id) {
     const data = await store.post('unload', { id: info.id });
     // console.log(data);
@@ -543,62 +573,78 @@ onBeforeRouteUpdate(async (to, from) => {
   console.log('update route', from.fullPath, '→', to.fullPath);
 });
 
-onMounted(async () => {
+const buildAnnotationForm = async (init: boolean = false) => {
+  console.log('init', init);
+
   const featuresData = await store.get('features');
-  Object.assign(featuresList, featuresData);
   Object.assign(featuresTree, store.nest(featuresData));
 
-  // console.log(featuresTree);
-
-  initAnnotorius();
   if (id.value) {
     let msg = await store.get('message', null, { id: id.value });
-    // console.log('photo data', data);
+    // console.log('item data', data);
     isLoaded.value = true;
 
     if (store?.state?.user && msg?.location?.x && msg?.location?.y && mapContainer.value) {
       coordinates.value = [msg.location.y, msg.location.x];
-      map.value = initMap(coordinates.value, store?.state?.user?.settings);
+      if (init) {
+        map.value = initMap(coordinates.value, store?.state?.user?.settings);
+      }
     }
 
     const imagepath = buildImagePath(msg.imagepath);
     imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
-    photo.value = msg;
-    // console.log('values scheme', toRaw(formArray));
-    // console.log(data.features);
-    Object.assign(featuresMap, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
-    // console.log('features map', featuresMap);
-    // console.log('image features', msg.features);
-
-    Object.assign(imageKV, store.convertArrayToObject(msg.features));
-    // console.log(imageKV);
-
-    if (photo.value?.features) {
-      for (const unit of photo.value.features) {
-        const rule = featuresMap[unit.id];
-        const unitId = rule.type ? unit.id : rule.parent;
-        const value = rule.type ? unit.value : unit.id;
-        valuesMap[unitId] = value;
-      }
+    item.value = msg;
+    if (init) {
+      initAnnotorius();
     }
-
-    // console.log('values map', valuesMap);
+    // Object.assign(featuresHash, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
+    Object.assign(featuresIO[0], store.convertArrayToObject(msg.features));
+    // if (item.value?.features) {
+    //   for (const unit of item.value.features) {
+    //     const rule = featuresHash[unit.id];
+    //     const unitId = rule.type ? unit.id : rule.parent;
+    //     const value = rule.type ? unit.value : unit.id;
+    //     valuesMap[unitId] = value;
+    //   }
+    // }
 
     const attachedData = await store.get('attached', null, { id: id.value });
-    attachedData.map((x: any) => anno.value.addAnnotation(buildWebAnno(x.id, x.shape, x.geometry, imagepath)));
-    Object.assign(objectsMap, Object.fromEntries(attachedData.map((x: any) => [x.id, x])));
-    // console.log(objects);
-    if (requestedObjectId && objectsMap?.[requestedObjectId]) {
-      selectObject(requestedObjectId);
-      anno.value.selectAnnotation(requestedObjectId);
+
+    if (attachedData.length) {
+      const annotations = attachedData.map((x: any) => buildWebAnno(x.id, x.shape, x.geometry, imagepath));
+      console.log('set annotations');
+
+      anno.value.setAnnotations(annotations);
+      Object.assign(objectsMap, store.convertArrayToObject(attachedData));
+      // console.log('objects map', objectsMap);
+      if (requestedObjectId && objectsMap?.[requestedObjectId]) {
+        selectObject(requestedObjectId);
+        setTimeout(() => {
+          anno.value.selectAnnotation(requestedObjectId);
+        }, 500);
+      }
     }
   }
+};
+
+onMounted(async () => {
+  await buildAnnotationForm(true);
 });
+
+const getNext = async (isReversed?: boolean) => {
+  const newId = item.value?.[isReversed ? 'prev' : 'next'];
+  if (newId) {
+    // console.log(`GO TO: /message/${newId}`);
+    router.push(`/datum/${newId}`);
+    id.value = newId;
+    await buildAnnotationForm();
+  }
+};
 
 const discardChanges = () => {
   anno.value.cancelSelected();
   Object.assign(selectedObject, { id: null, content: '' });
-  showObjectForm.value = false;
+  level.value = 0;
   router.push(`/datum/${id.value}`);
 };
 
@@ -609,29 +655,28 @@ const deleteObject = async () => {
   if (data?.error) {
     message.error('Object removal error!');
   } else {
-    showObjectForm.value = false;
+    level.value = 0;
     anno.value.removeAnnotation(selectedObject.id);
     message.success(`Object ${selectedObject.id} was removed from the database`);
   }
 };
 
-const checkSingleChoice = (fid: number, fvalue: boolean) => {
-  const singleId = objectValues[featuresMap[fid]?.parent];
-  if (singleId !== undefined) {
-    return singleId ? (singleId === fid ? true : false) : false;
-  }
-  return fvalue;
-};
+// const checkSingleChoice = (fid: number, fvalue: boolean) => {
+//   const singleId = objectValues[featuresHash[fid]?.parent];
+//   if (singleId !== undefined) {
+//     return singleId ? (singleId === fid ? true : false) : false;
+//   }
+//   return fvalue;
+// };
 
 const saveObject = async () => {
   // console.log('n-select', objectValues);
-
-  const newFeatures = Object.values(selectedObject.features)
-    .map(x => ({ ...x, value: checkSingleChoice(x.id, Boolean(x?.value)) }))
-    .filter((x: IFeature) => x.value)
-    .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
+  // const newFeatures = Object.values(selectedObject.features)
+  //   .map(x => ({ ...x, value: checkSingleChoice(x.id, Boolean(x?.value)) }))
+  //   .filter((x: IFeature) => x.value)
+  //   .map((x: IFeature) => ({ id: x.id, value: x.value, ...(x.note && { note: x.note }) }));
   // console.log('to save', newFeatures);
-  const datum = { ...toRaw(selectedObject), features: newFeatures };
+  const datum = { ...toRaw(selectedObject), features: Object.values(featuresIO[1]) };
   console.log('save', datum);
   const data = await store.post('object', { params: datum });
 
@@ -645,7 +690,7 @@ const saveObject = async () => {
       objectsMap[datum.id] = datum;
 
       anno.value.addAnnotation(
-        buildWebAnno(data.id, datum.shape, datum.geometry, buildImagePath(photo.value.imagepath))
+        buildWebAnno(data.id, datum.shape, datum.geometry, buildImagePath(item.value.imagepath))
       );
     }
     message.success('The object data were saved.');
@@ -654,97 +699,19 @@ const saveObject = async () => {
   }
 };
 
-const savePhotoAnnotation = async () => {
-  // const annotations =
-  // const params = { ...toRaw(datum) } as IMessage;
-  // const result = values.map((x: any, i: any) =>
-  //   formArray[i].type === 'text' ? { id: formArray[i].id, value: x } : { id: x, value: true }
-  // );
-
-  // console.log('result', result);
-
-  // console.log(values);
-  // console.log(values.map(x => features[]));
-
-  // for (const [key, value] of Object.entries(values)) {
-  //   console.log(`${key}: ${value}`);
-  // }
-
-  // const jsonFeatures = Object.entries(valuesMap)
-  //   .filter(x => x[1])
-  //   .map(x => (featuresMap[x[0]].type === 'text' ? { id: Number(x[0]), value: x[1] } : { id: x[1], value: true }));
-  const jsonFeatures = Object.values(imageKV);
+const saveItemAnnotation = async () => {
   const params = {
-    features: jsonFeatures,
+    features: Object.values(featuresIO[0]),
     id: id.value,
-    geonote: photo.value.geonote,
-    note: photo.value.note,
+    geonote: item.value.geonote,
+    note: item.value.note,
   };
 
   const data = await store.post('meta', { params });
   if (data?.id == id.value) {
-    message.success('The photo data were saved.');
+    message.success('The item data were saved.');
   } else {
-    message.error('The photo data were not saved!');
-  }
-
-  // errorMessages.value = [];
-  // params.orient = orientProp.value;
-  // params.eid = id.value;
-  // params.annotations = anno.value.getAnnotations();
-  // console.log('data to save', params);
-  // if (!params.country) {
-  //   errorMessages.value.push('Country is not set!');
-  // }
-  // if (!params.orient) {
-  //   errorMessages.value.push('Orientation is not set!');
-  // }
-
-  // if (!params.src) {
-  //   errorMessages.value.push("Source title is empty!");
-  // } else {
-  //   params.src = params.src.trim();
-  // }
-  // if (!params.url) {
-  //   errorMessages.value.push("Source URL is empty!");
-  // } else {
-  //   params.url = params.url.trim();
-  // }
-  // if (!params.annotations || (params.annotations && !params.annotations.length)) {
-  //   errorMessages.value.push('No anotation is provided!!!');
-  // } else {
-  //   for (let annotation of params.annotations) {
-  //     if (annotation.type === 'Annotation') {
-  //       const tagsList = annotation.body.filter(x => x.purpose == 'tagging');
-  //       if (tagsList.length) {
-  //         if (!tagsList.map(x => x.value).some(x => (scheme.languages as Array<string>).includes(x))) {
-  //           errorMessages.value.push('The annotation does not contain any LANGUAGE tags!');
-  //         }
-  //       } else {
-  //         errorMessages.value.push('There are no tags in the annotation!');
-  //       }
-  //     }
-  //   }
-  // }
-  // console.log('save anno', imgSrc.value);
-  // if (errorMessages.value.length) {
-  //   console.log(`not saved – errors: ${errorMessages.value.length}`);
-  // } else {
-  // const { data } = await axios.post('/api/meta', { params });
-  // if (data?.eid == id.value) {
-  //   message.success('The data were saved.');
-  // } else {
-  //   message.error('The data were not saved!');
-  // }
-  // }
-  // console.log("result", data);
-};
-
-const getNext = (isReversed?: boolean) => {
-  const newId = photo.value?.[isReversed ? 'prev' : 'next'];
-  if (newId) {
-    // console.log(`GO TO: /message/${newId}`);
-    router.push(`/datum/${newId}`);
+    message.error('The item data were not saved!');
   }
 };
 
@@ -792,5 +759,8 @@ const changeTool = (name: string) => {
 .note {
   margin-left: -15px;
   min-width: 60px;
+}
+.hidden {
+  display: none;
 }
 </style>
