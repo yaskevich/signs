@@ -91,7 +91,23 @@
       </n-space>
     </n-card>
 
-    <n-card title="Image" v-else>
+    <n-card v-else>
+      <template #header>
+        <n-space>
+          <n-tooltip trigger="hover">
+            <template #trigger>
+              <n-button size="small" icon-placement="right" @click="showJSONModal = true">
+                <template #icon>
+                  <n-icon :component="DataObjectOutlined" />
+                </template>
+              </n-button>
+            </template>
+            Data JSON
+          </n-tooltip>
+          Image
+        </n-space>
+      </template>
+
       <template #header-extra>
         <n-space>
           <n-popconfirm @positive-click="removeItem(item)" v-if="!item?.eid">
@@ -167,17 +183,22 @@
         </n-space>
       </n-form>
     </n-card>
-    <div class="map-wrap" v-if="coordinates?.[0] && coordinates?.[1]">
+    <div class="map-wrap" v-if="!hideMap">
       <div class="map" ref="mapContainer"></div>
     </div>
     <n-card v-if="item?.data?.message" embedded>
       <span v-html="item.data.message.split('\n').join('<br/>')"></span>
     </n-card>
   </n-space>
+  <n-modal v-model:show="showJSONModal" style="max-width: 600px">
+    <div v-if="item?.data">
+      <json-viewer :value="item.data"></json-viewer>
+    </div>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
-import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef, nextTick } from 'vue';
+import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
@@ -190,6 +211,7 @@ import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplib
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { StyleSpecification, ResourceTypeEnum, MapOptions } from 'maplibre-gl';
 import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
+import { DataObjectOutlined } from '@vicons/material';
 
 const message = useMessage();
 const vuerouter = useRoute();
@@ -211,7 +233,10 @@ const isLoaded = ref(false);
 const coordinates = ref<[number, number]>([0, 0]);
 const mapContainer = ref<HTMLElement>();
 const map = shallowRef<Map>();
+const hideMap = ref(false);
+const showJSONModal = ref(false);
 const featuresIO = reactive([{} as keyable, {} as keyable]);
+const marker = shallowRef<Marker>();
 const toolsOptions = [
   { title: 'Rectangle', type: 'rect' },
   { title: 'Polygon', type: 'polygon' },
@@ -249,7 +274,10 @@ const updateNote = (userInput: any, key: any) => {
 };
 
 const renderFeature = (unit: any, vals: any, deep = false) => {
-  // console.log(unit, vals);
+  if (!Object.keys(vals)?.length) {
+    console.log('empty call');
+    // return;
+  }
   // console.log(unit.title);
   let children: any;
 
@@ -259,7 +287,7 @@ const renderFeature = (unit: any, vals: any, deep = false) => {
       children = h(NInput, {
         type: 'text',
         placeholder: unit?.title,
-        defaultValue: vals[key]?.value || '',
+        value: vals[key]?.value,
         onUpdateValue: (x: any) => updateInput(x, key),
       });
       break;
@@ -275,7 +303,7 @@ const renderFeature = (unit: any, vals: any, deep = false) => {
             valueField: 'id',
             filterable: true,
             clearable: true,
-            defaultValue: key,
+            value: key,
             placeholder: 'Select ' + unit?.title,
             onUpdateValue: (x: any) => updateSelect(x, siblings),
           })
@@ -302,7 +330,7 @@ const renderFeature = (unit: any, vals: any, deep = false) => {
               size: 'tiny',
               disabled: !vals[x.id]?.value,
               class: vals[x.id]?.value ? 'note' : 'hidden',
-              defaultValue: vals[x.id]?.note || '',
+              value: vals[x.id]?.note,
               onUpdateValue: (val: any) => updateNote(val, x.id),
             }),
           ])
@@ -329,9 +357,9 @@ const renderFeature = (unit: any, vals: any, deep = false) => {
   return deep ? children : h(NFormItemGi, { label: unit.title }, { default: () => children });
 };
 
-const cleanObjectFeatures = () => {
-  for (let prop in featuresIO[1]) delete featuresIO[1][prop];
-  console.log('clean');
+const cleanFeatures = (lvl: number = 0) => {
+  for (let prop in featuresIO[lvl]) delete featuresIO[lvl][prop];
+  console.log('clean', lvl);
 };
 
 onUnmounted(() => {
@@ -416,7 +444,7 @@ const initAnnotorius = () => {
           data_id: item.value.id,
           image: item.value.imagepath,
         });
-        cleanObjectFeatures();
+        cleanFeatures(1);
         level.value = 1;
       } else {
         message.error('Snippet format error');
@@ -440,8 +468,7 @@ const selectObject = (oid: number) => {
   // Object.assign(selectedObject, objectsMap[oid], { features: featuresFull });
   Object.assign(selectedObject, objectsMap[oid]);
   // console.log(objectsMap[oid]);
-  for (let prop in featuresIO[1]) delete featuresIO[1][prop];
-  cleanObjectFeatures();
+  cleanFeatures(1);
   Object.assign(featuresIO[1], store.convertArrayToObject(objectsMap[oid]?.features) || {});
   // const singleIds = objectsMap[oid]?.features
   //   .filter((x: any) => featuresHash[featuresHash[x?.id].parent].type === 'single')
@@ -556,7 +583,8 @@ const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
     mapInstance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     mapInstance.addControl(new FullscreenControl({ container: mapContainer.value }));
     // draggable: true
-    new Marker({ color: '#FF0000' })
+    marker.value = new Marker({ color: '#FF0000' });
+    marker.value
       .setLngLat(lngLat)
       // .setPopup(new Popup().setText('test'))
       .addTo(mapInstance);
@@ -581,14 +609,25 @@ const buildAnnotationForm = async (init: boolean = false) => {
 
   if (id.value) {
     let msg = await store.get('message', null, { id: id.value });
-    // console.log('item data', data);
+    console.log('item data', msg);
     isLoaded.value = true;
 
-    if (store?.state?.user && msg?.location?.x && msg?.location?.y && mapContainer.value) {
+    if (store?.state?.user && msg?.location?.x && msg?.location?.y) {
       coordinates.value = [msg.location.y, msg.location.x];
-      if (init) {
-        map.value = initMap(coordinates.value, store?.state?.user?.settings);
+      if (mapContainer.value) {
+        if (init) {
+          map.value = initMap(coordinates.value, store?.state?.user?.settings);
+        } else {
+          console.log('update coordinates');
+          if (marker.value && map.value) {
+            marker.value.setLngLat(coordinates.value);
+            // map.value.flyTo({ center: coordinates.value });
+            map.value.setCenter(coordinates.value);
+          }
+        }
       }
+    } else {
+      hideMap.value = true;
     }
 
     const imagepath = buildImagePath(msg.imagepath);
@@ -598,7 +637,9 @@ const buildAnnotationForm = async (init: boolean = false) => {
       initAnnotorius();
     }
     // Object.assign(featuresHash, Object.fromEntries(featuresData.map((x: any) => [x.id, x])));
-    Object.assign(featuresIO[0], store.convertArrayToObject(msg.features));
+    if (msg?.features?.length) {
+      Object.assign(featuresIO[0], store.convertArrayToObject(msg.features));
+    }
     // if (item.value?.features) {
     //   for (const unit of item.value.features) {
     //     const rule = featuresHash[unit.id];
@@ -610,10 +651,9 @@ const buildAnnotationForm = async (init: boolean = false) => {
 
     const attachedData = await store.get('attached', null, { id: id.value });
 
-    if (attachedData.length) {
+    if (attachedData?.length) {
       const annotations = attachedData.map((x: any) => buildWebAnno(x.id, x.shape, x.geometry, imagepath));
       console.log('set annotations');
-
       anno.value.setAnnotations(annotations);
       Object.assign(objectsMap, store.convertArrayToObject(attachedData));
       // console.log('objects map', objectsMap);
@@ -637,6 +677,7 @@ const getNext = async (isReversed?: boolean) => {
     // console.log(`GO TO: /message/${newId}`);
     router.push(`/datum/${newId}`);
     id.value = newId;
+    cleanFeatures();
     await buildAnnotationForm();
   }
 };
