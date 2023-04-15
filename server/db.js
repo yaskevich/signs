@@ -209,7 +209,7 @@ export default {
     const res = await pool.query('select COUNT(*) from messages');
     return res.rows[0].count;
   },
-  async getPhotosCount() {
+  async getItemsCount() {
     const res1 = await pool.query("select COUNT(*)::int as all, (COUNT(*) FILTER (where imagepath <> ''))::int as images from messages");
     const total = res1.rows[0];
     const res2 = await pool.query("select imagepath from messages where imagepath <> '' group by imagepath having count(*) > 1");
@@ -247,7 +247,7 @@ export default {
 
   //   return data;
   // },
-  async setPhotoMeta(datum) {
+  async setItemMeta(datum) {
     let data = {};
     // console.log(datum);
     const res = await pool.query('UPDATE messages SET features = $2, geonote = $3, note = $4 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
@@ -299,7 +299,7 @@ export default {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
     const objectFeatures = params?.objects;
-    const photoFeatures = params?.images;
+    const imageFeatures = params?.images;
     const sqlJoin = 'INNER JOIN messages ON ann.data_id = messages.id';
 
     let featuresCondition = '';
@@ -308,18 +308,18 @@ export default {
       featuresCondition = `${objectFeatures.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
     }
 
-    if (photoFeatures?.length) {
+    if (imageFeatures?.length) {
       if (featuresCondition) {
         featuresCondition += ' AND ';
       }
-      featuresCondition += `${photoFeatures.map((x) => `jsonb_path_exists(messages.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+      featuresCondition += `${imageFeatures.map((x) => `jsonb_path_exists(messages.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
     }
 
     if (featuresCondition) {
       featuresCondition = `WHERE ${featuresCondition}`;
     }
 
-    const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${photoFeatures?.length ? sqlJoin : ''}`;
+    const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${imageFeatures?.length ? sqlJoin : ''}`;
     const count = await pool.query(countQuery);
 
     const sql = `
@@ -345,7 +345,7 @@ export default {
     }
     return data;
   },
-  async getPhotoStats() {
+  async getItemsStats() {
     // let results = [];
     // try {
     //   const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_length(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
@@ -354,7 +354,8 @@ export default {
     //   console.error(error);
     // }
     // return results;
-    const res = await pool.query("SELECT fid, count(fid) FROM (select cast(json_array_elements(features)->'id' as text) as fid from messages) as unnested group by fid");
+    // const res = await pool.query("SELECT fid, count(fid) FROM (select cast(json_array_elements(features)->'id' as text) as fid from messages) as unnested group by fid");
+    const res = await pool.query("SELECT cast(feature->'id'as text) as fid, count(feature) FROM (SELECT json_array_elements(features) as feature from messages) as unnested WHERE (json_typeof(feature->'value') = 'boolean' AND (feature->>'value')::boolean = True) OR json_typeof(feature->'value') = 'string' group by fid");
     return res.rows;
   },
   async getFeatures() {
