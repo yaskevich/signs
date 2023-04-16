@@ -102,9 +102,18 @@
               <n-space justify="space-between">
                 <n-space vertical>
                   <n-space>
-                    <template v-for="tag in item.features">
+                    <template v-for="tag in item?.features?.filter(x => x?.value)">
                       <n-button-group size="small" v-if="tag?.note">
-                        <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                        <n-tooltip trigger="hover">
+                          <template #trigger>
+                            <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                          </template>
+                          {{
+                            typeof tag.value === 'string'
+                              ? features[tag.id]?.title
+                              : features[features[tag.id].parent].title
+                          }}
+                        </n-tooltip>
                         <n-tooltip trigger="hover">
                           <template #trigger>
                             <n-button size="small" color="#2080f0">
@@ -117,18 +126,29 @@
                         </n-tooltip>
                       </n-button-group>
                       <template v-else>
-                        <n-button
-                          v-if="features[features[tag.id]?.parent]?.code === 'languages'"
-                          color="#5a428d"
-                          size="small"
-                          >{{ features[tag.id]?.title }}</n-button
-                        >
-                        <n-button v-else type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                        <n-tooltip trigger="hover">
+                          <template #trigger>
+                            <n-button
+                              v-if="features[features[tag.id]?.parent]?.code === 'languages'"
+                              color="#5a428d"
+                              size="small"
+                              >{{ features[tag.id]?.title }}</n-button
+                            >
+                            <n-button v-else type="info" size="small">
+                              {{ typeof tag.value === 'string' ? tag.value : features[tag.id]?.title }}</n-button
+                            >
+                          </template>
+                          {{
+                            typeof tag.value === 'string'
+                              ? features[tag.id]?.title
+                              : features[features[tag.id].parent].title
+                          }}
+                        </n-tooltip>
                       </template>
                     </template>
                   </n-space>
                   <n-space justify="start">
-                    <template v-for="tag in item.properties">
+                    <template v-for="tag in item?.properties?.filter(x => x?.value)">
                       <template v-if="!features[tag?.id]?.type">
                         <n-button
                           :type="tag.id === 52 ? 'secondary' : 'primary'"
@@ -137,7 +157,17 @@
                             <n-icon :component="SquareRound" color="red" />
                           </template>
                         </n-button>
-                        <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button>
+                        <n-tooltip trigger="hover" v-else>
+                          <template #trigger>
+                            <n-button tertiary size="small">{{ features[tag.id]?.title }}</n-button>
+                          </template>
+                          {{
+                            typeof tag.value === 'string'
+                              ? features[tag.id]?.title
+                              : features[features[tag.id].parent].title
+                          }}
+                        </n-tooltip>
+                        <!-- <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button> -->
                       </template>
                     </template>
                   </n-space>
