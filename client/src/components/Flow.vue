@@ -24,13 +24,24 @@
                 v-for="item in feat?.children">
                 {{ item?.title }}
               </n-tag>
-              <n-input v-if="feat.type === 'text'" type="text" size="small" />
+              <n-input
+                v-if="feat.type === 'text'"
+                type="text"
+                size="small"
+                placeholder="Input a fragment"
+                v-model:value="features[feat.id].value" />
             </n-space>
           </template>
           <n-divider></n-divider>
           <template v-for="feat in options?.[0]?.children">
-            <n-space v-if="feat.type !== 'text'">
+            <n-space>
               <n-tag type="info">{{ feat.title }}</n-tag>
+              <n-input
+                v-if="feat.type === 'text'"
+                type="text"
+                size="small"
+                placeholder="Input a fragment"
+                v-model:value="properties[feat.id]" />
               <template v-if="feat?.type === 'single'">
                 <n-select
                   size="small"
@@ -66,134 +77,141 @@
           <n-button type="success" @click="selectObjects"> Select </n-button>
         </n-space>
       </n-card>
-      <n-space justify="center">
-        <n-pagination
-          v-model:page="page"
-          v-model:page-size="pageSize"
-          show-size-picker
-          :page-slot="5"
-          :item-count="currentCount"
-          :page-sizes="paginationOptions"
-          @update:page="changePage"
-          @update:page-size="changePageSize" />
-      </n-space>
-      <div style="min-height: 400px">
-        <n-space vertical size="large">
-          <!-- <div v-for="(item, index) in items" :key="index" class="photo"> -->
-          <template v-if="store.state.selection.mode">
-            <template v-for="(item, index) in items" :key="index">
-              <router-link
-                style="text-decoration: none"
-                v-if="item?.content"
-                :to="{ name: 'Toolset', params: { id: item?.data_id }, query: { object: item?.id } }"
-                >{{ item.content }}
-              </router-link>
-            </template>
-          </template>
-          <template v-else>
-            <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
-              <template #header-extra>
+      <template v-if="items?.length">
+        <n-space justify="center">
+          <n-pagination
+            v-model:page="page"
+            v-model:page-size="pageSize"
+            show-size-picker
+            :page-slot="5"
+            :item-count="currentCount"
+            :page-sizes="paginationOptions"
+            @update:page="changePage"
+            @update:page-size="changePageSize" />
+        </n-space>
+        <div style="min-height: 400px">
+          <n-space vertical size="large">
+            <!-- <div v-for="(item, index) in items" :key="index" class="photo"> -->
+            <template v-if="store.state.selection.mode">
+              <template v-for="(item, index) in items" :key="index">
                 <router-link
-                  :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }"
-                  class="tag-link"
-                  >Go to {{ item?.data_id }}
+                  style="text-decoration: none"
+                  v-if="item?.content"
+                  :to="{ name: 'Toolset', params: { id: item?.data_id }, query: { object: item?.id } }"
+                  >{{ item.content }}
                 </router-link>
               </template>
-              <n-space justify="space-between">
-                <n-space vertical>
-                  <n-space>
-                    <template v-for="tag in item?.features?.filter(x => x?.value)">
-                      <n-button-group size="small" v-if="tag?.note">
-                        <n-tooltip trigger="hover">
-                          <template #trigger>
-                            <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
-                          </template>
-                          {{
-                            typeof tag.value === 'string'
-                              ? features[tag.id]?.title
-                              : features[features[tag.id].parent].title
-                          }}
-                        </n-tooltip>
-                        <n-tooltip trigger="hover">
-                          <template #trigger>
-                            <n-button size="small" color="#2080f0">
-                              <template #icon>
-                                <n-icon :component="InfoOutlined" />
-                              </template>
-                            </n-button>
-                          </template>
-                          {{ tag.note }}
-                        </n-tooltip>
-                      </n-button-group>
-                      <template v-else>
-                        <n-tooltip trigger="hover">
-                          <template #trigger>
-                            <n-button
-                              v-if="features[features[tag.id]?.parent]?.code === 'languages'"
-                              color="#5a428d"
-                              size="small"
-                              >{{ features[tag.id]?.title }}</n-button
-                            >
-                            <n-button v-else type="info" size="small">
-                              {{ typeof tag.value === 'string' ? tag.value : features[tag.id]?.title }}</n-button
-                            >
-                          </template>
-                          {{
-                            typeof tag.value === 'string'
-                              ? features[tag.id]?.title
-                              : features[features[tag.id].parent].title
-                          }}
-                        </n-tooltip>
+            </template>
+            <template v-else>
+              <n-card v-for="(item, index) in items" :key="index" class="anno" :title="item?.content">
+                <template #header-extra>
+                  <router-link
+                    :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }"
+                    class="tag-link"
+                    >Go to {{ item?.data_id }}
+                  </router-link>
+                </template>
+                <n-space justify="space-between">
+                  <n-space vertical>
+                    <n-space>
+                      <template v-for="tag in item?.features?.filter(x => x?.value)">
+                        <n-button-group size="small" v-if="tag?.note">
+                          <n-tooltip trigger="hover">
+                            <template #trigger>
+                              <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
+                            </template>
+                            {{
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
+                          </n-tooltip>
+                          <n-tooltip trigger="hover">
+                            <template #trigger>
+                              <n-button size="small" color="#2080f0">
+                                <template #icon>
+                                  <n-icon :component="InfoOutlined" />
+                                </template>
+                              </n-button>
+                            </template>
+                            {{ tag.note }}
+                          </n-tooltip>
+                        </n-button-group>
+                        <template v-else>
+                          <n-tooltip trigger="hover">
+                            <template #trigger>
+                              <n-button
+                                v-if="features[features[tag.id]?.parent]?.code === 'languages'"
+                                color="#5a428d"
+                                size="small"
+                                >{{ features[tag.id]?.title }}</n-button
+                              >
+                              <n-button v-else :type="typeof tag.value === 'string' ? 'warning' : 'info'" size="small">
+                                {{ typeof tag.value === 'string' ? tag.value : features[tag.id]?.title }}</n-button
+                              >
+                            </template>
+                            {{
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
+                          </n-tooltip>
+                        </template>
                       </template>
-                    </template>
-                  </n-space>
-                  <n-space justify="start">
-                    <template v-for="tag in item?.properties?.filter(x => x?.value)">
-                      <template v-if="!features[tag?.id]?.type">
-                        <n-button
-                          :type="tag.id === 52 ? 'secondary' : 'primary'"
-                          v-if="features[tag.id]?.parent === 51">
-                          <template #icon>
-                            <n-icon :component="SquareRound" color="red" />
-                          </template>
-                        </n-button>
-                        <n-tooltip trigger="hover" v-else>
-                          <template #trigger>
-                            <n-button tertiary size="small">{{ features[tag.id]?.title }}</n-button>
-                          </template>
-                          {{
-                            typeof tag.value === 'string'
-                              ? features[tag.id]?.title
-                              : features[features[tag.id].parent].title
-                          }}
-                        </n-tooltip>
-                        <!-- <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button> -->
+                    </n-space>
+                    <n-space justify="start">
+                      <template v-for="tag in item?.properties?.filter(x => x?.value)">
+                        <template v-if="!features[tag?.id]?.type">
+                          <n-button
+                            :type="tag.id === 52 ? 'secondary' : 'primary'"
+                            v-if="features[tag.id]?.parent === 51">
+                            <template #icon>
+                              <n-icon :component="SquareRound" color="red" />
+                            </template>
+                          </n-button>
+                          <n-tooltip trigger="hover" v-else>
+                            <template #trigger>
+                              <n-button tertiary size="small">{{ features[tag.id]?.title }}</n-button>
+                            </template>
+                            {{
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
+                          </n-tooltip>
+                          <!-- <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button> -->
+                        </template>
                       </template>
-                    </template>
+                    </n-space>
                   </n-space>
+                  <router-link :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }">
+                    <img
+                      style="max-width: 300px"
+                      :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
+                      @contextmenu.prevent="onRightClick" />
+                  </router-link>
                 </n-space>
-                <router-link :to="{ name: 'Toolset', params: { id: item?.data_id, object: item?.id }, query: {} }">
-                  <img
-                    style="max-width: 300px"
-                    :src="'/api/media/fragments/' + item.id + '.png' + '?jwt=' + store?.state?.token"
-                    @contextmenu.prevent="onRightClick" />
-                </router-link>
-              </n-space>
-            </n-card>
-          </template>
+              </n-card>
+            </template>
+          </n-space>
+        </div>
+        <n-space justify="center">
+          <n-pagination
+            v-model:page="page"
+            v-model:page-size="pageSize"
+            show-size-picker
+            :page-slot="5"
+            :item-count="currentCount"
+            :page-sizes="paginationOptions"
+            @update:page="changePage"
+            @update:page-size="changePageSize" />
         </n-space>
-      </div>
-      <n-space justify="center">
-        <n-pagination
-          v-model:page="page"
-          v-model:page-size="pageSize"
-          show-size-picker
-          :page-slot="5"
-          :item-count="currentCount"
-          :page-sizes="paginationOptions"
-          @update:page="changePage"
-          @update:page-size="changePageSize" />
-      </n-space>
+      </template>
+      <template v-else>
+        <n-alert title="Empty selection" type="warning">
+          There is no object with the selected features. Try to change your query
+        </n-alert>
+      </template>
     </n-space>
   </n-card>
 </template>
@@ -235,6 +253,7 @@ const updateSelection = () => {
 const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
+
   const images = Object.entries(store.state.selection.images)
     .filter(x => x[1])
     .map(x => (typeof x[1] === 'number' ? x[1] : Number(x[0])));
@@ -250,7 +269,7 @@ const updatePage = async () => {
   });
 
   items.value = data.selection;
-  // console.log('count', data.count);
+  console.log('count', items.value.length);
 
   totalCount.value = Number(data.count.ttl);
   selectedCount.value = Number(data.count?.sel || 0);
@@ -297,7 +316,7 @@ onBeforeMount(async () => {
   console.log('mount');
   const fdata = await store.get('features');
   if (!Object.keys(store.state.selection.objects)?.length) {
-    const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, { ...x, checked: false }]));
+    const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, { ...x, checked: false, value: '' }]));
     Object.assign(store.state.selection.objects, featuresData);
   }
   Object.assign(options, store.nest(fdata));
