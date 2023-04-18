@@ -300,19 +300,23 @@ export default {
     const limit = params?.limit || 100;
     const objectFeatures = params?.objects;
     const imageFeatures = params?.images;
+    // console.log(imageFeatures, objectFeatures);
+
     const sqlJoin = 'INNER JOIN messages ON ann.data_id = messages.id';
+
+    const buildCondition = (arr, table) => (arr.length ? `${arr.map((x) => `jsonb_path_exists(${table}.features::jsonb, '$.** ? (@.id == ${Number(x.id)} && @.value ${typeof x.value === 'string' ? `like_regex "${x.value}" flag "i"` : `== ${x.value}`})')`).join(' AND ')}` : '');
 
     let featuresCondition = '';
 
     if (objectFeatures?.length) {
-      featuresCondition = `${objectFeatures.map((x) => `jsonb_path_exists(ann.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+      featuresCondition = buildCondition(objectFeatures, 'ann');
     }
 
     if (imageFeatures?.length) {
       if (featuresCondition) {
         featuresCondition += ' AND ';
       }
-      featuresCondition += `${imageFeatures.map((x) => `jsonb_path_exists(messages.features::jsonb, '$.** ? (@.id == ${Number(x)})')`).join(' AND ')}`;
+      featuresCondition += buildCondition(imageFeatures, 'messages');
     }
 
     if (featuresCondition) {
@@ -320,6 +324,8 @@ export default {
     }
 
     const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${imageFeatures?.length ? sqlJoin : ''}`;
+
+    // console.log(countQuery);
     const count = await pool.query(countQuery);
 
     const sql = `
@@ -332,6 +338,7 @@ export default {
 
     // console.log(sql);
     const res = await pool.query(sql, [offset, limit]);
+
     return {
       count: count?.rows?.shift(), selection: res.rows, offset, limit
     };
