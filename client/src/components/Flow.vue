@@ -24,24 +24,30 @@
                 v-for="item in feat?.children">
                 {{ item?.title }}
               </n-tag>
-              <n-input
-                v-if="feat.type === 'text'"
-                type="text"
-                size="small"
-                placeholder="Input a fragment"
-                v-model:value="features[feat.id].value" />
+              <template v-if="feat.type === 'text'">
+                <n-input
+                  type="text"
+                  size="small"
+                  placeholder="Input a fragment"
+                  v-model:value="features[feat.id].value"
+                  @keyup.enter="selectObjects" />
+                <n-button size="small" @click="features[feat.id].value = ''">Clear</n-button>
+              </template>
             </n-space>
           </template>
           <n-divider></n-divider>
           <template v-for="feat in options?.[0]?.children">
             <n-space>
               <n-tag type="info">{{ feat.title }}</n-tag>
-              <n-input
-                v-if="feat.type === 'text'"
-                type="text"
-                size="small"
-                placeholder="Input a fragment"
-                v-model:value="properties[feat.id]" />
+              <template v-if="feat.type === 'text'">
+                <n-input
+                  type="text"
+                  size="small"
+                  placeholder="Input a fragment"
+                  v-model:value="properties[feat.id]"
+                  @keyup.enter="selectObjects" />
+                <n-button size="small" @click="properties[feat.id] = ''">Clear</n-button>
+              </template>
               <template v-if="feat?.type === 'single'">
                 <n-select
                   size="small"
@@ -164,6 +170,7 @@
                         <template v-if="!features[tag?.id]?.type">
                           <n-button
                             :type="tag.id === 52 ? 'secondary' : 'primary'"
+                            size="small"
                             v-if="features[tag.id]?.parent === 51">
                             <template #icon>
                               <n-icon :component="SquareRound" color="red" />
@@ -254,16 +261,29 @@ const updatePage = async () => {
   isLoaded.value = false;
   console.log('call update page');
 
+  // const images = Object.entries(store.state.selection.images)
+  //   .filter(x => x[1])
+  //   .map(x => (typeof x[1] === 'number' ? x[1] : Number(x[0])));
+
+  // const objects = Object.values(store.state.selection.objects)
+  //   .filter((x: IFeature) => Boolean(x?.checked))
+  //   .map((x: IFeature) => x.id);
+
   const images = Object.entries(store.state.selection.images)
     .filter(x => x[1])
-    .map(x => (typeof x[1] === 'number' ? x[1] : Number(x[0])));
+    .map(x => ({ id: typeof x[1] === 'number' ? x[1] : Number(x[0]), value: typeof x[1] === 'string' ? x[1] : true }));
 
-  let data = await store.get('objects', null, {
+  const objects = Object.values(store.state.selection.objects)
+    .filter((x: IFeature) => x?.checked || x?.value)
+    .map((x: IFeature) => ({ id: x.id, value: x?.value || x?.checked }));
+
+  // console.log(images2);
+  // console.log(objects2);
+
+  let data = await store.post('objects', {
     offset: (page.value - 1) * pageSize.value,
     limit: pageSize.value,
-    objects: Object.values(store.state.selection.objects)
-      .filter((x: IFeature) => Boolean(x?.checked))
-      .map((x: IFeature) => x.id),
+    objects,
     images,
     // images: Object.values(store.state.selection.images)?.filter(Boolean),
   });
