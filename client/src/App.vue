@@ -3,12 +3,16 @@
     <template id="main" v-if="loggedIn">
       <n-layout position="absolute">
         <n-layout-header id="nav">
-          <n-menu v-model:value="activeKey" mode="horizontal" :options="menuOptions" @update:value="processMenu" />
+          <n-menu
+            v-model:value="activeKey"
+            mode="horizontal"
+            :options="store.state.nav.options"
+            @update:value="processMenu" />
         </n-layout-header>
-        <n-layout-content style="max-width: 900px; min-height: 500px; margin: auto">
+        <n-layout-content style="padding-bottom: 2rem">
           <router-view />
         </n-layout-content>
-        <n-layout-footer style="margin: 1rem; padding: 1rem">
+        <n-layout-footer position="absolute" style="padding: 0.25rem">
           <n-space justify="center">
             <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
               <template #icon>
@@ -42,57 +46,19 @@
   </n-message-provider>
 </template>
 <script setup lang="ts">
-// import { Faucet, ObjectGroupRegular } from '@vicons/fa';
-import {
-  SelectAllOutlined,
-  AccountTreeOutlined,
-  HomeOutlined,
-  CommentOutlined,
-  TextSnippetOutlined,
-  SettingsOutlined,
-  PersonOutlined,
-  PermMediaOutlined,
-  AssignmentOutlined,
-  LabelOutlined,
-  BackupOutlined,
-  HistoryOutlined,
-  PersonSearchOutlined,
-  LogOutOutlined,
-  EditNoteOutlined,
-  MenuBookOutlined,
-  ReceiptLongOutlined,
-  FormatPaintOutlined,
-  WebOutlined,
-  CameraAltFilled,
-  CloudDownloadOutlined,
-  CloudUploadOutlined,
-  ListAltOutlined,
-  InputOutlined,
-} from '@vicons/material';
 import router from './router';
-import { RouterLink, useRoute } from 'vue-router';
-import { h, Component, ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { ref, onMounted, computed } from 'vue';
 import { MenuOption, NIcon } from 'naive-ui';
 import store from './store';
 import Login from './components/Login.vue';
 import Register from './components/Register.vue';
+import { CameraAltFilled } from '@vicons/material';
 
 const vuerouter = useRoute();
 const activeKey = ref<string | null>(null); // vuerouter?.name||'Home'
 const loggedIn = computed(() => store?.state?.token?.length);
 const access = ref(false);
-const menuOptions = ref<MenuOption[]>();
-
-const renderIcon = (icon: Component) => {
-  return () => h(NIcon, null, { default: () => h(icon) });
-};
-
-const makeItem = (name: string, title: string, icon: Component) => ({
-  label: () => h(RouterLink, { to: { name } }, { default: () => title }),
-  key: name,
-  icon: renderIcon(icon),
-  show: !(name === 'Settings' && store?.state?.user?.privs !== 1),
-});
 
 const processMenu = async (key: string, item: MenuOption) => {
   if (key === 'logout') {
@@ -102,48 +68,10 @@ const processMenu = async (key: string, item: MenuOption) => {
   }
 };
 
-const makeMenu = () => [
-  makeItem('Home', 'Home', HomeOutlined),
-  makeItem('TMessages', 'Input', InputOutlined),
-  makeItem('Flow', 'Objects', SelectAllOutlined),
-  {
-    label: 'Management',
-    key: 'management',
-    icon: renderIcon(SettingsOutlined),
-    children: [
-      makeItem('Upload', 'Upload', CloudUploadOutlined),
-      makeItem('Scheme', 'Scheme', AccountTreeOutlined),
-      makeItem('Users', 'Users', PersonSearchOutlined),
-      makeItem('Settings', 'Settings', ListAltOutlined),
-    ],
-  },
-  {
-    label: store?.state?.user?.username,
-    key: 'username',
-    disabled: false,
-    icon: renderIcon(PersonOutlined),
-    children: [
-      {
-        label: 'Log out',
-        key: 'logout',
-        disabled: false,
-        icon: renderIcon(LogOutOutlined),
-      },
-      {
-        label: 'Edit profile',
-        key: 'profile',
-        disabled: false,
-        icon: renderIcon(EditNoteOutlined),
-      },
-    ],
-  },
-];
-
 onMounted(async () => {
   await store.getUser();
   if (store?.state?.user?.username) {
-    menuOptions.value = makeMenu();
-    activeKey.value = String(vuerouter.name);
+    store.initMenu(vuerouter?.name);
   } else {
     const result = await store.getUnauthorized('registration');
     access.value = result.status;
@@ -176,14 +104,7 @@ onMounted(async () => {
 .nav {
   margin-right: 5px;
 }
-#content {
-  display: flex;
-  flex-direction: column;
-  min-height: 97vh;
-  max-width: 100vh;
-  /* max-width: 800px; */
-  margin: auto;
-}
+
 .left {
   text-align: left;
 }
