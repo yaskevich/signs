@@ -728,4 +728,8 @@ export default {
     const result = await pool.query(sql, Object.values(query));
     return result?.rowCount;
   },
+  async getMap() {
+    const res = await pool.query('select objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id');
+    return res.rows;
+  },
 };
