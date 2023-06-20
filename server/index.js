@@ -149,18 +149,18 @@ app.get('/api/features', auth, async (req, res) => {
 });
 
 app.get('/api/stats', auth, async (req, res) => {
-  const [photos, messages, features, objects, astat, pstat] = await Promise.all([
+  const [images, messages, features, objects, astat, pstat] = await Promise.all([
     db.getMessagesAnnotatedCount(),
-    db.getPhotosCount(),
+    db.getItemsCount(),
     db.getFeatures(),
     db.getObjectsCount(),
     db.getObjectsStats(),
-    db.getPhotoStats(),
+    db.getItemsStats(),
   ]);
   const stats = Object.fromEntries(astat.concat(pstat).map((x) => [x.fid, Number(x.count)]));
   const tree = nest(features.map((x) => ({ ...x, num: stats[x.id] })));
   res.json({
-    messages, objects, photos, tree
+    messages, objects, images, tree
   });
 });
 
@@ -178,11 +178,11 @@ app.get('/api/messages', auth, async (req, res) => {
   });
 });
 
-app.get('/api/objects', auth, async (req, res) => res.json(await db.getObjects(req.query)));
+app.post('/api/objects', auth, async (req, res) => res.json(await db.getObjects(req.body)));
 
 app.get('/api/attached', auth, async (req, res) => res.json(await db.getAttachedObjects(req.query.id)));
 
-app.post('/api/meta', auth, async (req, res) => res.json(await db.setPhotoMeta(req.body.params)));
+app.post('/api/meta', auth, async (req, res) => res.json(await db.setItemMeta(req.body.params)));
 
 app.post('/api/object', auth, async (req, res) => res.json(await db.setObject(req.body.params, imagesDir, fragmentsDir)));
 
@@ -270,6 +270,8 @@ app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings
 app.get('/api/chats', auth, async (req, res) => res.json(await db.getChats(req?.user)));
 
 app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req?.user, req.body.params)));
+
+app.get('/api/map', auth, async (req, res) => res.json(await db.getMap()));
 
 app.listen(port);
 console.log(`Backend is at port ${port}`);
