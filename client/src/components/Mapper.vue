@@ -1,30 +1,44 @@
 <template>
-  <div class="map-wrap" v-if="!hideMap">
+  <div class="map-wrap" v-show="showMap">
     <div class="map" ref="mapContainer"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { h, ref, watch, onUnmounted, markRaw, shallowRef } from 'vue';
-import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplibre-gl';
+import { h, ref, watch, onUnmounted, onMounted, markRaw, shallowRef, toRaw } from 'vue';
+import type { Position, Point, FeatureCollection, Feature } from 'geojson';
+import { Map, NavigationControl, Marker, Popup, FullscreenControl, LngLatBounds } from 'maplibre-gl';
+import type { GeoJSONSource, StyleSpecification, ResourceTypeEnum, MapOptions, LngLatLike } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { StyleSpecification, ResourceTypeEnum, MapOptions } from 'maplibre-gl';
 import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
 import store from '../store';
 
+const props = withDefaults(
+  defineProps<{
+    datum?: [number, number];
+    data?: any;
+  }>(),
+  {}
+);
+console.log('setup', props);
+
+const init = ref(false);
 const mapContainer = ref<HTMLElement>();
 const map = shallowRef<Map>();
-const hideMap = ref(false);
+const showMap = ref(false);
 const marker = shallowRef<Marker>();
 
-const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
+const initMap = (lngLat: [number, number], geo: any) => {
+  console.log('init map');
+
   const {
     map_vector: isVector,
     map_tile: tilePath,
     map_style: stylePath,
     map_mapbox: isMapbox,
     map_mapbox_key: mapboxKey,
-  } = opts;
+  } = store?.state?.user?.settings as IUser['settings'];
+  console.log(geo);
 
   const tileServer = !isVector && tilePath ? tilePath : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -56,7 +70,7 @@ const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
     const mapSetup = {
       container: mapContainer.value,
       style,
-      center: lngLat,
+      center: lngLat || geo?.features?.[0].geometry?.coordinates,
       zoom: 12,
     } as MapOptions;
 
@@ -65,56 +79,88 @@ const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
         isMapboxURL(url) ? transformMapboxUrl(url, String(rt), mapboxKey) : { url };
     }
 
-    const mapInstance = markRaw(new Map(mapSetup));
-    mapInstance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-    mapInstance.addControl(new FullscreenControl({ container: mapContainer.value }));
+    const map = markRaw(new Map(mapSetup));
+    map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new FullscreenControl({ container: mapContainer.value }));
     // draggable: true
-    marker.value = new Marker({ color: '#FF0000' });
-    marker.value
-      .setLngLat(lngLat)
-      // .setPopup(new Popup().setText('test'))
-      .addTo(mapInstance);
+    if (lngLat) {
+      marker.value = new Marker({ color: '#FF0000' });
+      marker.value
+        .setLngLat(lngLat)
+        // .setPopup(new Popup().setText('test'))
+        .addTo(map);
+    }
+    map.on('load', async () => {
+      map.resize();
+      if (geo) {
+        const layers = map.getStyle().layers;
+        let firstSymbolId;
+        for (var i = 0; i < layers.length; i++) {
+          if (layers[i].type === 'symbol') {
+            firstSymbolId = layers[i].id;
+            break;
+          }
+        }
+        map.addSource('points-source', { type: 'geojson', data: geo });
+        map.addLayer(
+          {
+            id: 'points-layer',
+            // type: 'symbol',
+            type: 'circle',
+            source: 'points-source',
+          },
+          firstSymbolId
+        );
 
-    return mapInstance;
+        const coordinates = geo.features.map((x: Feature) => (x?.geometry as Point)?.coordinates);
+        const bounds = coordinates.reduce(
+          (bound: any, coord: Position) => bound.extend(coord),
+          new LngLatBounds(coordinates[0], coordinates[0])
+        );
+        console.log(bounds);
+
+        map.fitBounds(bounds, { padding: 50, animate: false  });
+      }
+    });
+
+    return map;
   }
 };
 
-const props = withDefaults(
-  defineProps<{
-    datum: Array<[number, number]>;
-    editable?: Boolean;
-  }>(),
-  {}
-);
+const renderMap = (options: any) => {
+  console.log('render map', options);
+  let result = false;
 
-watch(props, () => {
-  console.log('props', props);
-  renderMap(props.datum);
-});
-
-const init = ref(false);
-
-const renderMap = (datum: any) => {
-  if (datum?.length && store?.state?.user?.settings) {
-    if (mapContainer.value) {
-      const coordinates = datum[0];
-      if (init) {
-        map.value = initMap(coordinates, store.state.user.settings);
-        init.value = true;
-      } else {
-        console.log('update coordinates');
-        if (marker.value && map.value) {
-          marker.value.setLngLat(coordinates);
-          // map.value.flyTo({ center: coordinates.value });
-          map.value.setCenter(coordinates);
+  if (store?.state?.user?.settings) {
+    if (options?.datum?.length || options?.data?.features?.length) {
+      result = true;
+      if (mapContainer.value) {
+        const coordinates = options.datum;
+        if (!init.value) {
+          map.value = initMap(coordinates, options?.data);
+          init.value = true;
+        } else {
+          console.log('update coordinates');
+          if (marker.value && map.value) {
+            marker.value.setLngLat(coordinates);
+            // map.value.flyTo({ center: coordinates.value });
+            map.value.setCenter(coordinates);
+          }
         }
       }
     }
-  } else {
-    hideMap.value = true;
   }
+  showMap.value = result;
 };
 
+watch(props, () => {
+  console.log('props', props);
+  renderMap(props);
+});
+
+onMounted(() => {
+  renderMap(props);
+});
 onUnmounted(() => {
   map.value?.remove();
 });
