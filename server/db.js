@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import passGen from 'generate-password';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import GeoJSON from 'geojson';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -730,6 +731,7 @@ export default {
   },
   async getMap() {
     const res = await pool.query('select objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id');
-    return res.rows;
+    const data = res.rows;
+    return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
   },
 };
