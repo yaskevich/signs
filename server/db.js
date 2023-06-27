@@ -106,7 +106,8 @@ const databaseScheme = {
     map_style TEXT,
     map_vector BOOLEAN default false,
     map_mapbox BOOLEAN default false,
-    map_mapbox_key TEXT`,
+    map_mapbox_key TEXT,
+    title TEXT`,
 };
 
 const initQueries = {
@@ -730,7 +731,7 @@ export default {
     return result?.rowCount;
   },
   async getMap() {
-    const res = await pool.query('select objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id');
+    const res = await pool.query('select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id');
     const data = res.rows;
     return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
   },
