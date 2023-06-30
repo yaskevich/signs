@@ -13,9 +13,11 @@ import {
   CloudUploadOutlined,
   ListAltOutlined,
   InputOutlined,
+  MapOutlined,
 } from '@vicons/material';
 import { NIcon } from 'naive-ui';
 import { RouterLink, RouteRecordName } from 'vue-router';
+import { useHead } from '@vueuse/head';
 
 const state = reactive<IState>({
   token: localStorage.getItem('token') || '',
@@ -31,6 +33,11 @@ const state = reactive<IState>({
     mode: false,
   },
 });
+
+const setTitle = (title: string) => {
+  console.log('set title', title);
+  useHead({ title: title || state?.user?.dir || '📷' });
+};
 
 const renderIcon = (icon: Component) => {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -53,6 +60,7 @@ const makeMenu = () => [
     icon: renderIcon(SettingsOutlined),
     children: [
       makeItem('Upload', 'Upload', CloudUploadOutlined),
+      makeItem('Map', 'Map', MapOutlined),
       makeItem('Scheme', 'Scheme', AccountTreeOutlined),
       makeItem('Users', 'Users', PersonSearchOutlined),
       makeItem('Settings', 'Settings', ListAltOutlined),
@@ -111,6 +119,7 @@ const logoutUser = () => {
   state.token = '';
   state.user = {} as IUser;
   localStorage.removeItem('token');
+  useHead({ title: '' });
   // router.replace('/login');
 };
 
@@ -254,4 +263,5 @@ export default {
   setUser,
   convertArrayToObject,
   initMenu,
+  setTitle,
 };
