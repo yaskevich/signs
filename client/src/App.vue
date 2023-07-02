@@ -72,6 +72,7 @@ onMounted(async () => {
   await store.getUser();
   if (store?.state?.user?.username) {
     store.initMenu(vuerouter?.name);
+    store.setTitle(store?.state?.user?.settings?.title);
   } else {
     const result = await store.getUnauthorized('registration');
     access.value = result.status;
