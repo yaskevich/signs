@@ -1,6 +1,13 @@
 <template>
   <n-card title="Settings" :bordered="false" class="minimal left" v-if="isLoaded">
     <n-space vertical>
+      <n-h5>Project Title</n-h5>
+      <n-input
+        v-model:value="settings.title"
+        type="text"
+        placeholder="This text appears as browser tab title"
+        autofocus
+        clearable></n-input>
       <n-h4>Registration</n-h4>
       <n-h5>Status</n-h5>
       <n-switch v-model:value="settings.registration_open">
@@ -103,6 +110,7 @@ import { ref, reactive, onBeforeMount } from 'vue';
 import store from '../store';
 import { TelegramOutlined, PersonOutlineFilled } from '@vicons/material';
 import { useMessage } from 'naive-ui';
+
 const message = useMessage();
 const settings = ref();
 const isLoaded = ref(false);
@@ -115,6 +123,7 @@ const saveSettings = async () => {
     ...settings.value,
   });
   if (data === 1) {
+    store.setTitle(settings.value.title);
     message.success('Settings were updated successfully');
     if (store?.state?.user) {
       Object.assign(store.state.user.settings, settings.value);
