@@ -256,6 +256,18 @@ export default {
     data = res.rows?.[0];
     return data;
   },
+  async deleteFeature(user, params) {
+    if (user?.privs !== 1) {
+      return {};
+    }
+    let data = {};
+    if (params?.id) {
+      console.log('delete feature', params.id);
+      const res = await pool.query('DELETE FROM features WHERE id = $1 RETURNING id', [Number(params.id)]);
+      data = res.rows?.[0];
+    }
+    return data;
+  },
   async updateFeature(user, params) {
     if (user?.privs !== 1) {
       return {};
