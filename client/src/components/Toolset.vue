@@ -183,9 +183,10 @@
         </n-space>
       </n-form>
     </n-card>
-    <div class="map-wrap" v-if="!hideMap">
+    <!-- <div class="map-wrap" v-if="!hideMap">
       <div class="map" ref="mapContainer"></div>
-    </div>
+    </div> -->
+    <Mapper :datum="coordinates" />
     <n-card v-if="item?.data?.message" embedded>
       <span v-html="item.data.message.split('\n').join('<br/>')"></span>
     </n-card>
@@ -202,6 +203,7 @@ import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markR
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
+import Mapper from './Mapper.vue';
 import { useMessage, NFormItemGi, NInput, NInputGroup, NSelect, NButton, NTag, NCheckbox, NSpace } from 'naive-ui';
 import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
@@ -230,13 +232,13 @@ const selectedObject = reactive({} as IObject);
 const level = ref(0);
 // const objectValues = reactive({} as keyable);
 const isLoaded = ref(false);
-const coordinates = ref<[number, number]>([0, 0]);
-const mapContainer = ref<HTMLElement>();
-const map = shallowRef<Map>();
-const hideMap = ref(false);
+const coordinates = ref<[number, number]>();
+// const mapContainer = ref<HTMLElement>();
+// const map = shallowRef<Map>();
+// const hideMap = ref(false);
 const showJSONModal = ref(false);
 const featuresIO = reactive([{} as keyable, {} as keyable]);
-const marker = shallowRef<Marker>();
+// const marker = shallowRef<Marker>();
 const toolsOptions = [
   { title: 'Rectangle', type: 'rect' },
   { title: 'Polygon', type: 'polygon' },
@@ -361,10 +363,6 @@ const cleanFeatures = (lvl: number = 0) => {
   for (let prop in featuresIO[lvl]) delete featuresIO[lvl][prop];
   console.log('clean', lvl);
 };
-
-onUnmounted(() => {
-  map.value?.remove();
-});
 
 const initAnnotorius = () => {
   // const vocabulary = [...scheme.languages, ...scheme.features];
@@ -531,68 +529,6 @@ const removeItem = async (info: IMessage) => {
   }
 };
 
-const initMap = (lngLat: [number, number], opts: IUser['settings']) => {
-  const {
-    map_vector: isVector,
-    map_tile: tilePath,
-    map_style: stylePath,
-    map_mapbox: isMapbox,
-    map_mapbox_key: mapboxKey,
-  } = opts;
-
-  const tileServer = !isVector && tilePath ? tilePath : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-  const rasterStyle = {
-    version: 8,
-    sources: {
-      'raster-tiles': {
-        type: 'raster',
-        tiles: [tileServer],
-        tileSize: 256,
-        attribution:
-          '© <a target="_top" rel="noopener" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      },
-    },
-    layers: [
-      {
-        id: 'simple-tiles',
-        type: 'raster',
-        source: 'raster-tiles',
-        minzoom: 0,
-        maxzoom: 22,
-      },
-    ],
-  } as StyleSpecification;
-
-  const style = isVector ? stylePath : rasterStyle;
-
-  if (style) {
-    const mapSetup = {
-      container: mapContainer.value,
-      style,
-      center: lngLat,
-      zoom: 12,
-    } as MapOptions;
-
-    if (isMapbox && mapboxKey) {
-      mapSetup.transformRequest = (url: string, rt?: ResourceTypeEnum) =>
-        isMapboxURL(url) ? transformMapboxUrl(url, String(rt), mapboxKey) : { url };
-    }
-
-    const mapInstance = markRaw(new Map(mapSetup));
-    mapInstance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-    mapInstance.addControl(new FullscreenControl({ container: mapContainer.value }));
-    // draggable: true
-    marker.value = new Marker({ color: '#FF0000' });
-    marker.value
-      .setLngLat(lngLat)
-      // .setPopup(new Popup().setText('test'))
-      .addTo(mapInstance);
-
-    return mapInstance;
-  }
-};
-
 onBeforeUnmount(async () => {
   anno.value.destroy();
 });
@@ -602,7 +538,7 @@ onBeforeRouteUpdate(async (to, from) => {
 });
 
 const buildAnnotationForm = async (init: boolean = false) => {
-  console.log('init', init);
+  console.log('init tools', init);
 
   const featuresData = await store.get('features');
   Object.assign(featuresTree, store.nest(featuresData));
@@ -611,24 +547,27 @@ const buildAnnotationForm = async (init: boolean = false) => {
     let msg = await store.get('message', null, { id: id.value });
     console.log('item data', msg);
     isLoaded.value = true;
-
     if (store?.state?.user && msg?.location?.x && msg?.location?.y) {
       coordinates.value = [msg.location.y, msg.location.x];
-      if (mapContainer.value) {
-        if (init) {
-          map.value = initMap(coordinates.value, store?.state?.user?.settings);
-        } else {
-          console.log('update coordinates');
-          if (marker.value && map.value) {
-            marker.value.setLngLat(coordinates.value);
-            // map.value.flyTo({ center: coordinates.value });
-            map.value.setCenter(coordinates.value);
-          }
-        }
-      }
-    } else {
-      hideMap.value = true;
     }
+
+    // if (store?.state?.user && msg?.location?.x && msg?.location?.y) {
+    //   coordinates.value = [msg.location.y, msg.location.x];
+    //   if (mapContainer.value) {
+    //     if (init) {
+    //       map.value = initMap(coordinates.value, store?.state?.user?.settings);
+    //     } else {
+    //       console.log('update coordinates');
+    //       if (marker.value && map.value) {
+    //         marker.value.setLngLat(coordinates.value);
+    //         // map.value.flyTo({ center: coordinates.value });
+    //         map.value.setCenter(coordinates.value);
+    //       }
+    //     }
+    //   }
+    // } else {
+    //   hideMap.value = true;
+    // }
 
     const imagepath = buildImagePath(msg.imagepath);
     imgSrc.value = imagepath + '?jwt=' + store?.state?.token;
@@ -764,18 +703,6 @@ const changeTool = (name: string) => {
 </script>
 
 <style lang="scss" scoped>
-.map-wrap {
-  position: relative;
-  width: 100%;
-  height: 400px;
-}
-
-.map {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-
 .dropdown {
   width: 14rem;
 }
