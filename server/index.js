@@ -33,6 +33,13 @@ const imagesDir = path.join(mediaDir, 'downloads');
 const fragmentsDir = path.join(mediaDir, 'fragments');
 const thumbsDir = path.join(mediaDir, 'thumbnails');
 
+const info = {
+  server: __package.version,
+  commit,
+  unix,
+  dir: path.basename(__dirname),
+};
+
 const nest = (items, id = 0) => items
   .filter((x) => x.parent === id)
   .map((x) => {
@@ -45,23 +52,27 @@ const strategy = new passportJWT.Strategy(
     // jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
     jwtFromRequest: passportJWT.ExtractJwt.fromExtractors([
       passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
-      passportJWT.ExtractJwt.fromUrlQueryParameter('jwt')
+      passportJWT.ExtractJwt.fromUrlQueryParameter('jwt'),
     ]),
     secretOrKey: secret,
   },
-  (jwtPayload, done) => db.getUserDataByID(jwtPayload.sub)
+  (jwtPayload, done) => db
+    .getUserDataByID(jwtPayload.sub)
     .then((user) => done(null, user))
-    .catch((err) => done(err)),
+    .catch((err) => done(err))
 );
 
-const issueToken = (user) => jwt.sign({
-  iss: appName,
-  sub: user.id,
-  iat: new Date().getTime(),
-  exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 1)
-  // iat: Math.floor(Date.now() / 1000),
-  // exp: new Date().setDate(new Date().getDate() + 1),
-}, secret);
+const issueToken = (user) => jwt.sign(
+  {
+    iss: appName,
+    sub: user.id,
+    iat: new Date().getTime(),
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 1,
+    // iat: Math.floor(Date.now() / 1000),
+    // exp: new Date().setDate(new Date().getDate() + 1),
+  },
+  secret
+);
 
 // Telegram sync job → START
 // await tg.sync();
@@ -90,8 +101,12 @@ app.post('/api/user/login', async (req, res) => {
   const userData = await db.getUserData(req.body.email, req.body.password);
   if (userData && Object.keys(userData).length && !userData?.error) {
     console.log(req.body.email, '<SUCCESS>');
+    const settings = await db.getSettings(userData);
     res.json({
-      ...userData, token: issueToken(userData), server: __package.version, commit, unix
+      ...userData,
+      ...info,
+      token: issueToken(userData),
+      settings,
     });
   } else {
     console.log(`login attempt as [${req.body.email}]•[${req.body.password}]►${userData.error}◄`);
@@ -124,7 +139,10 @@ app.get('/api/user/info', auth, async (req, res) => {
   // }
   const settings = await db.getSettings(req.user);
   res.json({
-    ...req.user, server: __package.version, commit, unix, token: issueToken(req.user), settings,
+    ...req.user,
+    ...info,
+    token: issueToken(req.user),
+    settings,
   });
 });
 
@@ -160,7 +178,10 @@ app.get('/api/stats', auth, async (req, res) => {
   const stats = Object.fromEntries(astat.concat(pstat).map((x) => [x.fid, Number(x.count)]));
   const tree = nest(features.map((x) => ({ ...x, num: stats[x.id] })));
   res.json({
-    messages, objects, images, tree
+    messages,
+    objects,
+    images,
+    tree,
   });
 });
 
@@ -187,6 +208,8 @@ app.post('/api/meta', auth, async (req, res) => res.json(await db.setItemMeta(re
 app.post('/api/object', auth, async (req, res) => res.json(await db.setObject(req.body.params, imagesDir, fragmentsDir)));
 
 app.delete('/api/object/:id', auth, async (req, res) => res.json(await db.deleteObject(req.params.id, fragmentsDir)));
+
+app.delete('/api/feature/:id', auth, async (req, res) => res.json(await db.deleteFeature(req.user, req.params)));
 
 app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
 
