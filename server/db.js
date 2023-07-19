@@ -9,6 +9,7 @@ import passGen from 'generate-password';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import GeoJSON from 'geojson';
+import parser from 'ua-parser-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +41,7 @@ const databaseQuery = `SELECT table_name FROM information_schema.columns
 
 const databaseScheme = {
   users: `
-    id        INT GENERATED ALWAYS AS IDENTITY,
+    id        INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username  TEXT NOT NULL,
     firstname TEXT NOT NULL,
     lastname  TEXT NOT NULL,
@@ -108,6 +109,16 @@ const databaseScheme = {
     map_mapbox BOOLEAN default false,
     map_mapbox_key TEXT,
     title TEXT`,
+
+  logs: `
+    id SERIAL PRIMARY KEY,
+    ip TEXT,
+    ua JSON,
+    created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    user_id INT NOT NULL,
+    data JSON,
+    event TEXT NOT NULL,
+    CONSTRAINT fk_logs_users FOREIGN KEY(user_id) REFERENCES users(id)`,
 };
 
 const initQueries = {
@@ -158,6 +169,7 @@ if (tables.length !== Object.keys(databaseScheme).length) {
       tablesResult = await pool.query(databaseQuery);
       console.log('initializing database: done');
     } catch (error) {
+      console.log(error);
       console.log('Rolling back...');
       await pool.query('ROLLBACK');
     }
@@ -747,4 +759,9 @@ export default {
     const data = res.rows;
     return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
   },
+  async writeToLog(req, userId, event, data) {
+    const ua = parser(req.headers['user-agent']);
+    const ip = req.header('x-forwarded-for') || req.socket.remoteAddress;
+    await pool.query('INSERT INTO logs(ip, ua, user_id, event, data) VALUES ($1, $2, $3, $4, $5) RETURNING id', [ip, ua, userId, event, data]);
+  }
 };
