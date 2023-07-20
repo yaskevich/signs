@@ -26,16 +26,18 @@
     "express-fileupload": "^1.4.0",
     "generate-password": "^1.7.0",
     "geojson": "^0.5.0",
-    "jsonwebtoken": "^9.0.0",
+    "jsonwebtoken": "^9.0.1",
     "node-fetch": "^3.3.1",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.1",
-    "sharp": "^0.32.1",
-    "telegram": "^2.17.10"
+    "sharp": "^0.32.3",
+    "telegram": "^2.17.10",
+    "ua-parser-js": "^1.0.35",
+    "whoiser": "^1.17.1"
   },
   "devDependencies": {
-    "eslint": "^8.44.0",
+    "eslint": "^8.45.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.27.5"
   }
