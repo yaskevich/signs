@@ -9,14 +9,15 @@ import passGen from 'generate-password';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import GeoJSON from 'geojson';
-import parser from 'ua-parser-js';
+import { Worker } from 'worker_threads';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config();
 
+dotenv.config();
 sharp.cache(false);
 
+const loggerPath = path.join(__dirname, 'logger.js');
 const saltRounds = 8;
 const passOptions = {
   length: 18,
@@ -110,14 +111,22 @@ const databaseScheme = {
     map_mapbox_key TEXT,
     title TEXT`,
 
+  ips: `
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ip TEXT,
+    whois JSON`,
+
   logs: `
     id SERIAL PRIMARY KEY,
-    ip TEXT,
-    ua JSON,
-    created TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ip_id INT,
+    browser JSON,
+    ua TEXT,
+    saved TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created TIMESTAMP WITH TIME ZONE NOT NULL,
     user_id INT NOT NULL,
     data JSON,
     event TEXT NOT NULL,
+    CONSTRAINT fk_logs_ips FOREIGN KEY(ip_id) REFERENCES ips(id),
     CONSTRAINT fk_logs_users FOREIGN KEY(user_id) REFERENCES users(id)`,
 };
 
@@ -164,7 +173,11 @@ if (tables.length !== Object.keys(databaseScheme).length) {
   try {
     await pool.query('BEGIN');
     try {
-      await Promise.all(Object.entries(databaseScheme).map(async (x) => prepareTable(x)));
+      /* eslint-disable-next-line no-restricted-syntax */
+      for (const table of Object.entries(databaseScheme)) {
+        /* eslint-disable-next-line no-await-in-loop */
+        await await prepareTable(table);
+      }
       await pool.query('COMMIT');
       tablesResult = await pool.query(databaseQuery);
       console.log('initializing database: done');
@@ -759,9 +772,50 @@ export default {
     const data = res.rows;
     return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
   },
-  async writeToLog(req, userId, event, data) {
-    const ua = parser(req.headers['user-agent']);
-    const ip = req.header('x-forwarded-for') || req.socket.remoteAddress;
-    await pool.query('INSERT INTO logs(ip, ua, user_id, event, data) VALUES ($1, $2, $3, $4, $5) RETURNING id', [ip, ua, userId, event, data]);
-  }
+  async sendToLog(req, userId, event, data) {
+    const now = new Date().toISOString();
+    (() => new Worker(loggerPath, {
+      workerData: {
+        now,
+        id: userId,
+        ua: req.headers['user-agent'],
+        ip: req.header('x-forwarded-for') || req.socket.remoteAddress,
+        event,
+        data
+      }
+    }))();
+    // const worker = new Worker('./worker.js', { workerData: 'hello' });
+    // worker.on('message', (res) => {
+    //   console.log('worker get ok', res);
+    // });
+    // worker.on('error', (msg) => {
+    //   console.log('worker get fail', msg);
+    // });
+    // console.log(`'${event}' sent to logs`);
+  },
+  async writeToLog(params) {
+    await pool.query('INSERT INTO logs(created, user_id, ip_id, ua, browser, event, data) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id', params);
+  },
+  async getIpData(ip) {
+    const res = await pool.query('SELECT id FROM ips WHERE ip = $1', [ip]);
+    return res?.rows?.[0];
+  },
+  async addIpData(ip, whois) {
+    const res = await pool.query('INSERT INTO ips(ip, whois) VALUES ($1, $2) RETURNING id', [ip, whois]);
+    return res?.rows?.[0];
+  },
+  async getLogs(user) {
+    if (user?.privs !== 1) {
+      return [];
+    }
+    let data = [];
+    const sql = "select created, user_id, event, whois->'organisation'->'country' as country, whois->'organisation'->'address' as address from logs LEFT join ips on logs.ip_id = ips.id";
+    try {
+      const result = await pool.query(sql);
+      data = result?.rows;
+    } catch (err) {
+      console.error(err);
+    }
+    return data;
+  },
 };
