@@ -77,6 +77,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Map',
     component: () => import('./components/Map.vue'),
   },
+  {
+    path: '/logs',
+    name: 'Logs',
+    component: () => import('./components/Logs.vue'),
+  },
 ];
 
 const scrollBehavior: RouterScrollBehavior = async (to: any, from: any, savedPosition: any) => {
