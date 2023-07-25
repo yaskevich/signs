@@ -101,6 +101,7 @@ app.post('/api/user/login', async (req, res) => {
   const userData = await db.getUserData(req.body.email, req.body.password);
   if (userData && Object.keys(userData).length && !userData?.error) {
     console.log(req.body.email, '<SUCCESS>');
+    await db.sendToLog(req, userData.id, 'login');
     const settings = await db.getSettings(userData);
     res.json({
       ...userData,
@@ -295,6 +296,8 @@ app.get('/api/chats', auth, async (req, res) => res.json(await db.getChats(req?.
 app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req?.user, req.body.params)));
 
 app.get('/api/map', auth, async (req, res) => res.json(await db.getMap()));
+
+app.get('/api/logs', auth, async (req, res) => res.json(await db.getLogs(req.user)));
 
 app.listen(port);
 console.log(`Backend is at port ${port}`);
