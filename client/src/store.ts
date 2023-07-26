@@ -14,6 +14,7 @@ import {
   ListAltOutlined,
   InputOutlined,
   MapOutlined,
+  FormatListBulletedOutlined,
 } from '@vicons/material';
 import { NIcon } from 'naive-ui';
 import { RouterLink, RouteRecordName } from 'vue-router';
@@ -47,7 +48,7 @@ const makeItem = (name: string, title: string, icon: Component) => ({
   label: () => h(RouterLink, { to: { name } }, { default: () => title }),
   key: name,
   icon: renderIcon(icon),
-  show: !(name === 'Settings' && state?.user?.privs !== 1),
+  show: !(['Settings', 'Logs', 'Users'].includes(name) && state?.user?.privs !== 1),
 });
 
 const makeMenu = () => [
@@ -63,6 +64,7 @@ const makeMenu = () => [
       makeItem('Map', 'Map', MapOutlined),
       makeItem('Scheme', 'Scheme', AccountTreeOutlined),
       makeItem('Users', 'Users', PersonSearchOutlined),
+      makeItem('Logs', 'Logs', FormatListBulletedOutlined),
       makeItem('Settings', 'Settings', ListAltOutlined),
     ],
   },
