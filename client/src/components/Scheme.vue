@@ -139,7 +139,11 @@ const renderOption = (e: any) => {
             { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
             { default: () => 'Add item' }
           )
-        : null,
+        : h(
+            NButton,
+            { onClick: () => deleteItem(e.option), size: 'small', secondary: true, type: 'error' },
+            { default: () => 'Delete' }
+          ),
     ],
   });
 };
@@ -149,6 +153,16 @@ const addItem = (inputFeature: IFeature) => {
     feature.value = { code: '', comment: '', title: '', type: '', parent: inputFeature.id } as IFeature;
     feature.value.ref = inputFeature;
     showModal.value = true;
+  }
+};
+
+const deleteItem = async (inputFeature: IFeature) => {
+  if (inputFeature?.id) {
+    console.log('delete feature', inputFeature?.id);
+    const data = await store.deleteById('feature', inputFeature.id);
+    if (data?.id === inputFeature.id) {
+      console.log('item deleted');
+    }
   }
 };
 
