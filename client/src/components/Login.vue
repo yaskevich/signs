@@ -49,6 +49,7 @@ const handleValidateClick = async (e: MouseEvent) => {
     } else {
       store.setUser(data);
       store.initMenu(vuerouter?.name);
+      store.setTitle(data?.settings?.title);
     }
   }
 };
