@@ -82,20 +82,14 @@ const auth = passport.authenticate('jwt', { session: false });
 const app = express();
 
 app.use(fileUpload({ limits: { fileSize: imageFileLimit }, abortOnLimit: true, defParamCharset: 'utf8' }));
-app.use('/api/media', [auth, express.static(mediaDir)]);
-app.use(express.static('public'));
 
 app.use(compression());
 app.set('trust proxy', 1);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(history());
-// app.use(history({
-//   // verbose: true,
-//   rewrites: [
-//     { from: /\/api\/.*$/, to: (context) => context.parsedUrl.pathname }
-//   ]
-// }));
+app.use('/api/media', [auth, express.static(mediaDir)]);
+app.use(express.static('public'));
 
 app.post('/api/user/login', async (req, res) => {
   const userData = await db.getUserData(req.body.email, req.body.password);
