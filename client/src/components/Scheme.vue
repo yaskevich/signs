@@ -1,28 +1,13 @@
 <template>
   <n-card title="Annotation Scheme" :bordered="false" class="minimal">
-    <n-tree
-      v-if="isLoaded"
-      block-line
-      :render-label="renderOption"
-      :data="options"
-      key-field="id"
-      :selectable="false"
-      :cancelable="false"
-      :default-expanded-keys="[1, 2, 4, 5, 6, 50, 51, 61]"
-      @update:selected-keys="handleSelect" />
+    <n-tree v-if="isLoaded" block-line :render-label="renderOption" :data="options" key-field="id" :selectable="false"
+      :cancelable="false" :default-expanded-keys="[1, 2, 4, 5, 6, 50, 51, 61]" @update:selected-keys="handleSelect" />
   </n-card>
-  <n-modal
-    v-model:show="showModal"
-    :style="{ 'max-width': '600px' }"
-    class="custom-card"
-    preset="card"
-    title="Edit the feature"
-    size="huge"
-    :segmented="{ content: 'soft', footer: 'soft' }">
+  <n-modal v-model:show="showModal" :style="{ 'max-width': '600px' }" class="custom-card" preset="card"
+    title="Edit the feature" size="huge" :segmented="{ content: 'soft', footer: 'soft' }">
     <n-form>
-      <n-text strong v-if="Boolean(feature?.id)"
-        >Type: {{ (itemTypes.find(x => x.value === feature.type) || itemTypes[0])?.label }}</n-text
-      >
+      <n-text strong v-if="Boolean(feature?.id)">Type: {{ (itemTypes.find(x => x.value === feature.type) ||
+        itemTypes[0])?.label }}</n-text>
 
       <n-form-item label="Type" feedback="Cannot be changed if it is set" v-else>
         <n-select v-model:value="feature.type" :options="itemTypes" />
@@ -133,17 +118,18 @@ const renderOption = (e: any) => {
       store?.state?.user?.privs === 1
         ? h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' })
         : null,
-      store?.state?.user?.privs === 1 && ['single', 'multi'].includes(e?.option?.type)
-        ? h(
+      store?.state?.user?.privs === 1 ?
+        ['single', 'multi'].includes(e?.option?.type)
+          ? h(
             NButton,
             { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
             { default: () => 'Add item' }
           )
-        : h(
+          : h(
             NButton,
             { onClick: () => deleteItem(e.option), size: 'small', secondary: true, type: 'error' },
             { default: () => 'Delete' }
-          ),
+          ) : null,
     ],
   });
 };
