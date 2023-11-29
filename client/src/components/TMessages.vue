@@ -122,7 +122,7 @@
                     </template>
                   </template>
                   <template v-else>
-                    {{ extractDate(msg?.data?.meta?.image?.ModifyDate || msg.created) }}
+                    {{ extractDate(msg?.data?.meta?.Image?.DateTime || msg.created) }}
                   </template>
                 </n-tag>
               </template>
@@ -131,8 +131,8 @@
                 <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
                 <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
               </template>
-              <div v-if="msg?.data?.meta?.image?.ModifyDate">
-                EXIF: {{ extractDate(msg.data.meta.image.ModifyDate) }}
+              <div v-if="msg?.data?.meta?.Image?.DateTime ">
+                EXIF: {{ extractDate(msg.data.meta.Image.DateTime) }}
               </div>
               <div>DB: {{ extractDate(msg?.created) }}</div>
             </n-tooltip>
@@ -324,7 +324,7 @@ const extractDate = (timestamp: string) => {
       ' ' +
       d.substring(12, 20) +
       ' (' +
-      d.substring(24, 26) +
+      (d.substring(24, 26) || "L") +
       ')'
     );
   }
