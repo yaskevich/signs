@@ -3,10 +3,7 @@
     <template id="main" v-if="loggedIn">
       <n-layout position="absolute">
         <n-layout-header id="nav">
-          <n-menu
-            v-model:value="activeKey"
-            mode="horizontal"
-            :options="store.state.nav.options"
+          <n-menu v-model:value="activeKey" mode="horizontal" :options="store.state.nav.options"
             @update:value="processMenu" />
         </n-layout-header>
         <n-layout-content style="padding-bottom: 2rem">
@@ -25,12 +22,7 @@
       </n-layout>
     </template>
     <div v-else style="max-width: 300px; margin: auto">
-      <n-tabs
-        default-value="signin"
-        size="large"
-        animated
-        justify-content="center"
-        style="margin: 0 -4px"
+      <n-tabs default-value="signin" size="large" animated justify-content="center" style="margin: 0 -4px"
         pane-style="padding-left: 4px; padding-right: 4px; box-sizing: border-box;">
         <n-tab-pane name="signin" tab="Log in">
           <Login />
@@ -54,11 +46,14 @@ import store from './store';
 import Login from './components/Login.vue';
 import Register from './components/Register.vue';
 import { CameraAltFilled } from '@vicons/material';
+import { useHead } from '@unhead/vue'
 
 const vuerouter = useRoute();
 const activeKey = ref<string | null>(null); // vuerouter?.name||'Home'
 const loggedIn = computed(() => store?.state?.token?.length);
 const access = ref(false);
+
+useHead({ title: computed(() => store.state.title) });
 
 const processMenu = async (key: string, item: MenuOption) => {
   if (key === 'logout') {
@@ -72,7 +67,8 @@ onMounted(async () => {
   await store.getUser();
   if (store?.state?.user?.username) {
     store.initMenu(vuerouter?.name);
-    store.setTitle(store?.state?.user?.settings?.title);
+    store.state.title = store?.state?.user?.settings?.title ||
+      store.state?.user?.dir || '';
   } else {
     const result = await store.getUnauthorized('registration');
     access.value = result.status;
