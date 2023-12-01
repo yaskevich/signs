@@ -1,7 +1,7 @@
-import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Worker } from 'worker_threads';
 import sharp from 'sharp';
 import exif from 'exif-reader';
 import bcrypt from 'bcrypt';
@@ -9,7 +9,7 @@ import passGen from 'generate-password';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import GeoJSON from 'geojson';
-import { Worker } from 'worker_threads';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -252,8 +252,18 @@ export default {
     const res = await pool.query('select count(distinct(data_id))::int from objects where data_id is not null');
     return res.rows[0].count;
   },
-  async getMessages(off, batch) {
-    const res = await pool.query(`select messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated from messages LEFT JOIN (SELECT objects.data_id, count(objects.data_id) FROM objects GROUP BY objects.data_id) as anns ON messages.id = anns.data_id order by messages.id OFFSET ${off} LIMIT ${batch}`);
+  async getMessages(user, off, batch) {
+    const res = await pool.query(`
+    SELECT messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated
+    FROM messages
+    LEFT JOIN
+     (SELECT objects.data_id, count(objects.data_id)
+        FROM objects
+        GROUP BY objects.data_id) as anns
+    ON messages.id = anns.data_id 
+    ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
+    ORDER by messages.id
+    OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
   async getMessage(id) {
@@ -334,7 +344,7 @@ export default {
     const res = await pool.query('select * from chats');
     return res.rows;
   },
-  async getObjects(params) {
+  async getObjects(user, params) {
     const offset = params?.offset || 0;
     const limit = params?.limit || 100;
     const objectFeatures = params?.objects;
@@ -364,7 +374,7 @@ export default {
 
     const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${imageFeatures?.length ? sqlJoin : ''}`;
 
-    // console.log(countQuery);
+    console.log(countQuery);
     const count = await pool.query(countQuery);
 
     const sql = `
@@ -372,10 +382,10 @@ export default {
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
+      ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
       ORDER BY ann.id, ann.eid
       OFFSET $1 LIMIT $2`;
 
-    // console.log(sql);
     const res = await pool.query(sql, [offset, limit]);
 
     return {
@@ -666,7 +676,10 @@ export default {
   },
   async getSettings(user) {
     let data = {};
-    const sql = `SELECT ${user?.privs === 1 ? '*' : 'registration_open'} FROM settings`;
+    // eslint-disable-next-line no-nested-ternary
+    const cols = user?.privs ? user?.privs === 1 ? '*' : 'title' : 'registration_open';
+
+    const sql = `SELECT ${cols} FROM settings`;
     try {
       const result = await pool.query(sql);
       data = result?.rows?.[0];
@@ -690,7 +703,7 @@ export default {
         user: userId, title: fileTitle, meta: exifData, size: fileSize
       };
       // console.log('image meta', data);
-      const gps = data?.meta?.gps;
+      const gps = data?.meta?.gps || data?.meta?.GPSInfo;
       // console.log('meta', data?.meta);
       const settingsResult = await pool.query('SELECT * FROM settings');
       const settings = settingsResult.rows.shift();
@@ -767,8 +780,8 @@ export default {
     const result = await pool.query(sql, Object.values(query));
     return result?.rowCount;
   },
-  async getMap() {
-    const res = await pool.query('select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id');
+  async getMap(user) {
+    const res = await pool.query(`select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}`);
     const data = res.rows;
     return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
   },
@@ -809,7 +822,7 @@ export default {
       return [];
     }
     let data = [];
-    const sql = "select created, user_id, event, whois->'organisation'->'country' as country, whois->'organisation'->'address' as address from logs LEFT join ips on logs.ip_id = ips.id";
+    const sql = "select created, user_id, event, whois->'organisation'->'country' as country, whois->'organisation'->'address' as address from logs LEFT join ips on logs.ip_id = ips.id ORDER BY created DESC";
     try {
       const result = await pool.query(sql);
       data = result?.rows;
