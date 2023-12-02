@@ -530,10 +530,10 @@ export default {
     }
     return data;
   },
-  async elevateUser(userId, currentUser) {
-    console.log('privileges elevation request for', userId, 'by', currentUser.id, currentUser.privs === 1);
+  async elevateUser(user, userId) {
+    console.log('privileges elevation request for', userId, 'by', user.id, user.privs === 1);
     let data = {};
-    if (userId && currentUser.privs === 1) {
+    if (userId && user.privs === 1) {
       try {
         const sql = 'UPDATE users SET privs = 1 WHERE id = $1 RETURNING id';
         const result = await pool.query(sql, [userId]);
@@ -770,15 +770,18 @@ export default {
   async addTelegramChat(type, tgId, username, firstname, lastname) {
     await pool.query('INSERT INTO chats(type, eid, username, firstname, lastname) VALUES ($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT chats_tg_id_key DO NOTHING RETURNING id', [type, tgId, username, firstname, lastname]);
   },
-  async updateSettings(params) {
-    const columns = databaseScheme.settings.split(',').map((x) => x.trim().split(' ').shift());
-    const query = Object.fromEntries(
-      Object.entries(params).filter(([key]) => columns.includes(key))
-    );
-    // console.log('settings', query);
-    const sql = `UPDATE settings SET ${Object.keys(query).map((x, i) => `${x} = $${i + 1}`)}`;
-    const result = await pool.query(sql, Object.values(query));
-    return result?.rowCount;
+  async updateSettings(user, params) {
+    if (user.privs === 1) {
+      const columns = databaseScheme.settings.split(',').map((x) => x.trim().split(' ').shift());
+      const query = Object.fromEntries(
+        Object.entries(params).filter(([key]) => columns.includes(key))
+      );
+      // console.log('settings', query);
+      const sql = `UPDATE settings SET ${Object.keys(query).map((x, i) => `${x} = $${i + 1}`)}`;
+      const result = await pool.query(sql, Object.values(query));
+      return result?.rowCount;
+    }
+    return 0;
   },
   async getMap(user) {
     const res = await pool.query(`select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}`);
