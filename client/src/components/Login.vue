@@ -8,11 +8,7 @@
         </n-form-item>
 
         <n-form-item path="password" label="Password">
-          <n-input
-            v-model:value="formValue.password"
-            type="password"
-            @keydown.enter.prevent
-            autocomplete="on"
+          <n-input v-model:value="formValue.password" type="password" @keydown.enter.prevent autocomplete="on"
             show-password-on="click" />
         </n-form-item>
 
@@ -49,7 +45,9 @@ const handleValidateClick = async (e: MouseEvent) => {
     } else {
       store.setUser(data);
       store.initMenu(vuerouter?.name);
-      store.setTitle(data?.settings?.title);
+      if (data?.settings?.title) {
+        store.state.title = data.settings.title;
+      }
     }
   }
 };
