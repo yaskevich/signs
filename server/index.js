@@ -142,11 +142,11 @@ app.get('/api/user/info', auth, async (req, res) => {
 });
 
 app.post('/api/user/activate', auth, async (req, res) => {
-  res.json(await db.changeActivationStatus(req.body?.id, req.user, Boolean(req.body?.status)));
+  res.json(await db.changeActivationStatus(req.user, req.body?.id, Boolean(req.body?.status)));
 });
 
 app.post('/api/user/elevate', auth, async (req, res) => {
-  res.json(await db.elevateUser(req.body?.id, req.user));
+  res.json(await db.elevateUser(req.user, req.body?.id));
 });
 
 app.post('/api/user/update', auth, async (req, res) => {
@@ -183,7 +183,7 @@ app.get('/api/stats', auth, async (req, res) => {
 app.get('/api/messages', auth, async (req, res) => {
   // console.log(req.query);
   const count = await db.getMessagesCount();
-  const data = await db.getMessages(Number(req.query.off), Number(req.query.batch));
+  const data = await db.getMessages(req.user, Number(req.query.off), Number(req.query.batch));
   const usersList = await db.getChats(req.user);
   const usersDict = Object.fromEntries(usersList.map((x) => [x.eid, x]));
   return res.json({
@@ -194,19 +194,19 @@ app.get('/api/messages', auth, async (req, res) => {
   });
 });
 
-app.post('/api/objects', auth, async (req, res) => res.json(await db.getObjects(req.body)));
+app.post('/api/objects', auth, async (req, res) => res.json(await db.getObjects(req.user, req.body)));
 
-app.get('/api/attached', auth, async (req, res) => res.json(await db.getAttachedObjects(req.query.id)));
+app.get('/api/attached', auth, async (req, res) => res.json(await db.getAttachedObjects(req.user, req.query.id)));
 
-app.post('/api/meta', auth, async (req, res) => res.json(await db.setItemMeta(req.body.params)));
+app.post('/api/meta', auth, async (req, res) => res.json(await db.setItemMeta(req.user, req.body.params)));
 
-app.post('/api/object', auth, async (req, res) => res.json(await db.setObject(req.body.params, imagesDir, fragmentsDir)));
+app.post('/api/object', auth, async (req, res) => res.json(await db.setObject(req.user, req.body.params, imagesDir, fragmentsDir)));
 
-app.delete('/api/object/:id', auth, async (req, res) => res.json(await db.deleteObject(req.params.id, fragmentsDir)));
+app.delete('/api/object/:id', auth, async (req, res) => res.json(await db.deleteObject(req.user, req.params.id, fragmentsDir)));
 
 app.delete('/api/feature/:id', auth, async (req, res) => res.json(await db.deleteFeature(req.user, req.params)));
 
-app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(Number(req.query.id))));
+app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(req.user, Number(req.query.id))));
 
 // app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
@@ -244,7 +244,7 @@ app.post('/api/upload', auth, async (req, res) => {
           errorMessage = 'File copy error';
           status = 500;
         }
-        const results = await db.addImage(req.user.id, filePath, thumbsPath, fileName, fileTitle, fileSize);
+        const results = await db.addImage(req.user, filePath, thumbsPath, fileName, fileTitle, fileSize);
         [id, errorMessage] = results;
         if (!id) {
           errorMessage = errorMessage || 'Database error';
@@ -266,11 +266,11 @@ app.post('/api/upload', auth, async (req, res) => {
 });
 
 app.post('/api/unload', auth, async (req, res) => {
-  res.json(await db.removeImage(req.user.id, req.body, imagesDir, thumbsDir));
+  res.json(await db.removeImage(req.user, req.body, imagesDir, thumbsDir));
 });
 
 app.post('/api/settings', auth, async (req, res) => {
-  res.json(await db.updateSettings(req.body));
+  res.json(await db.updateSettings(req.user, req.body));
 });
 
 app.get('/api/registration', async (req, res) => {
@@ -283,13 +283,13 @@ app.get('/api/users', auth, async (req, res) => {
   res.json(users);
 });
 
-app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings(req?.user)));
+app.get('/api/settings', auth, async (req, res) => res.json(await db.getSettings(req.user)));
 
-app.get('/api/chats', auth, async (req, res) => res.json(await db.getChats(req?.user)));
+app.get('/api/chats', auth, async (req, res) => res.json(await db.getChats(req.user)));
 
-app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req?.user, req.body.params)));
+app.post('/api/feature', auth, async (req, res) => res.json(await db.updateFeature(req.user, req.body.params)));
 
-app.get('/api/map', auth, async (req, res) => res.json(await db.getMap()));
+app.get('/api/map', auth, async (req, res) => res.json(await db.getMap(req.user)));
 
 app.get('/api/logs', auth, async (req, res) => res.json(await db.getLogs(req.user)));
 
