@@ -13,14 +13,8 @@
       </n-tooltip>
     </template>
     <n-space vertical>
-      <n-upload
-        :multiple="mode"
-        directory-dnd
-        action="/api/upload/"
-        :headers="headers"
-        @before-upload="beforeUpload"
-        @finish="imageLoaded"
-        @error="handleError">
+      <n-upload :multiple="mode" directory-dnd action="/api/upload/" :headers="headers" @before-upload="beforeUpload"
+        @finish="imageLoaded" @error="handleError">
         <n-upload-dragger>
           <div style="margin-bottom: 12px">
             <!-- <n-button size="small" color="#2080f0">
@@ -39,13 +33,28 @@
           </n-p>
         </n-upload-dragger>
       </n-upload>
+
+      <div v-for="item in options">
+        ■ {{ item.title }}
+        <div>
+          <n-radio-group name="item.key" v-model:value="selected[item.id]">
+            <n-space>
+              <n-radio @change="clickRadio(item.id, item2.id)" v-for="(item2, index2) in item.children" :key="item2.key"
+                :value="item2.id" :label="item2.title" />
+            </n-space>
+          </n-radio-group>
+        </div>
+      </div>
+      <n-space>
+        <n-button @click="clear">Clear properties</n-button>
+      </n-space>
     </n-space>
   </n-card>
 </template>
 
 <script setup lang="ts">
 import { FileUploadFilled } from '@vicons/material';
-import { CSSProperties, ref } from 'vue';
+import { CSSProperties, ref, onBeforeMount, reactive } from 'vue';
 import store from '../store';
 import type { UploadInst, UploadFileInfo, MessageType } from 'naive-ui';
 import { useMessage } from 'naive-ui';
@@ -54,6 +63,20 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 const message = useMessage();
 const mode = ref(false);
+
+const options = ref();
+const selected = ref({} as keyable)
+
+const clickRadio = (parent: number, id: number) => {
+  console.log(parent, id);
+  // selected[parent] = id;
+};
+
+const clear = () => {
+  for (const [key] of Object.entries(selected.value)) {
+    selected.value[key] = null;
+  }
+};
 
 const railStyle = ({ focused, checked }: { focused: boolean; checked: boolean }) => {
   const style = {} as CSSProperties;
@@ -110,4 +133,12 @@ const handleError = (options: { file: UploadFileInfo; event?: Event }) => {
     message.error(datum.error);
   }
 };
+
+onBeforeMount(async () => {
+  const featuresData = await store.get('features');
+  options.value = store.nest(featuresData)?.shift()?.children;
+  console.log(options.value);
+});
+
+
 </script>
