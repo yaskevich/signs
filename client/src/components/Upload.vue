@@ -13,8 +13,9 @@
       </n-tooltip>
     </template>
     <n-space vertical>
-      <n-upload :multiple="mode" directory-dnd action="/api/upload/" :headers="headers" @before-upload="beforeUpload"
-        @finish="imageLoaded" @error="handleError">
+      <n-upload :multiple="mode" directory-dnd action="/api/upload/" :headers="headers"
+        :data="{ 'features': Object.values(selected) }" @before-upload="beforeUpload" @finish="imageLoaded"
+        @error="handleError">
         <n-upload-dragger>
           <div style="margin-bottom: 12px">
             <!-- <n-button size="small" color="#2080f0">
