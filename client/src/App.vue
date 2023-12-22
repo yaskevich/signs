@@ -1,21 +1,23 @@
 <template>
   <n-message-provider>
     <template id="main" v-if="loggedIn">
-      <n-layout position="absolute">
-        <n-layout-header id="nav">
-          <n-menu v-model:value="activeKey" mode="horizontal" :options="store.state.nav.options"
-            @update:value="processMenu" />
+      <n-layout>
+        <n-layout-header class="header">
+          <n-space justify="center">
+            <n-menu v-model:value="activeKey" mode="horizontal" :options="store.state.nav.options"
+              @update:value="processMenu" />
+          </n-space>
         </n-layout-header>
-        <n-layout-content style="padding-bottom: 2rem">
+        <n-layout-content style="padding-bottom: 3rem">
           <router-view />
         </n-layout-content>
-        <n-layout-footer position="absolute" style="padding: 0.25rem">
+        <n-layout-footer style="padding: 0.25rem">
           <n-space justify="center">
             <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
               <template #icon>
                 <n-icon :component="CameraAltFilled" />
               </template>
-              2020–2023 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
+              2020–2024 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
             </n-button>
           </n-space>
         </n-layout-footer>
@@ -65,6 +67,8 @@ const processMenu = async (key: string, item: MenuOption) => {
 
 onMounted(async () => {
   await store.getUser();
+  console.log(vuerouter?.name);
+
   if (store?.state?.user?.username) {
     store.initMenu(vuerouter?.name);
     store.state.title = store?.state?.user?.settings?.title ||
@@ -84,9 +88,8 @@ onMounted(async () => {
   color: #2c3e50;
 }
 
-#nav {
+.header {
   padding: 30px;
-  text-align: center;
 
   a {
     color: #2c3e50;
