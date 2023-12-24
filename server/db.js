@@ -266,7 +266,7 @@ export default {
     OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
-  async getMessage(id) {
+  async getMessage(user, id) {
     const res = await pool.query('select * from messages where imagepath <> \'\' AND id = $1', [id]);
     const nextMsg = await pool.query('SELECT id as next FROM messages where imagepath <> \'\' AND id > $1 ORDER BY id ASC LIMIT 1', [id]);
     const prevMsg = await pool.query('SELECT id as prev FROM messages where imagepath <> \'\' AND id < $1 ORDER BY id DESC LIMIT 1', [id]);
@@ -284,7 +284,7 @@ export default {
 
   //   return data;
   // },
-  async setItemMeta(datum) {
+  async setItemMeta(user, datum) {
     let data = {};
     // console.log(datum);
     const res = await pool.query('UPDATE messages SET features = $2, geonote = $3, note = $4 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
@@ -392,7 +392,7 @@ export default {
       count: count?.rows?.shift(), selection: res.rows, offset, limit
     };
   },
-  async getAttachedObjects(id) {
+  async getAttachedObjects(user, id) {
     let data = [];
     const dataId = Number(id);
     if (id) {
@@ -474,7 +474,7 @@ export default {
     // console.log(`batch: ${secs}s`);
     return secs;
   },
-  async setObject(params, imageDir, fragmentsDir) {
+  async setObject(user, params, imageDir, fragmentsDir) {
     let data = {};
     let id = Number(params?.id);
     try {
@@ -495,7 +495,7 @@ export default {
     }
     return data;
   },
-  async deleteObject(id, fragmentsDir) {
+  async deleteObject(user, id, fragmentsDir) {
     console.log('DELETE request for', id);
     let data = {};
     try {
@@ -516,10 +516,10 @@ export default {
     }
     return data;
   },
-  async changeActivationStatus(userId, currentUser, status) {
-    console.log('activation request:', userId, 'by', currentUser.id);
+  async changeActivationStatus(user, userId, status) {
+    console.log('activation request:', userId, 'by', user.id);
     let data = {};
-    if (userId && currentUser.privs === 1) {
+    if (userId && user.privs === 1) {
       try {
         const sql = 'UPDATE users SET activated = $2 WHERE id = $1 RETURNING id';
         const result = await pool.query(sql, [userId, status]);
@@ -688,7 +688,7 @@ export default {
     }
     return data;
   },
-  async addImage(userId, filePath, thumbsPath, fileName, fileTitle, fileSize) {
+  async addImage(user, filePath, thumbsPath, fileName, fileTitle, fileSize) {
     const toDec = (dms, dir) => dms.map((x, i) => x / (60 ** i)).reduce((x, i) => x + i) * (dir > 'O' ? -1 : 1); // S and W > N and E
     // console.log('here', userId, filePath, fileName, fileTitle, fileSize);
     let id;
@@ -700,7 +700,7 @@ export default {
       const exifBuf = meta.exif;
       const exifData = exifBuf ? exif(exifBuf) : {};
       const data = {
-        user: userId, title: fileTitle, meta: exifData, size: fileSize
+        user: user?.id, title: fileTitle, meta: exifData, size: fileSize
       };
       // console.log('image meta', data);
       const gps = data?.meta?.gps || data?.meta?.GPSInfo;
@@ -825,7 +825,7 @@ export default {
       return [];
     }
     let data = [];
-    const sql = "select created, user_id, event, whois->'organisation'->'country' as country, whois->'organisation'->'address' as address from logs LEFT join ips on logs.ip_id = ips.id ORDER BY created DESC";
+    const sql = "select created, user_id, event, whois->'country' as country, case when whois->'organisation'->'address' is not null then whois->'organisation'->'address' else whois->'descr' end as address from logs LEFT join ips on logs.ip_id = ips.id ORDER BY created DESC";
     try {
       const result = await pool.query(sql);
       data = result?.rows;
