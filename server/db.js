@@ -688,7 +688,7 @@ export default {
     }
     return data;
   },
-  async addImage(user, filePath, thumbsPath, fileName, fileTitle, fileSize) {
+  async addImage(user, filePath, thumbsPath, fileName, fileTitle, fileSize, props) {
     const toDec = (dms, dir) => dms.map((x, i) => x / (60 ** i)).reduce((x, i) => x + i) * (dir > 'O' ? -1 : 1); // S and W > N and E
     // console.log('here', userId, filePath, fileName, fileTitle, fileSize);
     let id;
@@ -730,7 +730,7 @@ export default {
           fs.unlinkSync(filePath);
         }
       } else {
-        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote) VALUES($1, $2, $3, $4) RETURNING id', [fileName, JSON.stringify(data), loc, geonote]);
+        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, features) VALUES($1, $2, $3, $4, $5) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, props || null]);
         id = result?.rows?.shift()?.id;
         await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
       }
