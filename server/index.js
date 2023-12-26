@@ -217,9 +217,11 @@ app.post('/api/upload', auth, async (req, res) => {
   let fileName = '';
   let id;
   let errorMessage;
-  // console.log('body', req.body);
+  const { features } = req.body;
+  // console.log('body features', features);
   if (Object.keys(req.files).length) {
     // console.log(Object.keys(req.files.file));
+    // console.log(req.files.file.data);
     const img = req.files.file;
     const fileTitle = path.parse(img.name).name;
     const fileSize = img.size;
@@ -244,7 +246,7 @@ app.post('/api/upload', auth, async (req, res) => {
           errorMessage = 'File copy error';
           status = 500;
         }
-        const results = await db.addImage(req.user, filePath, thumbsPath, fileName, fileTitle, fileSize);
+        const results = await db.addImage(req.user, filePath, thumbsPath, fileName, fileTitle, fileSize, features);
         [id, errorMessage] = results;
         if (!id) {
           errorMessage = errorMessage || 'Database error';
