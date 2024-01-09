@@ -14,8 +14,8 @@
     </template>
     <n-space vertical>
       <n-upload :multiple="mode" directory-dnd action="/api/upload/" :headers="headers"
-        :data="{ 'features': Object.values(selected) }" @before-upload="beforeUpload" @finish="imageLoaded"
-        @error="handleError">
+        :data="{ 'features': JSON.stringify(Object.values(selected).map(x => ({ id: x, value: true }))) }"
+        @before-upload="beforeUpload" @finish="imageLoaded" @error="handleError">
         <n-upload-dragger>
           <div style="margin-bottom: 12px">
             <!-- <n-button size="small" color="#2080f0">
