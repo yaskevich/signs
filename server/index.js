@@ -8,6 +8,8 @@ import passport from 'passport';
 import passportJWT from 'passport-jwt';
 import history from 'connect-history-api-fallback';
 import fileUpload from 'express-fileupload';
+import mime from 'mime';
+import { createHash } from 'crypto';
 
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -19,6 +21,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const __package = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const imageExtensions = { 'image/jpeg': 'jpg', 'image/png': 'png' };
 
 // environment variables
 const port = process.env.PORT || 8080;
@@ -32,6 +35,7 @@ const mediaDir = path.join(__dirname, 'media');
 const imagesDir = path.join(mediaDir, 'downloads');
 const fragmentsDir = path.join(mediaDir, 'fragments');
 const thumbsDir = path.join(mediaDir, 'thumbnails');
+const importDir = path.join(__dirname, 'import');
 
 const info = {
   server: __package.version,
@@ -77,6 +81,49 @@ const issueToken = (user) => jwt.sign(
 // Telegram sync job → START
 // await tg.sync();
 // Telegram sync job → END
+
+// Directory sync start
+if (fs.existsSync(importDir)) {
+  const files = fs.readdirSync(importDir);
+  // eslint-disable-next-line no-restricted-syntax
+  for (const file of files) {
+    const importFilePath = path.join(importDir, file);
+    const buff = fs.readFileSync(importFilePath);
+    const md5 = createHash('md5').update(buff).digest('hex');
+    const mimeType = mime.getType(importFilePath);
+    if (mimeType in imageExtensions) {
+      const ext = imageExtensions[mimeType];
+      const fileName = `${md5}.${ext}`;
+      const filePath = path.join(imagesDir, fileName);
+      const thumbsPath = path.join(thumbsDir, fileName);
+      const fileTitle = path.parse(importFilePath).name;
+      const stats = fs.statSync(importFilePath);
+      const fileSize = stats.size;
+
+      console.log(fileTitle, fileName);
+
+      if (fs.existsSync(filePath)) {
+        console.log('File to be imported already exists');
+      } else {
+        try {
+          fs.renameSync(importFilePath, filePath);
+          // eslint-disable-next-line no-await-in-loop
+          const results = await db.addImage({ id: 1 }, filePath, thumbsPath, fileName, fileTitle, fileSize, null);
+          const [id, errorMessage] = results;
+          if (id) {
+            console.log(`OK: ${file}`);
+          } else {
+            console.log(errorMessage || 'Database error');
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    // break;
+    }
+  }
+}
+// Directory sync end
 passport.use(strategy);
 const auth = passport.authenticate('jwt', { session: false });
 const app = express();
@@ -227,7 +274,7 @@ app.post('/api/upload', auth, async (req, res) => {
     const fileSize = img.size;
 
     if (['image/jpeg', 'image/png'].includes(img.mimetype)) {
-      const ext = { 'image/jpeg': 'jpg', 'image/png': 'png' }[img.mimetype];
+      const ext = imageExtensions[img.mimetype];
       // console.log("img:", img.md5, title, ext);
       // fs.mkdirSync(currentDir, { recursive: true });
       fileName = `${img.md5}.${ext}`;
