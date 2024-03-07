@@ -7,7 +7,7 @@
     title="Edit the feature" size="huge" :segmented="{ content: 'soft', footer: 'soft' }">
     <n-form>
       <n-text strong v-if="Boolean(feature?.id)">Type: {{ (itemTypes.find(x => x.value === feature.type) ||
-        itemTypes[0])?.label }}</n-text>
+    itemTypes[0])?.label }}</n-text>
 
       <n-form-item label="Type" feedback="Cannot be changed if it is set" v-else>
         <n-select v-model:value="feature.type" :options="itemTypes" />
@@ -102,6 +102,9 @@ const chooseIcon = (item: IFeature) => {
 
 const renderOption = (e: any) => {
   //   console.log(e);
+  if (e?.option?.deleted) {
+    return h('span', { class: 'deleted' })
+  }
   return h(NSpace, null, {
     default: () => [
       h(
@@ -115,21 +118,17 @@ const renderOption = (e: any) => {
           icon: () => h(NIcon, {}, { default: () => h(chooseIcon(e.option)) }),
         }
       ),
-      store?.state?.user?.privs === 1
-        ? h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' })
-        : null,
-      store?.state?.user?.privs === 1 ?
-        ['single', 'multi'].includes(e?.option?.type)
-          ? h(
-            NButton,
-            { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
-            { default: () => 'Add item' }
-          )
-          : h(
-            NButton,
-            { onClick: () => deleteItem(e.option), size: 'small', secondary: true, type: 'error' },
-            { default: () => 'Delete' }
-          ) : null,
+      store?.state?.user?.privs === 1 && h(NButton, { onClick: () => handleSelect(e.option), size: 'small' }, { default: () => 'Edit' }),
+      store?.state?.user?.privs === 1 && ['single', 'multi'].includes(e?.option?.type) && h(
+        NButton,
+        { onClick: () => addItem(e.option), size: 'small', secondary: true, type: 'warning' },
+        { default: () => 'Add item' }
+      ),
+      store?.state?.user?.privs === 1 && (!['single', 'multi'].includes(e?.option?.type) || !e.option?.children) && h(
+        NButton,
+        { onClick: () => deleteItem(e.option), size: 'small', secondary: true, type: 'error' },
+        { default: () => 'Delete' }
+      ),
     ],
   });
 };
@@ -148,6 +147,7 @@ const deleteItem = async (inputFeature: IFeature) => {
     const data = await store.deleteById('feature', inputFeature.id);
     if (data?.id === inputFeature.id) {
       console.log('item deleted');
+      inputFeature.deleted = true;
     }
   }
 };
@@ -206,3 +206,9 @@ onBeforeMount(async () => {
   isLoaded.value = true;
 });
 </script>
+
+<style>
+.n-tree-node-wrapper:has(.deleted) {
+  display: none;
+}
+</style>
