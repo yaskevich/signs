@@ -176,9 +176,9 @@
 
         <n-space justify="space-between">
           <!-- lat lon -->
-          <n-tag size="large" v-if="coordinates?.[0] && coordinates?.[1]" type="info"
-            >{{ coordinates[1] }} {{ coordinates[0] }}</n-tag
-          >
+          <n-tag size="large" v-if="coordinates?.[0] && coordinates?.[1]" type="info">{{ coordinates[1] }} {{
+        coordinates[0]
+      }}</n-tag>
           <n-button type="warning"> Enable editing </n-button>
         </n-space>
       </n-form>
@@ -211,7 +211,7 @@ import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
 import { ArrowBackOutlined, ArrowForwardOutlined } from '@vicons/material';
 import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { StyleSpecification, ResourceTypeEnum, MapOptions } from 'maplibre-gl';
+import type { StyleSpecification, ResourceType, MapOptions } from 'maplibre-gl';
 import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
 import { DataObjectOutlined } from '@vicons/material';
 
@@ -223,7 +223,7 @@ const item = ref({} as IMessage);
 const imgSrc = ref('');
 const imgRef = ref();
 const anno = ref();
-const drawingTool = ref('rect');
+const drawingTool = ref('polygon');
 // const featuresHash = reactive({} as keyable);
 const featuresTree = reactive([] as Array<IFeature>);
 // const featuresList = reactive([] as Array<IFeature>);
@@ -374,7 +374,7 @@ const initAnnotorius = () => {
     allowEmpty: true,
   });
   TiltedBoxPlugin(anno.value);
-  // anno.value.setDrawingTool('rect');
+  anno.value.setDrawingTool(drawingTool.value);
   anno.value.clearAuthInfo();
   anno.value
     .on('updateAnnotation', function (annotation: any, previous: any) {
@@ -497,14 +497,14 @@ const buildWebAnno = (aId: number, shape: string, geometry: string, path: string
     selector:
       shape === 'rect'
         ? {
-            type: 'FragmentSelector',
-            conformsTo: 'http://www.w3.org/TR/media-frags/',
-            value: `xywh=pixel:${geometry}`,
-          }
+          type: 'FragmentSelector',
+          conformsTo: 'http://www.w3.org/TR/media-frags/',
+          value: `xywh=pixel:${geometry}`,
+        }
         : {
-            type: 'SvgSelector',
-            value: `<svg><polygon points="${geometry}"></polygon></svg>`,
-          },
+          type: 'SvgSelector',
+          value: `<svg><polygon points="${geometry}"></polygon></svg>`,
+        },
   },
 });
 
@@ -602,6 +602,11 @@ const buildAnnotationForm = async (init: boolean = false) => {
           anno.value.selectAnnotation(requestedObjectId);
         }, 500);
       }
+    } else {
+      anno.value.setAnnotations([]);
+      cleanFeatures();
+      level.value = 0;
+      Object.assign(selectedObject, { id: null, content: '' });
     }
   }
 };
@@ -706,6 +711,7 @@ const changeTool = (name: string) => {
 .dropdown {
   width: 14rem;
 }
+
 .country-item {
   img {
     width: 17px;
@@ -716,18 +722,22 @@ const changeTool = (name: string) => {
 :deep(.r6o-editor) {
   width: 80%;
 }
+
 :deep(.a9s-annotation.selected .a9s-inner) {
   stroke: #ff00e3;
   stroke-width: 5px;
 }
+
 :deep(.a9s-selection .a9s-inner) {
   stroke: #ff00e3;
   stroke-width: 5px;
 }
+
 .note {
   margin-left: -15px;
   min-width: 60px;
 }
+
 .hidden {
   display: none;
 }
