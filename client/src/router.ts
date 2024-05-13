@@ -16,6 +16,11 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('./components/Home.vue'),
   },
   {
+    path: '/sets',
+    name: 'Sets',
+    component: () => import('./components/Sets.vue'),
+  },
+  {
     path: '/upload',
     name: 'Upload',
     // component: Upload,
