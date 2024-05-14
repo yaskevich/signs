@@ -86,7 +86,7 @@ const databaseScheme = {
 
   chats: `
     id        INT GENERATED ALWAYS AS IDENTITY,
-    eid       BIGINT unique,
+    eid       BIGINT UNIQUE,
     title     TEXT,
     username  TEXT,
     firstname TEXT,
@@ -96,8 +96,8 @@ const databaseScheme = {
   // change chats_tg_id_key constraint -> eid and src
 
   settings: `
-    geotag_required BOOLEAN default true,
-    registration_open BOOLEAN default true,
+    geotag_required BOOLEAN DEFAULT TRUE,
+    registration_open BOOLEAN DEFAULT TRUE,
     registration_code TEXT,
     telegram_api_id INTEGER,
     telegram_api_hash TEXT,
@@ -106,10 +106,16 @@ const databaseScheme = {
     telegram_name TEXT,
     map_tile TEXT,
     map_style TEXT,
-    map_vector BOOLEAN default false,
-    map_mapbox BOOLEAN default false,
+    map_vector BOOLEAN DEFAULT FALSE,
+    map_mapbox BOOLEAN DEFAULT FALSE,
     map_mapbox_key TEXT,
     title TEXT`,
+
+  sets: `
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    query TEXT,
+    exported BOOLEAN DEFAULT FALSE,
+    published BOOLEAN DEFAULT FALSE`,
 
   ips: `
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -786,7 +792,7 @@ export default {
   async getMap(user) {
     const res = await pool.query(`select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}`);
     const data = res.rows;
-    return GeoJSON.parse(data, { Point: ['location.x', 'location.y'] });
+    return GeoJSON.parse(data.filter((x) => x?.location?.x && x?.location?.y), { Point: ['location.x', 'location.y'] });
   },
   async sendToLog(req, userId, event, data) {
     const now = new Date().toISOString();
