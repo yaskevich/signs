@@ -113,6 +113,7 @@ const databaseScheme = {
 
   sets: `
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title TEXT,
     query TEXT,
     exported BOOLEAN DEFAULT FALSE,
     published BOOLEAN DEFAULT FALSE`,
@@ -430,6 +431,10 @@ export default {
   },
   async getAllMessages(off, batch) {
     const res = await pool.query(`select id, eid, data::jsonb - 'media' as data, imagepath, annotations from messages order by id OFFSET ${off} LIMIT ${batch}`);
+    return res.rows;
+  },
+  async getSets() {
+    const res = await pool.query('select * from sets ORDER BY id');
     return res.rows;
   },
   async importAnnotations(data) {
