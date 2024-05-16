@@ -15,13 +15,15 @@ import {
   InputOutlined,
   MapOutlined,
   FormatListBulletedOutlined,
+  CategoryOutlined,
+  BuildOutlined,
 } from '@vicons/material';
 import { NIcon } from 'naive-ui';
 import { RouterLink, RouteRecordName } from 'vue-router';
-import { useHead } from '@vueuse/head';
 
 const state = reactive<IState>({
   token: localStorage.getItem('token') || '',
+  title: '', // '📷',
   user: {} as IUser,
   nav: {
     options: [],
@@ -34,11 +36,6 @@ const state = reactive<IState>({
     mode: false,
   },
 });
-
-const setTitle = (title: string) => {
-  console.log('set title', title);
-  useHead({ title: title || state?.user?.dir || '📷' });
-};
 
 const renderIcon = (icon: Component) => {
   return () => h(NIcon, null, { default: () => h(icon) });
@@ -60,12 +57,20 @@ const makeMenu = () => [
     key: 'management',
     icon: renderIcon(SettingsOutlined),
     children: [
+      {
+        label: 'App',
+        key: 'app',
+        icon: renderIcon(BuildOutlined),
+        children: [
+          makeItem('Users', 'Users', PersonSearchOutlined),
+          makeItem('Logs', 'Logs', FormatListBulletedOutlined),
+          makeItem('Settings', 'Settings', ListAltOutlined),
+        ]
+      },
       makeItem('Upload', 'Upload', CloudUploadOutlined),
       makeItem('Map', 'Map', MapOutlined),
       makeItem('Scheme', 'Scheme', AccountTreeOutlined),
-      makeItem('Users', 'Users', PersonSearchOutlined),
-      makeItem('Logs', 'Logs', FormatListBulletedOutlined),
-      makeItem('Settings', 'Settings', ListAltOutlined),
+      makeItem('Sets', 'Sets', CategoryOutlined),
     ],
   },
   {
@@ -121,7 +126,7 @@ const logoutUser = () => {
   state.token = '';
   state.user = {} as IUser;
   localStorage.removeItem('token');
-  useHead({ title: '' });
+  state.title = '';
   // router.replace('/login');
 };
 
@@ -265,5 +270,4 @@ export default {
   setUser,
   convertArrayToObject,
   initMenu,
-  setTitle,
 };
