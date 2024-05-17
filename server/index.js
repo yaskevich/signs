@@ -255,6 +255,8 @@ app.delete('/api/feature/:id', auth, async (req, res) => res.json(await db.delet
 
 app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(req.user, Number(req.query.id))));
 
+app.get('/api/sets', auth, async (req, res) => res.json(await db.getSets(req.user)));
+
 // app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
 // app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
