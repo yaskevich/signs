@@ -114,7 +114,7 @@ const databaseScheme = {
   sets: `
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title TEXT,
-    query TEXT,
+    query JSON,
     exported BOOLEAN DEFAULT FALSE,
     published BOOLEAN DEFAULT FALSE`,
 
@@ -845,4 +845,23 @@ export default {
     }
     return data;
   },
+  async setSet(user, params) {
+    let data = {};
+    let id = Number(params?.id);
+    console.log(params);
+    try {
+      if (params?.id) {
+        const res = await pool.query('UPDATE sets SET title = $2, query = $3 WHERE id = $1 RETURNING id', [id, params.title, JSON.stringify(params.query)]);
+        data = res.rows?.[0];
+      } else {
+        const res = await pool.query('INSERT INTO sets (title, query) VALUES($1, $2) RETURNING id', [params.title, JSON.stringify(params.query)]);
+        data = res.rows?.[0];
+        id = data?.id;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+    return data;
+  },
+
 };
