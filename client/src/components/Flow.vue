@@ -61,14 +61,10 @@
           <n-space>
             <n-select size="small" v-model:value="setsItem" filterable :options="sets" placeholder="Select a set"
               label-field="title" value-field="id" @update:value="handleUpdateValue" />
-
-
             <n-input type="text" size="small" placeholder="Input a title for the set" v-model:value="newSetTitle"
               :maxlength="64" show-count @keyup.enter="selectObjects" />
-            <n-button type="info" size="small" @click="createOption"> Add </n-button>
-
+            <n-button type="info" size="small" @click="createOption" :disabled="!newSetTitle"> Add </n-button>
           </n-space>
-
         </n-space>
       </n-card>
       <template v-if="items?.length">
@@ -212,23 +208,6 @@ const newSetTitle = ref('');
 const setsItem = ref();
 const sets = ref([] as Array<ISet>);
 
-const createOption = async () => {
-  // console.log('new', newSetTitle.value);
-  const data = await store.post('sets', { query: store.state.selection, title: newSetTitle.value });
-  // console.log("new set", data.id);
-  if (data?.id) {
-    sets.value.push({ title: newSetTitle.value, id: data.id } as ISet);
-    newSetTitle.value = '';
-  }
-};
-
-const handleUpdateValue = (value: string, option: ISet) => {
-  // store.state.selection
-  // console.log('up', value, option);
-  // console.log(sets.value);
-  store.state.selection = option.query;
-};
-
 const pageIn = Number(vuerouter.params.page);
 if (pageIn) {
   page.value = pageIn;
@@ -308,6 +287,27 @@ const onRightClick = () => {
 const selectObjects = async () => {
   page.value = 1;
   await updatePage();
+};
+
+
+const createOption = async () => {
+  // console.log('new', newSetTitle.value);
+  const data = await store.post('sets', { query: store.state.selection, title: newSetTitle.value });
+  // console.log("new set", data.id);
+  if (data?.id) {
+    sets.value.push({ title: newSetTitle.value, id: data.id } as ISet);
+    newSetTitle.value = '';
+  }
+};
+
+const handleUpdateValue = async (value: string, option: ISet) => {
+  // store.state.selection
+  // console.log('up', value, option);
+  // console.log(option.query);
+  // console.log(store.state.selection);
+  // console.log(sets.value);
+  Object.assign(store.state.selection, option.query);
+  await selectObjects();
 };
 
 const formatHeader = () => {
