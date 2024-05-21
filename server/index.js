@@ -257,6 +257,8 @@ app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(r
 
 app.get('/api/sets', auth, async (req, res) => res.json(await db.getSets(req.user)));
 
+app.post('/api/sets', auth, async (req, res) => res.json(await db.setSet(req.user, req.body)));
+
 // app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
 // app.get('/api/prev', auth, async (req, res) => res.json(await db.getPrev(Number(req.query.id))));
