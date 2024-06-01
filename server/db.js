@@ -848,13 +848,13 @@ export default {
   async setSet(user, params) {
     let data = {};
     let id = Number(params?.id);
-    console.log(params);
+    const title = params.title.substring(0, 64);
     try {
       if (params?.id) {
-        const res = await pool.query('UPDATE sets SET title = $2, query = $3 WHERE id = $1 RETURNING id', [id, params.title, JSON.stringify(params.query)]);
+        const res = await pool.query('UPDATE sets SET title = $2, query = $3 WHERE id = $1 RETURNING id', [id, title, JSON.stringify(params.query)]);
         data = res.rows?.[0];
       } else {
-        const res = await pool.query('INSERT INTO sets (title, query) VALUES($1, $2) RETURNING id', [params.title, JSON.stringify(params.query)]);
+        const res = await pool.query('INSERT INTO sets (title, query) VALUES($1, $2) RETURNING id', [title, JSON.stringify(params.query)]);
         data = res.rows?.[0];
         id = data?.id;
       }
@@ -863,5 +863,34 @@ export default {
     }
     return data;
   },
+  async publishSet(user, entry, srcDir, trgtDir) {
+    console.log('publish', entry.id, entry.title);
+    // from Flow
+    const images = Object.entries(entry.query.images)
+      .filter(x => x[1])
+      .map(x => ({ id: typeof x[1] === 'number' ? x[1] : Number(x[0]), value: typeof x[1] === 'string' ? x[1] : true }));
+
+    const objects = Object.values(entry.query.objects)
+      .filter((x) => x?.checked || x?.value)
+      .map((x) => ({ id: x.id, value: x?.value || x?.checked }));
+
+    const res = await this.getObjects(user, { objects, images, limit: 1000 })
+    const files = res.selection.map(x => x.id);
+    if (files?.length) {
+      // console.log(files);
+      try {
+        const filesDir = path.join(trgtDir, String(entry.id));
+        fs.mkdirSync(filesDir, { recursive: true });
+        for (const file of files) {
+          const fileSrc = path.join(srcDir, `${file}.png`);
+          const fileTrgt = path.join(filesDir, `${file}.png`);
+          // console.log(fileSrc, fileTrgt);
+          fs.copyFileSync(fileSrc, fileTrgt)
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
 
 };
