@@ -865,6 +865,7 @@ export default {
   },
   async publishSet(user, entry, srcDir, trgtDir) {
     console.log('publish', entry.id, entry.title);
+    let isOk = true;
     // from Flow
     const images = Object.entries(entry.query.images)
       .filter(x => x[1])
@@ -875,22 +876,38 @@ export default {
       .map((x) => ({ id: x.id, value: x?.value || x?.checked }));
 
     const res = await this.getObjects(user, { objects, images, limit: 1000 })
-    const files = res.selection.map(x => x.id);
+    const files = res.selection.map(x => `${x.id}.png`);
     if (files?.length) {
       // console.log(files);
       try {
         const filesDir = path.join(trgtDir, String(entry.id));
         fs.mkdirSync(filesDir, { recursive: true });
         for (const file of files) {
-          const fileSrc = path.join(srcDir, `${file}.png`);
-          const fileTrgt = path.join(filesDir, `${file}.png`);
+          const fileSrc = path.join(srcDir, file);
+          const fileTrgt = path.join(filesDir, file);
           // console.log(fileSrc, fileTrgt);
-          fs.copyFileSync(fileSrc, fileTrgt)
+          if (!fs.existsSync(fileTrgt)) {
+            fs.copyFileSync(fileSrc, fileTrgt);
+          }
+          await pool.query('UPDATE sets SET exported = True WHERE id = $1', [entry.id])
         }
       } catch (error) {
+        isOk = false;
         console.log(error);
       }
     }
-  }
+    return { success: isOk };
+  },
+  async deleteSet(user, id, exDir) {
+    let data = {};
+    if (id) {
+      console.log('delete set', id);
+      const res = await pool.query('DELETE FROM sets WHERE id = $1 RETURNING id', [Number(id)]);
+      data = res.rows?.[0];
+      fs.rmSync(path.join(exDir, String(id)), { recursive: true, force: true });
+    }
+    console.log('ret', data);
 
+    return data;
+  },
 };
