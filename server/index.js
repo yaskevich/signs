@@ -36,6 +36,7 @@ const imagesDir = path.join(mediaDir, 'downloads');
 const fragmentsDir = path.join(mediaDir, 'fragments');
 const thumbsDir = path.join(mediaDir, 'thumbnails');
 const importDir = path.join(__dirname, 'import');
+const exportDir = path.join(mediaDir, 'export');
 
 const info = {
   server: __package.version,
@@ -258,6 +259,10 @@ app.get('/api/message', auth, async (req, res) => res.json(await db.getMessage(r
 app.get('/api/sets', auth, async (req, res) => res.json(await db.getSets(req.user)));
 
 app.post('/api/sets', auth, async (req, res) => res.json(await db.setSet(req.user, req.body)));
+
+app.post('/api/set/publish', auth, async (req, res) => res.json(await db.publishSet(req.user, req.body, fragmentsDir, exportDir)));
+
+app.delete('/api/sets/:id', auth, async (req, res) => res.json(await db.deleteSet(req.user, req.params.id, exportDir)));
 
 // app.get('/api/next', auth, async (req, res) => res.json(await db.getNext(Number(req.query.id))));
 
