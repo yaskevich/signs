@@ -38,6 +38,7 @@ declare global {
     children?: Array<IFeature>;
     ref?: IFeature;
     checked?: boolean;
+    deleted?:boolean;
   }
 
   interface IAnnotation {
@@ -80,6 +81,9 @@ declare global {
       title?: string;
       user: number;
       meta: {
+        Image: {
+          DateTime: string;
+        };
         image: {
           ModifyDate: string;
         };
@@ -126,6 +130,8 @@ declare global {
     eid: number;
   }
 
+
+
   interface IUsersDict {
     [id: string]: IUser;
   }
@@ -145,6 +151,7 @@ declare global {
 
   interface IState {
     token?: string;
+    title: string;
     error?: string;
     user?: IUser;
     nav: {
@@ -156,6 +163,13 @@ declare global {
       objects: keyable;
       mode: boolean;
     };
+  }
+
+  interface ISet {
+    id?: number;
+    title: string;
+    query: IState["selection"];
+    exported: boolean;
   }
 
   interface ISettings {
