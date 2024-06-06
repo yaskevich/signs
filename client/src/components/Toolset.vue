@@ -180,6 +180,7 @@
         coordinates[0]
       }}</n-tag>
           <n-button type="warning"> Enable editing </n-button>
+          <n-tag size="large">{{author?.firstname}} {{author?.lastname}}</n-tag>
         </n-space>
       </n-form>
     </n-card>
@@ -199,7 +200,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw, onUnmounted, markRaw, shallowRef } from 'vue';
+import { h, ref, reactive, onMounted, onBeforeUnmount, toRaw } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import router from '../router';
 import store from '../store';
@@ -209,10 +210,7 @@ import { Annotorious } from '@recogito/annotorious';
 import '@recogito/annotorious/dist/annotorious.min.css';
 import TiltedBoxPlugin from '@recogito/annotorious-tilted-box';
 import { ArrowBackOutlined, ArrowForwardOutlined } from '@vicons/material';
-import { Map, NavigationControl, Marker, Popup, FullscreenControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { StyleSpecification, ResourceType, MapOptions } from 'maplibre-gl';
-import { isMapboxURL, transformMapboxUrl } from 'maplibregl-mapbox-request-transformer';
 import { DataObjectOutlined } from '@vicons/material';
 
 const message = useMessage();
@@ -233,6 +231,7 @@ const level = ref(0);
 // const objectValues = reactive({} as keyable);
 const isLoaded = ref(false);
 const coordinates = ref<[number, number]>();
+const author = ref<IUser>()
 // const mapContainer = ref<HTMLElement>();
 // const map = shallowRef<Map>();
 // const hideMap = ref(false);
@@ -383,7 +382,7 @@ const initAnnotorius = () => {
       return false;
     })
     .on('clickAnnotation', function (annotation: any, element: any) {
-      // console.log('click!', selectedObject?.id, annotation);
+      console.log('click!', selectedObject?.id, annotation);
       // if (selectedObject?.id) {
       //   showObjectForm.value = true;
       // }
@@ -551,6 +550,12 @@ const buildAnnotationForm = async (init: boolean = false) => {
       coordinates.value = [msg.location.y, msg.location.x];
     }
 
+    if (msg?.data?.user) {
+      const userData = await store.get('users', msg.data.user);
+      // console.log(userData);
+      author.value = userData?.shift();
+    }
+
     // if (store?.state?.user && msg?.location?.x && msg?.location?.y) {
     //   coordinates.value = [msg.location.y, msg.location.x];
     //   if (mapContainer.value) {
@@ -603,7 +608,11 @@ const buildAnnotationForm = async (init: boolean = false) => {
         }, 500);
       }
     } else {
-      anno.value.setAnnotations([]);
+      console.log("load image - no annotations");
+      // anno.value.setAnnotations([]);
+      anno.value.clearAnnotations();
+      const annotations = anno.value.getAnnotations();
+      console.log('annotations cleared', annotations);
       cleanFeatures();
       level.value = 0;
       Object.assign(selectedObject, { id: null, content: '' });
