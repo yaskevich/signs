@@ -72,7 +72,8 @@ const databaseScheme = {
     created    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     location   POINT,
     geonote    TEXT,
-    note       TEXT`,
+    note       TEXT,
+    user_id    INTEGER`,
 
   objects: `
     id          INT GENERATED ALWAYS AS IDENTITY,
@@ -411,7 +412,7 @@ export default {
   async getItemsStats() {
     // let results = [];
     // try {
-    //   const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_length(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
+    //   const result = await Promise.all([pool.query(`select count(*) as num from messages where ${propName} = $1`, [propValue]), pool.query(`select sum(json_array_lenguserth(annotations)) as num from messages where ${propName} = $1`, [propValue])]);
     //   results = result.map((x) => x.rows).map((x) => Number(x.shift().num));
     // } catch (error) {
     //   console.error(error);
@@ -710,9 +711,7 @@ export default {
       const meta = await sharp(filePath).metadata();
       const exifBuf = meta.exif;
       const exifData = exifBuf ? exif(exifBuf) : {};
-      const data = {
-        user: user?.id, title: fileTitle, meta: exifData, size: fileSize
-      };
+      const data = { title: fileTitle, meta: exifData, size: fileSize };
       // console.log('image meta', data);
       const gps = data?.meta?.gps || data?.meta?.GPSInfo;
       // console.log('meta', data?.meta);
@@ -741,7 +740,7 @@ export default {
           fs.unlinkSync(filePath);
         }
       } else {
-        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, features) VALUES($1, $2, $3, $4, $5) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, props || null]);
+        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, user?.id, props || null]);
         id = result?.rows?.shift()?.id;
         await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
       }
@@ -906,7 +905,6 @@ export default {
       data = res.rows?.[0];
       fs.rmSync(path.join(exDir, String(id)), { recursive: true, force: true });
     }
-    console.log('ret', data);
 
     return data;
   },
