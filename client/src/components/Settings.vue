@@ -2,11 +2,7 @@
   <n-card title="Settings" :bordered="false" class="minimal left" v-if="isLoaded">
     <n-space vertical>
       <n-h5>Project Title</n-h5>
-      <n-input
-        v-model:value="settings.title"
-        type="text"
-        placeholder="This text appears as browser tab title"
-        autofocus
+      <n-input v-model:value="settings.title" type="text" placeholder="This text appears as browser tab title" autofocus
         clearable></n-input>
       <n-h4>Registration</n-h4>
       <n-h5>Status</n-h5>
@@ -15,13 +11,8 @@
         <template #unchecked> Closed </template>
       </n-switch>
       <n-h5>Activation Code</n-h5>
-      <n-input
-        v-model:value="settings.registration_code"
-        type="text"
-        placeholder="...some unique string..."
-        :disabled="!settings.registration_open"
-        autofocus
-        clearable></n-input>
+      <n-input v-model:value="settings.registration_code" type="text" placeholder="...some unique string..."
+        :disabled="!settings.registration_open" autofocus clearable></n-input>
       <n-h4>Uploading</n-h4>
       <n-h5>Geotag</n-h5>
 
@@ -37,40 +28,24 @@
         <template #unchecked> Raster </template>
       </n-switch>
       <template v-if="!settings.map_vector">
-        <n-input
-          type="text"
-          placeholder="Tile URL"
-          clearable
-          :allow-input="noSideSpace"
+        <n-input type="text" placeholder="Tile URL" clearable :allow-input="noSideSpace"
           v-model:value="settings.map_tile"></n-input>
-        <small
-          >If this URL is not set, the OpenStreetMap servers are used. But it is <strong>recommended</strong> to use
-          other servers.</small
-        >
+        <small>If this URL is not set, the OpenStreetMap servers are used. But it is <strong>recommended</strong> to use
+          other servers.</small>
       </template>
-      <n-input
-        type="text"
-        v-model:value="settings.map_style"
-        clearable
+      <n-input type="text" v-model:value="settings.map_style" clearable
         :placeholder="settings.map_mapbox ? 'Mapbox style URL' : 'Style URL with API key'"
         v-if="settings.map_vector"></n-input>
       <template v-if="settings.map_vector">
         <n-checkbox v-model:checked="settings.map_mapbox"> Mapbox </n-checkbox>
-        <n-input
-          type="text"
-          placeholder="Access token"
-          v-model:value="settings.map_mapbox_key"
+        <n-input type="text" placeholder="Access token" v-model:value="settings.map_mapbox_key"
           v-show="settings.map_mapbox"></n-input>
       </template>
 
       <n-h4>Telegram</n-h4>
       <a href="https://gram.js.org/getting-started/authorization">Getting API ID and API Hash</a>
       API ID
-      <n-input-number
-        v-model:value="settings.telegram_api_id"
-        type="text"
-        autofocus
-        :show-button="false"
+      <n-input-number v-model:value="settings.telegram_api_id" type="text" autofocus :show-button="false"
         clearable></n-input-number>
       API Hash
       <n-input v-model:value="settings.telegram_api_hash" type="text" autofocus clearable></n-input>
@@ -123,7 +98,7 @@ const saveSettings = async () => {
     ...settings.value,
   });
   if (data === 1) {
-    store.setTitle(settings.value.title);
+    store.state.title = settings.value.title;
     message.success('Settings were updated successfully');
     if (store?.state?.user) {
       Object.assign(store.state.user.settings, settings.value);
@@ -132,12 +107,14 @@ const saveSettings = async () => {
 };
 
 onBeforeMount(async () => {
-  if (store?.state?.user?.privs === 1) {
-    const data = await store.get('settings');
-    settings.value = data;
-    isLoaded.value = Boolean(Object.keys(data).length);
+  // if (store?.state?.user?.privs === 1) {
+  const data = await store.get('settings');
+  settings.value = data;
+  isLoaded.value = Boolean(Object.keys(data).length);
+  if (isLoaded.value) {
     const chatsList = await store.get('chats');
     chats.value = chatsList;
   }
+  // }
 });
 </script>
