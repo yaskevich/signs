@@ -77,6 +77,7 @@ const databaseScheme = {
 
   objects: `
     id          INT GENERATED ALWAYS AS IDENTITY,
+    uid         UUID DEFAULT gen_random_uuid(),
     eid         BIGINT,
     data_id     INTEGER,
     shape       TEXT,
@@ -386,7 +387,7 @@ export default {
     const count = await pool.query(countQuery);
 
     const sql = `
-      SELECT ann.id, ann.data_id, ann.content, ann.eid, ann.features, messages.features AS properties
+      SELECT ann.id, ann.uid, ann.data_id, ann.content, ann.eid, ann.features, messages.features AS properties
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
@@ -874,16 +875,16 @@ export default {
       .filter((x) => x?.checked || x?.value)
       .map((x) => ({ id: x.id, value: x?.value || x?.checked }));
 
-    const res = await this.getObjects(user, { objects, images, limit: 1000 })
-    const files = res.selection.map(x => `${x.id}.png`);
+    const res = await this.getObjects(user, { objects, images, limit: 1000 });
+    const files = res.selection.map(x => [`${x.id}.png`, `${x.uid}.png`]);
     if (files?.length) {
       // console.log(files);
       try {
         const filesDir = path.join(trgtDir, String(entry.id));
         fs.mkdirSync(filesDir, { recursive: true });
         for (const file of files) {
-          const fileSrc = path.join(srcDir, file);
-          const fileTrgt = path.join(filesDir, file);
+          const fileSrc = path.join(srcDir, file[0]);
+          const fileTrgt = path.join(filesDir, file[1]);
           // console.log(fileSrc, fileTrgt);
           if (!fs.existsSync(fileTrgt)) {
             fs.copyFileSync(fileSrc, fileTrgt);
