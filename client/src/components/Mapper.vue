@@ -11,7 +11,7 @@ import { Map, NavigationControl, Marker, Popup, FullscreenControl, LngLatBounds 
 import type {
   GeoJSONSource,
   StyleSpecification,
-  ResourceTypeEnum,
+  ResourceType,
   MapOptions,
   LngLatLike,
   LngLatBoundsLike,
@@ -91,7 +91,7 @@ const initMap = (lngLat: LngLatLike, geo: any) => {
     } as MapOptions;
 
     if (isMapbox && mapboxKey) {
-      mapSetup.transformRequest = (url: string, rt?: ResourceTypeEnum) =>
+      mapSetup.transformRequest = (url: string, rt?: ResourceType) =>
         isMapboxURL(url) ? transformMapboxUrl(url, String(rt), mapboxKey) : { url };
     }
 
