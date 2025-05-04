@@ -550,8 +550,8 @@ const buildAnnotationForm = async (init: boolean = false) => {
       coordinates.value = [msg.location.y, msg.location.x];
     }
 
-    if (msg?.data?.user) {
-      const userData = await store.get('users', msg.data.user);
+    if (msg?.user_id) {
+      const userData = await store.get('users', msg.user_id);
       // console.log(userData);
       author.value = userData?.shift();
     }
