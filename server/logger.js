@@ -1,7 +1,7 @@
 // import { workerData, parentPort } from 'worker_threads';
 import { workerData } from 'worker_threads';
 // import { setTimeout } from 'timers/promises';
-import parser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 import whoiser from 'whoiser';
 import db from './db.js';
 
@@ -19,7 +19,7 @@ if (ip) {
   }
 }
 
-const browser = wd?.ua ? parser(wd.ua) : null;
+const browser = wd?.ua ? UAParser(wd.ua) : null;
 // console.log(wd.thread_count);
 // console.log('worker', wd);
 // await setTimeout(5000, 'resolved');
