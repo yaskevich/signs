@@ -38,8 +38,7 @@
     "whoiser": "^1.18.0"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.31.0"
-  }
+    "@antfu/eslint-config": "^4.13.3",
+    "eslint": "^9.28.0"
+} 
 }
