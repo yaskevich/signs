@@ -120,7 +120,7 @@ if (fs.existsSync(importDir)) {
           console.log(error);
         }
       }
-    // break;
+      // break;
     }
   }
 }
@@ -231,7 +231,7 @@ app.get('/api/stats', auth, async (req, res) => {
 app.get('/api/messages', auth, async (req, res) => {
   // console.log(req.query);
   const count = await db.getMessagesCount();
-  const data = await db.getMessages(req.user, Number(req.query.off), Number(req.query.batch));
+  const data = await db.getMessages(req.user, Number(req.query.off), Number(req.query.batch), Number(req.query.order));
   const usersList = await db.getChats(req.user);
   const usersDict = Object.fromEntries(usersList.map((x) => [x.eid, x]));
   return res.json({

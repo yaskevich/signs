@@ -261,7 +261,7 @@ export default {
     const res = await pool.query('select count(distinct(data_id))::int from objects where data_id is not null');
     return res.rows[0].count;
   },
-  async getMessages(user, off, batch) {
+  async getMessages(user, off, batch, order) {
     const res = await pool.query(`
     SELECT messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated
     FROM messages
@@ -271,7 +271,7 @@ export default {
         GROUP BY objects.data_id) as anns
     ON messages.id = anns.data_id 
     ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
-    ORDER by messages.id
+    ORDER by messages.id ${order? 'DESC': 'ASC'}
     OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },

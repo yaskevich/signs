@@ -2,14 +2,16 @@
   <div v-if="isLoaded">
     <n-space vertical size="large">
       <n-space justify="center">
-        <n-pagination
-          :page-sizes="pageOptions"
-          :page-slot="5"
-          v-model:page="currentPage"
-          v-model:page-size="pageSize"
-          @update:page="onPageNumberChange"
-          @update:page-size="onPageBatchChange"
-          :item-count="totalCount"
+        <n-switch v-model:value="order" @update:value="getPages">
+          <template #checked>
+            New first
+          </template>
+          <template #unchecked>
+            Old first
+          </template>
+        </n-switch>
+        <n-pagination :page-sizes="pageOptions" :page-slot="5" v-model:page="currentPage" v-model:page-size="pageSize"
+          @update:page="onPageNumberChange" @update:page-size="onPageBatchChange" :item-count="totalCount"
           show-size-picker></n-pagination>
       </n-space>
       <n-card v-for="(msg, key) in messagesPage" :key="key" :style="msg?.annotated ? 'background-color:#dff6dd' : ''">
@@ -19,15 +21,13 @@
               <template #trigger>
                 <n-tag>
                   <template #icon>
-                    <n-icon
-                      :component="
-                        msg?.imagepath
-                          ? msg?.eid
-                            ? FilePresentOutlined
-                            : UploadFileOutlined
-                          : msg?.data['_'] === 'Message'
-                          ? MessageOutlined
-                          : ElectricalServicesOutlined
+                    <n-icon :component="msg?.imagepath
+                      ? msg?.eid
+                        ? FilePresentOutlined
+                        : UploadFileOutlined
+                      : msg?.data['_'] === 'Message'
+                        ? MessageOutlined
+                        : ElectricalServicesOutlined
                       " />
                   </template>
                   {{ msg?.id }}
@@ -131,7 +131,7 @@
                 <div v-if="msg?.data?.fwd_from">FWD: {{ msg?.data.fwd_from.date.slice(0, -6) }}</div>
                 <div>TG: {{ msg?.data?.date?.slice(0, -6) }}</div>
               </template>
-              <div v-if="msg?.data?.meta?.Image?.DateTime ">
+              <div v-if="msg?.data?.meta?.Image?.DateTime">
                 EXIF: {{ extractDate(msg.data.meta.Image.DateTime) }}
               </div>
               <div>DB: {{ extractDate(msg?.created) }}</div>
@@ -148,8 +148,7 @@
                       <template #icon>
                         <n-icon :component="RemoveRedEyeOutlined" />
                       </template>
-                      {{ msg?.data['views'] }}</n-tag
-                    >
+                      {{ msg?.data['views'] }}</n-tag>
                   </template>
                   Views
                 </n-tooltip>
@@ -211,25 +210,16 @@
           <n-gi :span="6">
             <div style="text-align: right">
               <router-link :to="'/datum/' + msg?.id">
-                <img
-                  :src="'/api/media/thumbnails/' + msg.imagepath + '?jwt=' + store?.state?.token"
-                  @contextmenu.prevent="onRightClick"
-                  v-if="msg?.imagepath"
-                  class="image-navi" />
+                <img :src="'/api/media/thumbnails/' + msg.imagepath + '?jwt=' + store?.state?.token"
+                  @contextmenu.prevent="onRightClick" v-if="msg?.imagepath" class="image-navi" />
               </router-link>
             </div>
           </n-gi>
         </n-grid>
       </n-card>
       <n-space justify="center">
-        <n-pagination
-          :page-slot="5"
-          :page-sizes="pageOptions"
-          v-model:page="currentPage"
-          v-model:page-size="pageSize"
-          @update:page="onPageNumberChange"
-          @update:page-size="onPageBatchChange"
-          :item-count="totalCount"
+        <n-pagination :page-slot="5" :page-sizes="pageOptions" v-model:page="currentPage" v-model:page-size="pageSize"
+          @update:page="onPageNumberChange" @update:page-size="onPageBatchChange" :item-count="totalCount"
           show-size-picker></n-pagination>
       </n-space>
     </n-space>
@@ -273,6 +263,7 @@ import { useMessage } from 'naive-ui';
 const router = useRouter();
 const message = useMessage();
 const isLoaded = ref(false);
+const order = ref(true);
 const messagesPage = ref<Array<IMessage>>([]);
 const tgUsers = ref({} as IUsersDict);
 const pageOptions = [10, 25, 50, 100];
@@ -344,7 +335,7 @@ if (batchIn) {
 const getPages = async () => {
   const offset = pageSize.value * (currentPage.value - 1);
   // const { data } = await axios.get('/api/messages', { params: { off: offset, batch: pageSize.value } });
-  const data = await store.get('messages', null, { off: offset, batch: pageSize.value });
+  const data = await store.get('messages', null, { off: offset, batch: pageSize.value, order: Number(order.value) });
   messagesPage.value = data.data;
   // console.log(data.data);
   // console.log('get data');
@@ -401,7 +392,7 @@ const onPageNumberChange = async (i: number) => {
 // }
 
 const showJSON = (msg: IMessage) => {
-  // console.log(msg.data);
+// console.log(msg.data);
   dataObject.value = msg.data;
   showModal.value = true;
 };
@@ -411,14 +402,18 @@ const showJSON = (msg: IMessage) => {
 .image-navi {
   border: 5px double lightgray;
   transition: filter 0.2s ease-in-out;
-  -webkit-filter: grayscale(0%); /* Ch 23+, Saf 6.0+, BB 10.0+ */
-  filter: grayscale(0%); /* FF 35+ */
+  -webkit-filter: grayscale(0%);
+  /* Ch 23+, Saf 6.0+, BB 10.0+ */
+  filter: grayscale(0%);
+  /* FF 35+ */
   transform: scale(0.8);
 }
 
 .image-navi:hover {
-  -webkit-filter: grayscale(100%); /* Ch 23+, Saf 6.0+, BB 10.0+ */
-  filter: grayscale(100%); /* FF 35+ */
+  -webkit-filter: grayscale(100%);
+  /* Ch 23+, Saf 6.0+, BB 10.0+ */
+  filter: grayscale(100%);
+  /* FF 35+ */
   transform: scale(1);
 }
 </style>
