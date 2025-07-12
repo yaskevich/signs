@@ -271,7 +271,7 @@ export default {
         GROUP BY objects.data_id) as anns
     ON messages.id = anns.data_id 
     ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
-    ORDER by messages.id ${order? 'DESC': 'ASC'}
+    ORDER by messages.id ${order ? 'DESC' : 'ASC'}
     OFFSET ${off} LIMIT ${batch}`);
     return res.rows;
   },
@@ -722,7 +722,6 @@ export default {
       if (gps) {
         const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
         const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
-        // console.log(lat, lng);
         loc = `(${lat}, ${lng})`;
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en-us&addressdetails=1`);
         const geo = await response.json();
@@ -735,15 +734,19 @@ export default {
         errorMessage = 'Image does not have coordinates';
       }
 
-      if (settings?.geotag_required && !gps?.GPSProcessingMethod) {
+      if (settings?.geotag_required && !Object.keys(gps)?.length) {
         errorMessage = 'The image does not have required geotag!';
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
       } else {
-        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, user?.id, props || null]);
+        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, user?.id, props || null]);
         id = result?.rows?.shift()?.id;
-        await sharp(filePath).resize(thumbnailSettings).toFile(thumbsPath);
+        if (exifData.Image.Orientation) {
+          const buffer = await sharp(filePath).autoOrient().toBuffer();
+          await sharp(buffer).toFile(filePath);
+        }
+        await sharp(filePath).autoOrient().resize(thumbnailSettings).toFile(thumbsPath);
       }
     } catch (error) {
       console.log(error);
