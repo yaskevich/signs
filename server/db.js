@@ -354,12 +354,12 @@ export default {
     return res.rows;
   },
   async getObjects(user, params) {
+    const isGeo = params?.map || false;
     const offset = params?.offset || 0;
-    const limit = params?.limit || 100;
+    const limit = params?.limit || 1000;
     const objectFeatures = params?.objects;
     const imageFeatures = params?.images;
-    // console.log(imageFeatures, objectFeatures);
-
+    // console.log("params",imageFeatures, objectFeatures);
     const sqlJoin = 'INNER JOIN messages ON ann.data_id = messages.id';
 
     const buildCondition = (arr, table) => (arr.length ? `${arr.map((x) => `jsonb_path_exists(${table}.features::jsonb, '$.** ? (@.id == ${Number(x.id)} && @.value ${typeof x.value === 'string' ? `like_regex "${x.value}" flag "i"` : `== ${x.value}`})')`).join(' AND ')}` : '');
@@ -383,11 +383,11 @@ export default {
 
     const countQuery = `select count(*) as ttl ${featuresCondition ? `, count(*) filter (${featuresCondition}) as sel` : ''} from objects as ann ${imageFeatures?.length ? sqlJoin : ''}`;
 
-    console.log(countQuery);
+    // console.log(countQuery);
     const count = await pool.query(countQuery);
 
     const sql = `
-      SELECT ann.id, ann.uid, ann.data_id, ann.content, ann.eid, ann.features, messages.features AS properties
+      SELECT ann.id, ann.uid, ann.data_id, ann.content, ann.eid, ann.features, messages.location, messages.features AS properties
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
@@ -396,7 +396,13 @@ export default {
       OFFSET $1 LIMIT $2`;
 
     const res = await pool.query(sql, [offset, limit]);
+    const data = res.rows;
 
+    if (isGeo) {
+      console.log(JSON.stringify(data));
+      
+      return GeoJSON.parse(data.filter((x) => x?.location?.x && x?.location?.y), { Point: ['location.x', 'location.y'] });
+    }
     return {
       count: count?.rows?.shift(), selection: res.rows, offset, limit
     };
