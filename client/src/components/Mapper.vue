@@ -35,6 +35,39 @@ const map = shallowRef<Map>();
 const showMap = ref(false);
 const marker = shallowRef<Marker>();
 
+
+const fitToData = (map: Map) => {
+  const geo = props.data;
+  const featuresCount = geo.features.length;
+  if (featuresCount) {
+    if (featuresCount === 1 && geo.features[0].geometry.type === 'Point') {
+      const center = geo.features[0].geometry?.coordinates as LngLatLike;
+      map.jumpTo({ center, zoom: 6 });
+    }
+    else {
+      // const bounds = bbox(geo) as LngLatBoundsLike;
+      const coordinates = geo.features.map((x: Feature) => (x?.geometry as Point)?.coordinates);
+      const bounds: LngLatBoundsLike = coordinates.reduce(
+        (bound: any, coord: Position) => bound.extend(coord),
+        new LngLatBounds(coordinates[0] as LngLatLike, coordinates[0] as LngLatLike)
+      );
+      map.fitBounds(bounds, { padding: 50 });
+    }
+  }
+};
+
+const setMapData = async () => {
+  const thisMap = map?.value;
+  if (thisMap && map.value) {
+    const src = map.value.getSource('points-source') as GeoJSONSource;
+    if (src) {
+      src.setData(props.data as any);
+      fitToData(thisMap);
+    }
+  }
+};
+
+
 const initMap = (lngLat: LngLatLike, geo: any) => {
   // console.log('init map');
   const {
@@ -187,7 +220,7 @@ const initMap = (lngLat: LngLatLike, geo: any) => {
 };
 
 const renderMap = (options: any) => {
-  // console.log('render map', options);
+  console.log('render map', options);
   let result = false;
 
   if (store?.state?.user?.settings) {
@@ -204,6 +237,8 @@ const renderMap = (options: any) => {
             marker.value.setLngLat(coordinates);
             // map.value.flyTo({ center: coordinates.value });
             map.value.setCenter(coordinates);
+          } else {
+            setMapData();
           }
         }
       }
@@ -211,6 +246,8 @@ const renderMap = (options: any) => {
   }
   showMap.value = result;
 };
+
+
 
 watch(props, () => {
   console.log('props', props);
