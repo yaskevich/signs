@@ -355,6 +355,7 @@ export default {
   },
   async getObjects(user, params) {
     const isGeo = params?.map || false;
+    const order = params?.order;
     const offset = params?.offset || 0;
     const limit = params?.limit || 1000;
     const objectFeatures = params?.objects;
@@ -392,15 +393,13 @@ export default {
       ${sqlJoin}
       ${featuresCondition}
       ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
-      ORDER BY ann.id, ann.eid
+      ORDER BY ann.id ${order ? 'DESC' : 'ASC'}, ann.eid
       OFFSET $1 LIMIT $2`;
 
     const res = await pool.query(sql, [offset, limit]);
     const data = res.rows;
 
     if (isGeo) {
-      console.log(JSON.stringify(data));
-      
       return GeoJSON.parse(data.filter((x) => x?.location?.x && x?.location?.y), { Point: ['location.x', 'location.y'] });
     }
     return {

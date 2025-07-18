@@ -69,6 +69,14 @@
       </n-card>
       <template v-if="items?.length">
         <n-space justify="center">
+          <n-switch v-model:value="order" @update:value="updatePage">
+            <template #checked>
+              New first
+            </template>
+            <template #unchecked>
+              Old first
+            </template>
+          </n-switch>
           <n-pagination v-model:page="page" v-model:page-size="pageSize" show-size-picker :page-slot="5"
             :item-count="currentCount" :page-sizes="paginationOptions" @update:page="changePage"
             @update:page-size="changePageSize" />
@@ -101,10 +109,10 @@
                               <n-button type="info" size="small">{{ features[tag.id]?.title }}</n-button>
                             </template>
                             {{
-        typeof tag.value === 'string'
-          ? features[tag.id]?.title
-          : features[features[tag.id].parent].title
-      }}
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
                           </n-tooltip>
                           <n-tooltip trigger="hover">
                             <template #trigger>
@@ -126,10 +134,10 @@
                                 {{ typeof tag.value === 'string' ? tag.value : features[tag.id]?.title }}</n-button>
                             </template>
                             {{
-        typeof tag.value === 'string'
-          ? features[tag.id]?.title
-          : features[features[tag.id].parent].title
-      }}
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
                           </n-tooltip>
                         </template>
                       </template>
@@ -148,10 +156,10 @@
                               <n-button tertiary size="small">{{ features[tag.id]?.title }}</n-button>
                             </template>
                             {{
-        typeof tag.value === 'string'
-          ? features[tag.id]?.title
-          : features[features[tag.id].parent].title
-      }}
+                              typeof tag.value === 'string'
+                                ? features[tag.id]?.title
+                                : features[features[tag.id].parent].title
+                            }}
                           </n-tooltip>
                           <!-- <n-button v-else tertiary>{{ features[tag.id]?.title }}</n-button> -->
                         </template>
@@ -207,6 +215,8 @@ const vuerouter = useRoute();
 const newSetTitle = ref('');
 const setsItem = ref();
 const sets = ref([] as Array<ISet>);
+const order = ref(true);
+
 
 const pageIn = Number(vuerouter.params.page);
 if (pageIn) {
@@ -251,6 +261,7 @@ const updatePage = async () => {
     objects,
     images,
     // images: Object.values(store.state.selection.images)?.filter(Boolean),
+    order: Number(order.value)
   });
 
   items.value = data.selection;
@@ -322,8 +333,7 @@ onBeforeMount(async () => {
   console.log('mount');
   const sdata = await store.get('sets');
   sets.value = sdata;
-  console.log(sets.value);
-
+  // console.log("sets", sets.value);
   const fdata = await store.get('features');
   if (!Object.keys(store.state.selection.objects)?.length) {
     const featuresData = Object.fromEntries(fdata.map((x: any) => [x.id, { ...x, checked: false, value: '' }]));
