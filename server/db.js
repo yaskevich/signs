@@ -745,7 +745,9 @@ export default {
           fs.unlinkSync(filePath);
         }
       } else {
-        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [fileName, JSON.stringify(data), loc, geonote, user?.id, props || null]);
+        const serialized = JSON.stringify(data).replaceAll('\\u0000','');
+        console.log(serialized);
+        const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [fileName, serialized, loc, geonote, user?.id, props || null]);
         id = result?.rows?.shift()?.id;
         if (exifData.Image.Orientation) {
           const buffer = await sharp(filePath).autoOrient().toBuffer();
