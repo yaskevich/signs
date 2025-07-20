@@ -351,5 +351,7 @@ app.get('/api/map', auth, async (req, res) => res.json(await db.getMap(req.user)
 
 app.get('/api/logs', auth, async (req, res) => res.json(await db.getLogs(req.user)));
 
+app.get('/api/location', auth, async (req, res) => res.json(await db.getBasicCoordinates(req.user)));
+
 app.listen(port);
 console.log(`Backend is at port ${port}`);

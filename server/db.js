@@ -804,6 +804,10 @@ export default {
     }
     return 0;
   },
+  async getBasicCoordinates (user) {
+    const res = await pool.query('select ARRAY[avg(location[1]), avg(location[0])] as location from messages');
+    return res.rows[0];
+  },
   async getMap(user) {
     const res = await pool.query(`select objects.content, objects.id, objects.features, location from objects left join messages on objects.data_id = messages.id ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}`);
     const data = res.rows;
