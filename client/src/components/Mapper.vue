@@ -24,6 +24,7 @@ const props = withDefaults(
   defineProps<{
     datum?: [number, number];
     data?: any;
+    draggable: boolean;
   }>(),
   {}
 );
@@ -133,7 +134,7 @@ const initMap = (lngLat: LngLatLike, geo: any) => {
     map.addControl(new FullscreenControl({ container: mapContainer.value }));
     // draggable: true
     if (lngLat) {
-      marker.value = new Marker({ color: '#FF0000' });
+      marker.value = new Marker({ color: '#FF0000', draggable: props.draggable });
       marker.value
         .setLngLat(lngLat)
         // .setPopup(new Popup().setText('test'))
@@ -251,6 +252,10 @@ const renderMap = (options: any) => {
 
 watch(props, () => {
   console.log('props', props);
+  if (props.draggable) {
+    init.value = false;
+    map.value?.remove();
+  }
   renderMap(props);
 });
 
