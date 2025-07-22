@@ -295,8 +295,8 @@ export default {
   // },
   async setItemMeta(user, datum) {
     let data = {};
-    // console.log(datum);
-    const res = await pool.query('UPDATE messages SET features = $2, geonote = $3, note = $4 WHERE id = $1 RETURNING id', [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
+    const pt = datum?.point;
+    const res = await pool.query(`UPDATE messages SET features = $2, geonote = $3, note = $4 ${pt?.length ? `, location = Point(${Number(pt[1]) || 0}, ${Number(pt[0]) || 0})` : ''} WHERE id = $1 RETURNING id`, [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
     data = res.rows?.[0];
     return data;
   },
@@ -745,7 +745,7 @@ export default {
           fs.unlinkSync(filePath);
         }
       } else {
-        const serialized = JSON.stringify(data).replaceAll('\\u0000','');
+        const serialized = JSON.stringify(data).replaceAll('\\u0000', '');
         console.log(serialized);
         const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [fileName, serialized, loc, geonote, user?.id, props || null]);
         id = result?.rows?.shift()?.id;
@@ -804,7 +804,7 @@ export default {
     }
     return 0;
   },
-  async getBasicCoordinates (user) {
+  async getBasicCoordinates(user) {
     const res = await pool.query('select ARRAY[avg(location[1]), avg(location[0])] as location from messages');
     return res.rows[0];
   },
