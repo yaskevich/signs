@@ -68,6 +68,14 @@ const setMapData = async () => {
   }
 };
 
+function onDragEnd() {
+  if (marker.value && props.datum) {
+    const lngLat = marker.value.getLngLat();
+    console.log("drag end", lngLat);
+    props.datum[0] = lngLat.lng;
+    props.datum[1] = lngLat.lat
+  }
+};
 
 const initMap = (lngLat: LngLatLike, geo: any) => {
   // console.log('init map');
@@ -139,6 +147,7 @@ const initMap = (lngLat: LngLatLike, geo: any) => {
         .setLngLat(lngLat)
         // .setPopup(new Popup().setText('test'))
         .addTo(map);
+      marker.value.on('dragend', onDragEnd);
     }
     map.on('load', async () => {
       map.resize();
