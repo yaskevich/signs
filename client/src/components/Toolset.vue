@@ -176,18 +176,37 @@
 
         <n-space justify="space-between">
           <!-- lat lon -->
-          <n-tag size="large" v-if="coordinates?.[0] && coordinates?.[1]" type="info">{{ coordinates[1] }} {{
-        coordinates[0]
-      }}</n-tag>
-          <n-button type="warning"> Enable editing </n-button>
-          <n-tag size="large">{{author?.firstname}} {{author?.lastname}}</n-tag>
+          <n-space justify="start">
+            <n-button type="warning" @click="enableMap" v-if="!editableMarker"> Enable geolocation editing </n-button>
+            <template v-else>
+              <n-tag type="warning" size="large">Coordinates editing is enabled</n-tag>
+            </template>
+            <n-alert style="width: 300px" type="error" :show-icon="false"
+              v-if="editableMarker && defPosition[0] === coordinates?.[0] && defPosition[1] === coordinates[1]">
+              <n-marquee>
+                <div>
+                  &nbsp;
+                  Random position is set!
+                  &nbsp;
+                  Adjust the marker manually before saving!
+                </div>
+              </n-marquee>
+            </n-alert>
+            <template v-else>
+              <n-tag size="large" v-if="coordinates?.[0] && coordinates?.[1]" type="info">{{ coordinates[1] }} {{
+                coordinates[0]
+              }}</n-tag>
+            </template>
+          </n-space>
+          <n-tag size="large">{{ author?.firstname }} {{ author?.lastname }}</n-tag>
         </n-space>
       </n-form>
     </n-card>
+
     <!-- <div class="map-wrap" v-if="!hideMap">
       <div class="map" ref="mapContainer"></div>
     </div> -->
-    <Mapper :datum="coordinates" />
+    <Mapper :datum="coordinates" :draggable="editableMarker" />
     <n-card v-if="item?.data?.message" embedded>
       <span v-html="item.data.message.split('\n').join('<br/>')"></span>
     </n-card>
@@ -231,7 +250,8 @@ const level = ref(0);
 // const objectValues = reactive({} as keyable);
 const isLoaded = ref(false);
 const coordinates = ref<[number, number]>();
-const author = ref<IUser>()
+const author = ref<IUser>();
+const editableMarker = ref(false);
 // const mapContainer = ref<HTMLElement>();
 // const map = shallowRef<Map>();
 // const hideMap = ref(false);
@@ -243,6 +263,18 @@ const toolsOptions = [
   { title: 'Polygon', type: 'polygon' },
   { title: 'Tilted Box', type: 'annotorious-tilted-box' },
 ];
+const defPosition = ref<[number, number]>([0, 0]);
+
+const enableMap = async () => {
+  if (!coordinates.value) {
+    if (defPosition.value[0] === defPosition.value[1]) {
+      const data = await store.get('location');
+      defPosition.value = data.location;
+    }
+    coordinates.value = [Number(defPosition.value[0]), Number(defPosition.value[1])];
+  }
+  editableMarker.value = true;
+};
 
 const updateInput = (userInput: any, key: any) => {
   // console.log('update text input', userInput, key);
@@ -699,9 +731,14 @@ const saveItemAnnotation = async () => {
     id: id.value,
     geonote: item.value.geonote,
     note: item.value.note,
+    point: coordinates.value,
   };
 
   const data = await store.post('meta', { params });
+  if (data?.geonote) {
+    item.value.geonote = data.geonote;
+  }
+
   if (data?.id == id.value) {
     message.success('The item data were saved.');
   } else {
