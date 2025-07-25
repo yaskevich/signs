@@ -200,6 +200,12 @@ if (tables.length !== Object.keys(databaseScheme).length) {
   }
 }
 
+const getGeo = async (lat, lng) => {
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en-us&addressdetails=1`);
+  return response.json();
+};
+
+
 const clipShape = async (id, shape, geometry, imageFile, imageDir, fragmentsDir) => {
   const originalFullPath = path.join(imageDir, imageFile);
 
@@ -270,9 +276,9 @@ export default {
         FROM objects
         GROUP BY objects.data_id) as anns
     ON messages.id = anns.data_id 
-    ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
+    ${user.privs === 1 ? '' : (`WHERE messages.user_id = ${user.id}`)}
     ORDER by messages.id ${order ? 'DESC' : 'ASC'}
-    OFFSET ${off} LIMIT ${batch}`);
+    OFFSET ${off} LIMIT ${batch}`); // WHERE (messages.data->>'user')::int
     return res.rows;
   },
   async getMessage(user, id) {
@@ -296,8 +302,16 @@ export default {
   async setItemMeta(user, datum) {
     let data = {};
     const pt = datum?.point;
-    const res = await pool.query(`UPDATE messages SET features = $2, geonote = $3, note = $4 ${pt?.length ? `, location = Point(${Number(pt[1]) || 0}, ${Number(pt[0]) || 0})` : ''} WHERE id = $1 RETURNING id`, [datum.id, JSON.stringify(datum.features), datum?.geonote, datum?.note]);
-    data = res.rows?.[0];
+    let geonote = datum.geonote;
+    if (pt?.length) {
+      const geo = await getGeo(pt[1], pt[0]);
+      if (geo?.place_id) {
+        geonote = geo.display_name;
+      }
+    }
+
+    const res = await pool.query(`UPDATE messages SET features = $2, geonote = $3, note = $4 ${pt?.length ? `, location = Point(${Number(pt[1]) || 0}, ${Number(pt[0]) || 0})` : ''} WHERE id = $1 RETURNING id`, [datum.id, JSON.stringify(datum.features), geonote, datum?.note]);
+    data = { ...res.rows?.[0], geonote };
     return data;
   },
   async deleteFeature(user, params) {
@@ -392,7 +406,7 @@ export default {
       FROM objects AS ann
       ${sqlJoin}
       ${featuresCondition}
-      ${user.privs === 1 ? '' : (`WHERE (messages.data->>'user')::int = ${user.id}`)}
+      ${user.privs === 1 ? '' : (`${featuresCondition ? 'AND' : 'WHERE'} messages.user_id = ${user.id}`)}
       ORDER BY ann.id ${order ? 'DESC' : 'ASC'}, ann.eid
       OFFSET $1 LIMIT $2`;
 
@@ -727,13 +741,11 @@ export default {
       if (gps) {
         const lat = toDec(gps.GPSLatitude, gps.GPSLatitudeRef);
         const lng = toDec(gps.GPSLongitude, gps.GPSLongitudeRef);
-        loc = `(${lat}, ${lng})`;
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en-us&addressdetails=1`);
-        const geo = await response.json();
-        // console.log('loc', loc);
+        const geo = await getGeo(lat, lng);
         if (geo?.place_id) {
           data.geo = geo;
           geonote = geo.display_name;
+          loc = `(${lat}, ${lng})`;
         }
       } else {
         errorMessage = 'Image does not have coordinates';
@@ -746,7 +758,6 @@ export default {
         }
       } else {
         const serialized = JSON.stringify(data).replaceAll('\\u0000', '');
-        console.log(serialized);
         const result = await pool.query('INSERT INTO messages (imagepath, data, location, geonote, user_id, features) VALUES($1, $2, $3, $4, $5, $6) RETURNING id', [fileName, serialized, loc, geonote, user?.id, props || null]);
         id = result?.rows?.shift()?.id;
         if (exifData.Image.Orientation) {
