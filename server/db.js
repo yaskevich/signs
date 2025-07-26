@@ -205,7 +205,6 @@ const getGeo = async (lat, lng) => {
   return response.json();
 };
 
-
 const clipShape = async (id, shape, geometry, imageFile, imageDir, fragmentsDir) => {
   const originalFullPath = path.join(imageDir, imageFile);
 
@@ -267,9 +266,9 @@ export default {
     const res = await pool.query('select count(distinct(data_id))::int from objects where data_id is not null');
     return res.rows[0].count;
   },
-  async getMessages(user, off, batch, order) {
+  async getMessages(user, isGeo = 0, off = 0, batch = 1000, order) {
     const res = await pool.query(`
-    SELECT messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.geonote, anns.count as annotated
+    SELECT messages.id, messages.eid, data::jsonb - 'media' as data, messages.imagepath, messages.created, messages.location, messages.geonote, anns.count as annotated
     FROM messages
     LEFT JOIN
      (SELECT objects.data_id, count(objects.data_id)
@@ -279,6 +278,9 @@ export default {
     ${user.privs === 1 ? '' : (`WHERE messages.user_id = ${user.id}`)}
     ORDER by messages.id ${order ? 'DESC' : 'ASC'}
     OFFSET ${off} LIMIT ${batch}`); // WHERE (messages.data->>'user')::int
+    if (isGeo) {
+      return GeoJSON.parse(res.rows.filter((x) => x?.location?.x && x?.location?.y), { Point: ['location.x', 'location.y'] });
+    }
     return res.rows;
   },
   async getMessage(user, id) {
