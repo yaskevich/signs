@@ -9,6 +9,9 @@ import UnheadVite from '@unhead/addons/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_DATE__: new Date(),
+  },
   plugins: [
     vue(),
     UnheadVite(),
@@ -31,7 +34,7 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 3040, 
+    port: 3040,
     proxy: {
       '/api': {
         target: 'http://localhost:3041',
