@@ -74,7 +74,7 @@ const makeMenu = () => [
     ],
   },
   {
-    label: state?.user?.username,
+    label: state?.user?.firstname || state?.user?.username || 'user',
     key: 'username',
     disabled: false,
     icon: renderIcon(PersonOutlined),
@@ -265,6 +265,8 @@ export default {
   deleteById,
   logoutUser,
   version: project?.version,
+  author: project?.author,
+  buildDate: __BUILD_DATE__,
   git: 'https' + project?.repository?.url?.slice(3, -4),
   nest,
   setUser,

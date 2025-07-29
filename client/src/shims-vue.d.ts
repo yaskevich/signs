@@ -31,3 +31,4 @@ declare module 'vue-json-viewer' {
   const def: { install: (app: App) => void };
   export default def;
 }
+declare const __BUILD_DATE__: string;

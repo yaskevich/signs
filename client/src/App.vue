@@ -17,7 +17,7 @@
               <template #icon>
                 <n-icon :component="CameraAltFilled" />
               </template>
-              2020–2024 •&nbsp;<strong>Signs</strong>&nbsp;by Alyaxey Yaskevich
+              2020–{{ store.buildDate.split('-').shift() }} •&nbsp;<strong>Signs</strong> &nbsp;by {{ store.author }}
             </n-button>
           </n-space>
         </n-layout-footer>
