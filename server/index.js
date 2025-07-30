@@ -231,7 +231,7 @@ app.get('/api/stats', auth, async (req, res) => {
 app.get('/api/messages', auth, async (req, res) => {
   // console.log(req.query);
   const count = await db.getMessagesCount();
-  const data = await db.getMessages(req.user, Number(req.query.off), Number(req.query.batch), Number(req.query.order));
+  const data = await db.getMessages(req.user, false, Number(req.query.off), Number(req.query.batch), Number(req.query.order));
   const usersList = await db.getChats(req.user);
   const usersDict = Object.fromEntries(usersList.map((x) => [x.eid, x]));
   return res.json({
@@ -240,6 +240,11 @@ app.get('/api/messages', auth, async (req, res) => {
     users: usersDict,
     // "user": req.isAuthenticated()?getUser(req):{}
   });
+});
+
+app.get('/api/images', auth, async (req, res) => {
+  const data = await db.getMessages(req.user, true);
+  res.json(data)
 });
 
 app.post('/api/objects', auth, async (req, res) => res.json(await db.getObjects(req.user, req.body)));
