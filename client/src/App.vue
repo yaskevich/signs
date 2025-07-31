@@ -1,43 +1,45 @@
 <template>
-  <n-message-provider>
-    <template id="main" v-if="loggedIn">
-      <n-layout>
-        <n-layout-header class="header">
-          <n-space justify="center">
-            <n-menu v-model:value="activeKey" mode="horizontal" :options="store.state.nav.options"
-              @update:value="processMenu" />
-          </n-space>
-        </n-layout-header>
-        <n-layout-content style="padding-bottom: 3rem">
-          <router-view />
-        </n-layout-content>
-        <n-layout-footer style="padding: 0.25rem">
-          <n-space justify="center">
-            <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
-              <template #icon>
-                <n-icon :component="CameraAltFilled" />
-              </template>
-              2020–{{ store.buildDate.split('-').shift() }} •&nbsp;<strong>Signs</strong> &nbsp;by {{ store.author }}
-            </n-button>
-          </n-space>
-        </n-layout-footer>
-      </n-layout>
-    </template>
-    <div v-else style="max-width: 300px; margin: auto">
-      <n-tabs default-value="signin" size="large" animated justify-content="center" style="margin: 0 -4px"
-        pane-style="padding-left: 4px; padding-right: 4px; box-sizing: border-box;">
-        <n-tab-pane name="signin" tab="Log in">
-          <Login />
-        </n-tab-pane>
-        <n-tab-pane name="signup" tab="Register">
-          <Register v-if="access" />
-          <n-h2 v-else>
-            <n-text type="warning">Registration is closed.</n-text>
-          </n-h2>
-        </n-tab-pane>
-      </n-tabs>
-    </div>
-  </n-message-provider>
+  <n-config-provider>
+    <n-message-provider>
+      <template id="main" v-if="loggedIn">
+        <n-layout>
+          <n-layout-header class="header">
+            <n-space justify="center">
+              <n-menu v-model:value="activeKey" mode="horizontal" :options="store.state.nav.options"
+                @update:value="processMenu" />
+            </n-space>
+          </n-layout-header>
+          <n-layout-content style="padding-bottom: 3rem">
+            <router-view />
+          </n-layout-content>
+          <n-layout-footer style="padding: 0.25rem">
+            <n-space justify="center">
+              <n-button text tag="a" href="https://yaskevich.com/" target="_blank">
+                <template #icon>
+                  <n-icon :component="CameraAltFilled" />
+                </template>
+                2020–{{ store.buildDate.split('-').shift() }} •&nbsp;<strong>Signs</strong> &nbsp;by {{ store.author }}
+              </n-button>
+            </n-space>
+          </n-layout-footer>
+        </n-layout>
+      </template>
+      <div v-else style="max-width: 300px; margin: auto">
+        <n-tabs default-value="signin" size="large" animated justify-content="center" style="margin: 0 -4px"
+          pane-style="padding-left: 4px; padding-right: 4px; box-sizing: border-box;">
+          <n-tab-pane name="signin" tab="Log in">
+            <Login />
+          </n-tab-pane>
+          <n-tab-pane name="signup" tab="Register">
+            <Register v-if="access" />
+            <n-h2 v-else>
+              <n-text type="warning">Registration is closed.</n-text>
+            </n-h2>
+          </n-tab-pane>
+        </n-tabs>
+      </div>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 <script setup lang="ts">
 import router from './router';
